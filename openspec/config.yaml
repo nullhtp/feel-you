@@ -1,20 +1,39 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Project: Feel You — a mobile app for deaf-blind people to communicate with the world using only a phone.
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Tech stack: Flutter (Dart), targeting iOS & Android.
+  Project status: Greenfield — pre-implementation, planning phase. No application code exists yet.
+
+  Domain: Accessibility / assistive technology for deaf-blind communication.
+  The entire interface uses two channels:
+    - Input: Touch gestures (tap, hold, swipe)
+    - Output: Vibration patterns (Morse code)
+  No sight or hearing needed.
+
+  Phase 1 (current scope): Morse code learning tool via vibration.
+    - App vibrates a Morse pattern for a letter, repeats patiently until the user taps it back.
+    - Success/failure communicated through distinct vibration patterns.
+    - User controls pace entirely — skip, revisit, or reset anytime.
+    - Minimal state: only tracks which letter the user is on.
+    - Design philosophy: closer to a musical instrument than a language app.
+
+  Gestures: tap (dot/dash input), swipe right (next letter), swipe left (previous letter), long hold (reset to A).
+  Signal vibrations: 3 quick pulses = correct, one long buzz = wrong.
+
+  Future phases: words/sentences, speech-to-Morse, text-to-Morse, Morse-to-text, real-time conversation.
+
+rules:
+  proposal:
+    - Always include a "Non-goals" section
+    - Consider accessibility implications in every decision — the user cannot see or hear
+    - Keep proposals focused on one phase at a time
+  design:
+    - All user-facing interactions must work through touch input and vibration output only
+    - Prefer simple, stateless designs — minimize what the app needs to remember
+    - Document vibration patterns and timing explicitly
+  tasks:
+    - Break tasks into chunks of max 2 hours
+    - Include Flutter platform considerations (iOS/Android differences) where relevant
+    - Test tasks should cover haptic feedback behavior

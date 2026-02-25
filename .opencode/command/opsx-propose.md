@@ -26,13 +26,25 @@ When ready to implement, run /opsx-apply
 
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 
-2. **Create the change directory**
+2. **Clarify until fully understood**
+
+   Before creating anything, enter a clarification loop. Ask the user questions, offer suggestions, and propose ideas to refine the change. Use the **AskUserQuestion tool** iteratively to:
+   - Ask about unclear requirements, edge cases, or scope
+   - Suggest improvements or alternative approaches
+   - Propose ideas the user may not have considered
+   - Confirm assumptions about the intended behavior
+
+   **Keep asking until ALL ambiguity is resolved.** Do NOT move on until the change is fully clear — its scope, behavior, constraints, and expected outcome. If the user's description is vague or incomplete, it is your responsibility to draw out the details through conversation.
+
+   Only proceed to the next step when you are confident the change is well-defined and the user has confirmed they are satisfied with the direction.
+
+3. **Create the change directory**
    ```bash
    openspec new change "<name>"
    ```
    This creates a scaffolded change at `openspec/changes/<name>/` with `.openspec.yaml`.
 
-3. **Get the artifact build order**
+4. **Get the artifact build order**
    ```bash
    openspec status --change "<name>" --json
    ```
@@ -40,7 +52,7 @@ When ready to implement, run /opsx-apply
    - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
    - `artifacts`: list of all artifacts with their status and dependencies
 
-4. **Create artifacts in sequence until apply-ready**
+5. **Create artifacts in sequence until apply-ready**
 
    Use the **TodoWrite tool** to track progress through the artifacts.
 
@@ -72,7 +84,7 @@ When ready to implement, run /opsx-apply
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
 
-5. **Show final status**
+6. **Show final status**
    ```bash
    openspec status --change "<name>"
    ```
