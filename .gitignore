@@ -1,0 +1,15 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Flutter/Dart (root-level)
+.dart_tool/
+.pub-cache/
+.pub/

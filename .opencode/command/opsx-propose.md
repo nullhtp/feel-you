@@ -19,7 +19,7 @@ When ready to implement, run /opsx-apply
 
 1. **If no input provided, ask what they want to build**
 
-   Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
+   Use the **AskUserQuestion tool** (open-ended, custom input enabled, no preset options) to ask:
    > "What change do you want to work on? Describe what you want to build or fix."
 
    From their description, derive a kebab-case name (e.g., "add user authentication" → `add-user-auth`).
@@ -28,11 +28,20 @@ When ready to implement, run /opsx-apply
 
 2. **Clarify until fully understood**
 
-   Before creating anything, enter a clarification loop. Ask the user questions, offer suggestions, and propose ideas to refine the change. Use the **AskUserQuestion tool** iteratively to:
-   - Ask about unclear requirements, edge cases, or scope
-   - Suggest improvements or alternative approaches
+   Before creating anything, enter a clarification loop to refine the change. Use the **AskUserQuestion tool** to ask questions **one at a time**, where **each question provides selectable options** for the user to choose from.
+
+   **How to ask questions:**
+   - Each question must be a **separate** AskUserQuestion call (do NOT batch multiple questions into one call)
+   - Each question must include **concrete options** as choices — suggest specific approaches, behaviors, or values for the user to pick from
+   - Always enable **custom input** so the user can type their own answer if none of the options fit
+   - Options should be short labels with brief descriptions explaining what each choice means
+   - If a question is inherently open-ended (e.g., "anything else to add?"), you may use fewer options but still provide at least a "Looks good, proceed" option
+
+   **What to clarify:**
+   - Unclear requirements, edge cases, or scope
+   - Suggest improvements or alternative approaches as selectable options
    - Propose ideas the user may not have considered
-   - Confirm assumptions about the intended behavior
+   - Confirm assumptions about intended behavior
 
    **Keep asking until ALL ambiguity is resolved.** Do NOT move on until the change is fully clear — its scope, behavior, constraints, and expected outcome. If the user's description is vague or incomplete, it is your responsibility to draw out the details through conversation.
 
@@ -81,7 +90,7 @@ When ready to implement, run /opsx-apply
       - Stop when all `applyRequires` artifacts are done
 
    c. **If an artifact requires user input** (unclear context):
-      - Use **AskUserQuestion tool** to clarify
+      - Use **AskUserQuestion tool** with selectable options to clarify (one question at a time, each with concrete choices and custom input enabled)
       - Then continue with creation
 
 6. **Show final status**
