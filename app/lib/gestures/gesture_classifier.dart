@@ -1,0 +1,163 @@
+import 'dart:async';
+
+import 'package:feel_you/gestures/gesture_event.dart';
+import 'package:feel_you/gestures/gesture_timing_config.dart';
+import 'package:feel_you/morse/morse_symbol.dart';
+
+/// Raw pointer data fed into the classifier.
+///
+/// Abstracts away Flutter's pointer events so the classifier can be
+/// tested without a widget tree.
+sealed class RawTouchEvent {
+  const RawTouchEvent();
+}
+
+/// Finger touched the screen.
+class TouchDown extends RawTouchEvent {
+  const TouchDown({required this.timestamp, required this.position});
+
+  final Duration timestamp;
+  final double position; // x-coordinate in logical pixels
+}
+
+/// Finger lifted from the screen.
+class TouchUp extends RawTouchEvent {
+  const TouchUp({required this.timestamp, required this.position});
+
+  final Duration timestamp;
+  final double position; // x-coordinate in logical pixels
+}
+
+/// Classifies raw touch events into [GestureEvent]s.
+///
+/// Emits events via a broadcast [Stream]. Manages an internal input buffer
+/// and silence timer for input completion detection.
+class GestureClassifier {
+  GestureClassifier({this.config = const GestureTimingConfig()});
+
+  final GestureTimingConfig config;
+
+  final _controller = StreamController<GestureEvent>.broadcast();
+  final List<MorseSymbol> _inputBuffer = [];
+  Timer? _silenceTimer;
+  Timer? _resetTimer;
+
+  // Track the current press for tap/hold classification.
+  Duration? _pressStartTime;
+  double? _pressStartX;
+  bool _resetEmitted = false;
+
+  /// Stream of classified gesture events.
+  Stream<GestureEvent> get events => _controller.stream;
+
+  /// Feed a raw touch event into the classifier.
+  void handleTouch(RawTouchEvent event) {
+    switch (event) {
+      case TouchDown():
+        _onTouchDown(event);
+      case TouchUp():
+        _onTouchUp(event);
+    }
+  }
+
+  void _onTouchDown(TouchDown event) {
+    _pressStartTime = event.timestamp;
+    _pressStartX = event.position;
+    _resetEmitted = false;
+    _cancelSilenceTimer();
+
+    // Start a timer to detect reset (long hold).
+    _resetTimer?.cancel();
+    _resetTimer = Timer(Duration(milliseconds: config.resetMinDuration), () {
+      _resetEmitted = true;
+      _clearBuffer();
+      _emit(const Reset());
+    });
+  }
+
+  void _onTouchUp(TouchUp event) {
+    _resetTimer?.cancel();
+
+    final startTime = _pressStartTime;
+    final startX = _pressStartX;
+    if (startTime == null || startX == null) return;
+
+    _pressStartTime = null;
+    _pressStartX = null;
+
+    // If reset was already emitted during this press, ignore the release.
+    if (_resetEmitted) return;
+
+    final durationMs = (event.timestamp - startTime).inMilliseconds;
+    final dx = event.position - startX;
+
+    // Check for swipe first.
+    if (_isSwipe(durationMs, dx)) {
+      _cancelSilenceTimer();
+      _clearBuffer();
+      if (dx > 0) {
+        _emit(const NavigateNext());
+      } else {
+        _emit(const NavigatePrevious());
+      }
+      return;
+    }
+
+    // Classify tap duration.
+    if (durationMs < config.dotMaxDuration) {
+      _addSymbol(MorseSymbol.dot);
+    } else if (durationMs <= config.dashMaxDuration) {
+      _addSymbol(MorseSymbol.dash);
+    }
+    // Dead zone (> dashMax, < resetMin): intentionally ignored.
+  }
+
+  bool _isSwipe(int durationMs, double dx) {
+    final distance = dx.abs();
+    if (distance < config.minSwipeDistance) return false;
+
+    // Velocity = distance / time. Guard against zero-duration.
+    if (durationMs <= 0) return distance >= config.minSwipeDistance;
+    final velocity = distance / (durationMs / 1000.0);
+    return velocity >= config.minSwipeVelocity;
+  }
+
+  void _addSymbol(MorseSymbol symbol) {
+    _inputBuffer.add(symbol);
+    _emit(MorseInput(symbol));
+    _startSilenceTimer();
+  }
+
+  void _startSilenceTimer() {
+    _cancelSilenceTimer();
+    _silenceTimer = Timer(Duration(milliseconds: config.silenceTimeout), () {
+      if (_inputBuffer.isNotEmpty) {
+        _emit(InputComplete(List.unmodifiable(_inputBuffer)));
+        _inputBuffer.clear();
+      }
+    });
+  }
+
+  void _cancelSilenceTimer() {
+    _silenceTimer?.cancel();
+    _silenceTimer = null;
+  }
+
+  void _clearBuffer() {
+    _cancelSilenceTimer();
+    _inputBuffer.clear();
+  }
+
+  void _emit(GestureEvent event) {
+    if (!_controller.isClosed) {
+      _controller.add(event);
+    }
+  }
+
+  /// Release resources. After calling this, the classifier should not be used.
+  void dispose() {
+    _silenceTimer?.cancel();
+    _resetTimer?.cancel();
+    _controller.close();
+  }
+}
