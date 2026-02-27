@@ -165,9 +165,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       case InputComplete():
         _onInputComplete(event);
       case NavigateNext():
-        _onNavigate(sessionNotifier.nextLetter);
+        _onNavigate(sessionNotifier.nextLetter, clampAtBoundary: true);
       case NavigatePrevious():
-        _onNavigate(sessionNotifier.previousLetter);
+        _onNavigate(sessionNotifier.previousLetter, clampAtBoundary: true);
       case Reset():
         _onNavigate(sessionNotifier.reset);
     }
@@ -244,17 +244,30 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     unawaited(_runLoop());
   }
 
-  void _onNavigate(void Function() navigationAction) {
+  void _onNavigate(
+    void Function() navigationAction, {
+    bool clampAtBoundary = false,
+  }) {
     // Navigation works in any phase.
     // Stop any ongoing activity.
     state = state.copyWith(isInterrupted: true);
     _cancelPause();
     vibrationService.cancel();
 
+    // Capture index before navigation to detect boundary no-ops.
+    final indexBefore = sessionNotifier.state.letterIndex;
+
     // Perform the navigation (this resets phase to playing).
     navigationAction();
 
-    // Restart the loop for the new letter.
+    final indexAfter = sessionNotifier.state.letterIndex;
+
+    // For next/previous: if already at the boundary (A or Z), the
+    // navigation is a no-op. Don't restart the loop to avoid an
+    // unexpected vibration pattern replay.
+    if (clampAtBoundary && indexBefore == indexAfter) return;
+
+    // Restart the loop for the new (or reset) letter.
     state = state.copyWith(isRunning: true, isInterrupted: false);
     unawaited(_runLoop());
   }
