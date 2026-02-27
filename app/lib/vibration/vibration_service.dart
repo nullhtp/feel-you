@@ -63,6 +63,9 @@ abstract class VibrationService {
 
   /// Plays the error signal (one long buzz).
   Future<void> playError();
+
+  /// Cancels any ongoing vibration.
+  Future<void> cancel();
 }
 
 /// Concrete [VibrationService] that uses the `vibration` package.
@@ -88,5 +91,10 @@ class DeviceVibrationService implements VibrationService {
   Future<void> playError() async {
     final pattern = buildErrorVibrationPattern(config);
     await Vibration.vibrate(pattern: pattern);
+  }
+
+  @override
+  Future<void> cancel() async {
+    await Vibration.cancel();
   }
 }

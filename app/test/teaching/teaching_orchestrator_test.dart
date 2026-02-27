@@ -1,0 +1,522 @@
+import 'dart:async';
+
+import 'package:feel_you/gestures/gesture_classifier.dart';
+import 'package:feel_you/gestures/gesture_event.dart';
+import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/session/session_notifier.dart';
+import 'package:feel_you/session/session_phase.dart';
+import 'package:feel_you/teaching/teaching_orchestrator.dart';
+import 'package:feel_you/teaching/teaching_timing_config.dart';
+import 'package:feel_you/vibration/vibration_service.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+// ---------------------------------------------------------------------------
+// Test doubles
+// ---------------------------------------------------------------------------
+
+/// Records calls to the vibration service for verification.
+class MockVibrationService implements VibrationService {
+  final List<String> calls = [];
+
+  @override
+  Future<void> playMorsePattern(List<MorseSymbol> symbols) async {
+    calls.add('playMorsePattern:$symbols');
+  }
+
+  @override
+  Future<void> playSuccess() async {
+    calls.add('playSuccess');
+  }
+
+  @override
+  Future<void> playError() async {
+    calls.add('playError');
+  }
+
+  @override
+  Future<void> cancel() async {
+    calls.add('cancel');
+  }
+}
+
+/// A gesture classifier that exposes a stream controller for injecting events.
+class TestGestureClassifier extends GestureClassifier {
+  TestGestureClassifier() : super();
+
+  final _testController = StreamController<GestureEvent>.broadcast();
+
+  @override
+  Stream<GestureEvent> get events => _testController.stream;
+
+  void addEvent(GestureEvent event) {
+    _testController.add(event);
+  }
+
+  @override
+  void dispose() {
+    _testController.close();
+    super.dispose();
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Helper
+// ---------------------------------------------------------------------------
+
+/// Creates an orchestrator with test doubles.
+/// Uses a very short repeat pause (10ms) to keep tests fast.
+({
+  TeachingOrchestrator orchestrator,
+  MockVibrationService vibration,
+  SessionNotifier session,
+  TestGestureClassifier gestures,
+})
+createOrchestrator({Duration repeatPause = const Duration(milliseconds: 10)}) {
+  final gestures = TestGestureClassifier();
+  final vibration = MockVibrationService();
+  final session = SessionNotifier();
+  final orchestrator = TeachingOrchestrator(
+    gestureClassifier: gestures,
+    vibrationService: vibration,
+    sessionNotifier: session,
+    config: TeachingTimingConfig(repeatPause: repeatPause),
+  );
+  return (
+    orchestrator: orchestrator,
+    vibration: vibration,
+    session: session,
+    gestures: gestures,
+  );
+}
+
+/// Properly tear down an orchestrator: stop, let microtasks drain, dispose.
+Future<void> tearDownOrchestrator(
+  TeachingOrchestrator orchestrator,
+  TestGestureClassifier gestures,
+) async {
+  await orchestrator.stop();
+  // Let any pending microtasks from the loop drain.
+  await Future<void>.delayed(const Duration(milliseconds: 20));
+  orchestrator.dispose();
+  gestures.dispose();
+}
+
+void main() {
+  // -------------------------------------------------------------------------
+  // TeachingOrchestratorState
+  // -------------------------------------------------------------------------
+  group('TeachingOrchestratorState', () {
+    test('default values', () {
+      const s = TeachingOrchestratorState();
+      expect(s.isRunning, false);
+      expect(s.isInterrupted, false);
+    });
+
+    test('copyWith replaces fields', () {
+      const s = TeachingOrchestratorState();
+      final running = s.copyWith(isRunning: true);
+      expect(running.isRunning, true);
+      expect(running.isInterrupted, false);
+    });
+
+    test('equality', () {
+      const a = TeachingOrchestratorState(isRunning: true);
+      const b = TeachingOrchestratorState(isRunning: true);
+      const c = TeachingOrchestratorState();
+      expect(a, b);
+      expect(a, isNot(c));
+    });
+
+    test('hashCode consistent with equality', () {
+      const a = TeachingOrchestratorState(isRunning: true);
+      const b = TeachingOrchestratorState(isRunning: true);
+      expect(a.hashCode, b.hashCode);
+    });
+
+    test('toString', () {
+      const s = TeachingOrchestratorState(isRunning: true, isInterrupted: true);
+      expect(
+        s.toString(),
+        'TeachingOrchestratorState(isRunning: true, isInterrupted: true)',
+      );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 4.4 Play-wait-repeat loop tests
+  // -------------------------------------------------------------------------
+  group('play-wait-repeat loop', () {
+    test('does not auto-start on creation', () async {
+      final t = createOrchestrator();
+      // Give microtasks a chance to run.
+      await Future<void>.delayed(Duration.zero);
+      expect(t.vibration.calls, isEmpty);
+      expect(t.orchestrator.state.isRunning, false);
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('start() begins the loop and plays current letter pattern', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+
+      // Let the async loop run one iteration.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Default letter is A (dot-dash). Should have played at least once.
+      expect(
+        t.vibration.calls.where(
+          (c) => c == 'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]',
+        ),
+        isNotEmpty,
+      );
+      expect(t.orchestrator.state.isRunning, true);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('loop repeats after pause', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+
+      // Wait long enough for multiple iterations (10ms pause).
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final playCount = t.vibration.calls
+          .where(
+            (c) => c == 'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]',
+          )
+          .length;
+      expect(playCount, greaterThan(1));
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('stop() halts the loop', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      await t.orchestrator.stop();
+
+      final countAfterStop = t.vibration.calls.length;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // No new calls after stop (allow for one extra due to async timing).
+      expect(t.vibration.calls.length, lessThanOrEqualTo(countAfterStop + 1));
+      expect(t.orchestrator.state.isRunning, false);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('start sets session phase to playing', () async {
+      final t = createOrchestrator();
+      t.session.setPhase(SessionPhase.feedback); // Set to non-playing.
+      t.orchestrator.start();
+      await Future<void>.delayed(Duration.zero);
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 5.3 Interrupt handling tests
+  // -------------------------------------------------------------------------
+  group('interrupt handling', () {
+    test(
+      'first tap during playing calls cancel and transitions to listening',
+      () async {
+        final t = createOrchestrator();
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        // Simulate a tap.
+        t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(t.session.state.phase, SessionPhase.listening);
+        expect(t.vibration.calls, contains('cancel'));
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      },
+    );
+
+    test('subsequent taps during listening are no-ops', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // First tap — transitions to listening.
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      await Future<void>.delayed(Duration.zero);
+      final cancelCountAfterFirst = t.vibration.calls
+          .where((c) => c == 'cancel')
+          .length;
+
+      // Second tap during listening — should be no-op.
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dash));
+      await Future<void>.delayed(Duration.zero);
+      final cancelCountAfterSecond = t.vibration.calls
+          .where((c) => c == 'cancel')
+          .length;
+
+      expect(cancelCountAfterSecond, cancelCountAfterFirst);
+      expect(t.session.state.phase, SessionPhase.listening);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('taps during feedback are ignored', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Manually set feedback phase to simulate being in feedback.
+      t.session.setPhase(SessionPhase.feedback);
+
+      // Record cancel count before the tap.
+      final cancelCountBefore = t.vibration.calls
+          .where((c) => c == 'cancel')
+          .length;
+
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      await Future<void>.delayed(Duration.zero);
+
+      // No new cancel calls from the MorseInput handler.
+      final cancelCountAfter = t.vibration.calls
+          .where((c) => c == 'cancel')
+          .length;
+      expect(cancelCountAfter, cancelCountBefore);
+      expect(t.session.state.phase, SessionPhase.feedback);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 6.6 Input evaluation and feedback tests
+  // -------------------------------------------------------------------------
+  group('input evaluation and feedback', () {
+    test('correct input triggers success and resumes loop', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Interrupt with a tap.
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      await Future<void>.delayed(Duration.zero);
+      expect(t.session.state.phase, SessionPhase.listening);
+
+      // Submit correct answer for A (dot-dash).
+      t.gestures.addEvent(
+        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(t.vibration.calls, contains('playSuccess'));
+      // Should have resumed to playing.
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test(
+      'wrong input triggers error, replays pattern, and resumes loop',
+      () async {
+        final t = createOrchestrator();
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        // Interrupt.
+        t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+        await Future<void>.delayed(Duration.zero);
+
+        // Submit wrong answer for A.
+        t.gestures.addEvent(const InputComplete([MorseSymbol.dash]));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(t.vibration.calls, contains('playError'));
+        // After error, the correct pattern should be replayed.
+        final errorIndex = t.vibration.calls.indexOf('playError');
+        final callsAfterError = t.vibration.calls.sublist(errorIndex + 1);
+        expect(
+          callsAfterError,
+          contains('playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]'),
+        );
+        expect(t.session.state.phase, SessionPhase.playing);
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      },
+    );
+
+    test('empty input is treated as wrong answer', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Interrupt.
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      await Future<void>.delayed(Duration.zero);
+
+      // Submit empty input.
+      t.gestures.addEvent(const InputComplete([]));
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(t.vibration.calls, contains('playError'));
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('InputComplete during feedback is ignored', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Manually set to feedback.
+      t.session.setPhase(SessionPhase.feedback);
+
+      final callsBefore = t.vibration.calls.length;
+      t.gestures.addEvent(
+        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      // No new playSuccess or playError calls from evaluation.
+      final newCalls = t.vibration.calls.sublist(callsBefore);
+      expect(newCalls.where((c) => c == 'playSuccess'), isEmpty);
+      expect(newCalls.where((c) => c == 'playError'), isEmpty);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('InputComplete during playing is ignored', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Phase should be playing.
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      final callsBefore = t.vibration.calls.length;
+      t.gestures.addEvent(
+        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      // No evaluation calls.
+      final newCalls = t.vibration.calls.sublist(callsBefore);
+      expect(newCalls.where((c) => c == 'playSuccess'), isEmpty);
+      expect(newCalls.where((c) => c == 'playError'), isEmpty);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 7.4 Navigation integration tests
+  // -------------------------------------------------------------------------
+  group('navigation integration', () {
+    test('NavigateNext during playing restarts loop for new letter', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      t.gestures.addEvent(const NavigateNext());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Letter should have advanced from A to B.
+      expect(t.session.state.currentLetter, 'B');
+      expect(t.session.state.phase, SessionPhase.playing);
+      expect(t.vibration.calls, contains('cancel'));
+
+      // Should now be playing B's pattern (dash-dot-dot-dot).
+      expect(
+        t.vibration.calls,
+        contains(
+          'playMorsePattern:[MorseSymbol.dash, MorseSymbol.dot, '
+          'MorseSymbol.dot, MorseSymbol.dot]',
+        ),
+      );
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test(
+      'NavigatePrevious during playing restarts loop for previous letter',
+      () async {
+        final t = createOrchestrator();
+        // Start at B.
+        t.session.nextLetter();
+        expect(t.session.state.currentLetter, 'B');
+
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        t.gestures.addEvent(const NavigatePrevious());
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(t.session.state.currentLetter, 'A');
+        expect(t.session.state.phase, SessionPhase.playing);
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      },
+    );
+
+    test('Reset returns to letter A and restarts loop', () async {
+      final t = createOrchestrator();
+      // Move to M.
+      for (var i = 0; i < 12; i++) {
+        t.session.nextLetter();
+      }
+      expect(t.session.state.currentLetter, 'M');
+
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      t.gestures.addEvent(const Reset());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(t.session.state.currentLetter, 'A');
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('navigation during feedback cancels feedback and restarts', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Put into feedback phase.
+      t.session.setPhase(SessionPhase.feedback);
+
+      t.gestures.addEvent(const NavigateNext());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(t.session.state.currentLetter, 'B');
+      expect(t.session.state.phase, SessionPhase.playing);
+      expect(t.vibration.calls, contains('cancel'));
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('navigation during listening cancels and restarts', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Interrupt to get to listening.
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      await Future<void>.delayed(Duration.zero);
+      expect(t.session.state.phase, SessionPhase.listening);
+
+      t.gestures.addEvent(const NavigateNext());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(t.session.state.currentLetter, 'B');
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+  });
+}

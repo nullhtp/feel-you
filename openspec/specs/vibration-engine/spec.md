@@ -58,7 +58,7 @@ The `VibrationService` SHALL provide a `playError()` method that vibrates the co
 - **THEN** the error buzz (600ms continuous) is longer than any single Morse dash (300ms) making it tactilely distinct
 
 ### Requirement: VibrationService is abstract with injectable implementation
-The `VibrationService` SHALL be defined as an abstract class. A concrete implementation using the `vibration` package SHALL be provided. The service SHALL be exposed through a Riverpod provider, allowing the implementation to be swapped for testing.
+The `VibrationService` SHALL be defined as an abstract class with methods for playing Morse patterns, success signals, error signals, and cancelling ongoing vibration. A concrete implementation using the `vibration` package SHALL be provided. The service SHALL be exposed through a Riverpod provider, allowing the implementation to be swapped for testing.
 
 #### Scenario: Abstract service can be mocked
 - **WHEN** writing a unit test that depends on `VibrationService`
@@ -67,6 +67,24 @@ The `VibrationService` SHALL be defined as an abstract class. A concrete impleme
 #### Scenario: Riverpod provider exposes the service
 - **WHEN** a widget or provider needs vibration functionality
 - **THEN** it can obtain `VibrationService` through a Riverpod provider
+
+#### Scenario: Cancel stops ongoing vibration
+- **WHEN** `cancel()` is called on the vibration service
+- **THEN** any ongoing vibration pattern is stopped immediately
+- **AND** the method returns a `Future<void>` that completes when cancellation is done
+
+### Requirement: Cancel ongoing vibration
+The `VibrationService` SHALL provide a `cancel()` method that stops any currently playing vibration pattern. The `DeviceVibrationService` SHALL implement this via `Vibration.cancel()`.
+
+#### Scenario: Cancel during Morse pattern playback
+- **WHEN** `playMorsePattern` is in progress
+- **AND** `cancel()` is called
+- **THEN** the vibration stops
+
+#### Scenario: Cancel when no vibration is playing
+- **WHEN** no vibration is currently active
+- **AND** `cancel()` is called
+- **THEN** the call completes without error (no-op)
 
 ### Requirement: Vibration pattern generation is pure logic
 The conversion from `MorseSymbol` list to vibration duration pattern (list of millisecond on/off durations) SHALL be a pure function, separate from the actual device vibration call. This enables unit testing the pattern generation without hardware.
