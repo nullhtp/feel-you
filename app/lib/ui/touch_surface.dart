@@ -24,6 +24,12 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   /// where [ref] is no longer accessible.
   late final TeachingOrchestrator _orchestrator;
 
+  /// The pointer ID of the primary (first) finger currently touching.
+  /// Only this pointer's events are forwarded to the classifier.
+  /// Additional fingers are ignored to prevent multi-touch interference
+  /// with gesture recognition (e.g. reset timer restarts).
+  int? _primaryPointer;
+
   @override
   void initState() {
     super.initState();
@@ -42,6 +48,10 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    // Only track the first finger; ignore additional touches.
+    if (_primaryPointer != null) return;
+    _primaryPointer = event.pointer;
+
     final classifier = ref.read(gestureClassifierProvider);
     classifier.handleTouch(
       TouchDown(timestamp: event.timeStamp, position: event.position.dx),
@@ -49,6 +59,20 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   }
 
   void _onPointerUp(PointerUpEvent event) {
+    if (event.pointer != _primaryPointer) return;
+    _primaryPointer = null;
+
+    final classifier = ref.read(gestureClassifierProvider);
+    classifier.handleTouch(
+      TouchUp(timestamp: event.timeStamp, position: event.position.dx),
+    );
+  }
+
+  void _onPointerCancel(PointerCancelEvent event) {
+    if (event.pointer != _primaryPointer) return;
+    _primaryPointer = null;
+
+    // Treat cancel as a release so the classifier can clean up.
     final classifier = ref.read(gestureClassifierProvider);
     classifier.handleTouch(
       TouchUp(timestamp: event.timeStamp, position: event.position.dx),
@@ -64,6 +88,7 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
         body: Listener(
           onPointerDown: _onPointerDown,
           onPointerUp: _onPointerUp,
+          onPointerCancel: _onPointerCancel,
           behavior: HitTestBehavior.opaque,
           child: const SizedBox.expand(),
         ),

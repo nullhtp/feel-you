@@ -192,6 +192,97 @@ void main() {
         classifier.dispose();
       },
     );
+
+    testWidgets(
+      'only primary pointer events are forwarded (multi-touch ignored)',
+      (tester) async {
+        final classifier = RecordingGestureClassifier();
+        final vibration = MockVibrationService();
+
+        await tester.pumpWidget(
+          buildTestWidget(classifier: classifier, vibration: vibration),
+        );
+
+        final center = tester.getCenter(find.byType(SizedBox));
+        final offset2 = center + const Offset(50, 0);
+
+        // First finger down.
+        final finger1 = await tester.startGesture(center);
+
+        // Second finger down — should be ignored.
+        final finger2 = await tester.startGesture(offset2);
+
+        // Only one TouchDown should have been recorded.
+        expect(classifier.touchEvents, hasLength(1));
+        expect(classifier.touchEvents.first, isA<TouchDown>());
+
+        // Second finger up — should be ignored.
+        await finger2.up();
+        expect(classifier.touchEvents, hasLength(1));
+
+        // First finger up — should be forwarded.
+        await finger1.up();
+        expect(classifier.touchEvents, hasLength(2));
+        expect(classifier.touchEvents[1], isA<TouchUp>());
+
+        await cleanUp(tester);
+        classifier.dispose();
+      },
+    );
+
+    testWidgets('pointer cancel is forwarded as TouchUp', (tester) async {
+      final classifier = RecordingGestureClassifier();
+      final vibration = MockVibrationService();
+
+      await tester.pumpWidget(
+        buildTestWidget(classifier: classifier, vibration: vibration),
+      );
+
+      final center = tester.getCenter(find.byType(SizedBox));
+      final gesture = await tester.startGesture(center);
+
+      expect(classifier.touchEvents, hasLength(1));
+      expect(classifier.touchEvents.first, isA<TouchDown>());
+
+      // Simulate a pointer cancel (e.g. system gesture intercept).
+      await gesture.cancel();
+
+      expect(classifier.touchEvents, hasLength(2));
+      expect(classifier.touchEvents[1], isA<TouchUp>());
+
+      await cleanUp(tester);
+      classifier.dispose();
+    });
+
+    testWidgets('new primary pointer is accepted after previous one ends', (
+      tester,
+    ) async {
+      final classifier = RecordingGestureClassifier();
+      final vibration = MockVibrationService();
+
+      await tester.pumpWidget(
+        buildTestWidget(classifier: classifier, vibration: vibration),
+      );
+
+      final center = tester.getCenter(find.byType(SizedBox));
+
+      // First gesture.
+      final gesture1 = await tester.startGesture(center);
+      await gesture1.up();
+
+      expect(classifier.touchEvents, hasLength(2));
+
+      // Second gesture — should be accepted as new primary.
+      final gesture2 = await tester.startGesture(center);
+      await gesture2.up();
+
+      expect(classifier.touchEvents, hasLength(4));
+      expect(classifier.touchEvents[2], isA<TouchDown>());
+      expect(classifier.touchEvents[3], isA<TouchUp>());
+
+      await cleanUp(tester);
+      classifier.dispose();
+    });
   });
 
   // -------------------------------------------------------------------------
