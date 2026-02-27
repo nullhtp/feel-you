@@ -69,28 +69,53 @@ abstract class VibrationService {
 }
 
 /// Concrete [VibrationService] that uses the `vibration` package.
+///
+/// The `vibration` plugin fires the vibration asynchronously on the platform
+/// and returns immediately. To give callers (e.g. the teaching orchestrator)
+/// accurate timing, each play method waits for the total duration of the
+/// vibration pattern before returning.
 class DeviceVibrationService implements VibrationService {
   DeviceVibrationService({this.config = const MorseTimingConfig()});
 
   final MorseTimingConfig config;
+
+  /// Calculates the total duration of a vibration pattern in milliseconds.
+  ///
+  /// The pattern is a list of alternating wait/vibrate durations.
+  static int _patternDuration(List<int> pattern) {
+    var total = 0;
+    for (final ms in pattern) {
+      total += ms;
+    }
+    return total;
+  }
 
   @override
   Future<void> playMorsePattern(List<MorseSymbol> symbols) async {
     final pattern = buildMorseVibrationPattern(symbols, config);
     if (pattern.isEmpty) return;
     await Vibration.vibrate(pattern: pattern);
+    await Future<void>.delayed(
+      Duration(milliseconds: _patternDuration(pattern)),
+    );
   }
 
   @override
   Future<void> playSuccess() async {
     final pattern = buildSuccessVibrationPattern(config);
     await Vibration.vibrate(pattern: pattern);
+    await Future<void>.delayed(
+      Duration(milliseconds: _patternDuration(pattern)),
+    );
   }
 
   @override
   Future<void> playError() async {
     final pattern = buildErrorVibrationPattern(config);
     await Vibration.vibrate(pattern: pattern);
+    await Future<void>.delayed(
+      Duration(milliseconds: _patternDuration(pattern)),
+    );
   }
 
   @override
