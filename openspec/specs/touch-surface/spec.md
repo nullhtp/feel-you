@@ -29,11 +29,15 @@ The app SHALL present a full-screen touch surface that captures all pointer even
 - **THEN** it SHALL obtain the screen width and height from `MediaQuery` for position-based classification and bottom-zone detection
 
 ### Requirement: Solid black background
-The touch surface SHALL render a solid black background with no visual elements, text, or decorations.
+The touch surface SHALL render a solid black background. A visual companion overlay SHALL be rendered on top of the black background, displaying zone boundaries, labels, the current symbol/word, morse pattern, level indicator, position progress, user input buffer, and session phase. The overlay SHALL NOT intercept touch events — all touches SHALL continue to be captured by the underlying `Listener` widget. The overlay is rendered via a `CompanionOverlay` widget wrapped in `IgnorePointer`, placed above the `Listener` in a `Stack`.
 
 #### Scenario: Screen appearance
 - **WHEN** the touch surface is displayed
-- **THEN** the screen SHALL be entirely black with no visible UI elements
+- **THEN** the screen SHALL show a black background with the companion overlay visible on top
+
+#### Scenario: Touch handling preserved with overlay
+- **WHEN** the user touches any part of the screen, including areas with overlay text or lines
+- **THEN** the touch event SHALL be captured by the `Listener` widget and processed identically to the behavior without the overlay
 
 ### Requirement: Auto-start teaching orchestrator
 The touch surface SHALL automatically start the `TeachingOrchestrator` when the widget is mounted, so the learning loop begins without any user action.

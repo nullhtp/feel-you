@@ -607,4 +607,86 @@ void main() {
       expect(events, [const NavigateUp()]);
     });
   });
+
+  group('inputBufferNotifier', () {
+    test('starts empty', () {
+      expect(classifier.inputBufferNotifier.value, isEmpty);
+    });
+
+    test('updates on dot input', () async {
+      tap(100, startX: leftX);
+      await pump();
+      expect(classifier.inputBufferNotifier.value, [MorseSymbol.dot]);
+    });
+
+    test('updates on dash input', () async {
+      tap(100, startX: rightX);
+      await pump();
+      expect(classifier.inputBufferNotifier.value, [MorseSymbol.dash]);
+    });
+
+    test('accumulates multiple symbols', () async {
+      tap(100, startX: leftX); // dot
+      tap(100, startX: rightX); // dash
+      tap(100, startX: leftX); // dot
+      await pump();
+      expect(classifier.inputBufferNotifier.value, [
+        MorseSymbol.dot,
+        MorseSymbol.dash,
+        MorseSymbol.dot,
+      ]);
+    });
+
+    test('updates on charGap insertion', () async {
+      tap(100, startX: leftX); // dot
+      await pump();
+      classifier.insertCharGap();
+      expect(classifier.inputBufferNotifier.value, [
+        MorseSymbol.dot,
+        MorseSymbol.charGap,
+      ]);
+    });
+
+    test('clears on submitInput', () async {
+      tap(100, startX: leftX); // dot
+      await pump();
+      expect(classifier.inputBufferNotifier.value, isNotEmpty);
+
+      classifier.submitInput();
+      expect(classifier.inputBufferNotifier.value, isEmpty);
+    });
+
+    test('clears on navigation (swipe clears buffer)', () async {
+      tap(100, startX: leftX); // dot
+      await pump();
+      expect(classifier.inputBufferNotifier.value, isNotEmpty);
+
+      // Horizontal swipe right → NavigateNext → clears buffer
+      const start = Duration(milliseconds: 100);
+      const end = Duration(milliseconds: 200);
+      classifier
+        ..handleTouch(const TouchDown(timestamp: start, position: 100, y: 200))
+        ..handleTouch(const TouchUp(timestamp: end, position: 300, y: 200));
+      await pump();
+      expect(classifier.inputBufferNotifier.value, isEmpty);
+    });
+
+    test('clears on silence timeout', () async {
+      tap(100, startX: leftX); // dot
+      await pump();
+      expect(classifier.inputBufferNotifier.value, isNotEmpty);
+
+      // Wait for silence timeout (default 1000ms)
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      await pump();
+      expect(classifier.inputBufferNotifier.value, isEmpty);
+    });
+
+    test('emits unmodifiable list', () async {
+      tap(100, startX: leftX);
+      await pump();
+      final buffer = classifier.inputBufferNotifier.value;
+      expect(() => buffer.add(MorseSymbol.dot), throwsUnsupportedError);
+    });
+  });
 }

@@ -2,6 +2,8 @@ import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_timing_config.dart';
 import 'package:feel_you/gestures/shake_config.dart';
 import 'package:feel_you/gestures/shake_detector.dart';
+import 'package:feel_you/morse/morse.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Provides the [GestureTimingConfig] used for gesture classification.
@@ -35,6 +37,15 @@ final gestureClassifierProvider = Provider<GestureClassifier>((ref) {
   );
   ref.onDispose(classifier.dispose);
   return classifier;
+});
+
+/// Provides the [GestureClassifier]'s input buffer as a [ValueNotifier].
+///
+/// Watch this provider to reactively display the accumulated Morse symbols
+/// the user has tapped so far. The value is an unmodifiable list that
+/// updates on every buffer change (symbol added, charGap inserted, cleared).
+final inputBufferProvider = Provider<ValueNotifier<List<MorseSymbol>>>((ref) {
+  return ref.watch(gestureClassifierProvider).inputBufferNotifier;
 });
 
 /// Provides the [ShakeConfig] used for shake detection.

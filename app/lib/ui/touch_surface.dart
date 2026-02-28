@@ -1,5 +1,6 @@
 import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/teaching/teaching.dart';
+import 'package:feel_you/ui/companion_overlay.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -12,9 +13,12 @@ const _bottomZoneFraction = 0.15;
 /// Full-screen touch surface that captures all pointer events and feeds
 /// them to the [GestureClassifier].
 ///
-/// Renders a solid black screen with no visual elements. Automatically
-/// starts the teaching orchestrator on mount and stops it on dispose.
-/// Keeps the screen awake and prevents back-navigation exits.
+/// Renders a solid black screen with a [CompanionOverlay] on top for
+/// sighted observers. The overlay is wrapped in [IgnorePointer] so all
+/// touches pass through to the underlying [Listener].
+///
+/// Automatically starts the teaching orchestrator on mount and stops it
+/// on dispose. Keeps the screen awake and prevents back-navigation exits.
 ///
 /// The lower 15% of the screen is a bottom input zone. Short taps there
 /// emit [BottomZoneAction] with haptic feedback; swipes and long holds
@@ -184,12 +188,17 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
       canPop: false,
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: Listener(
-          onPointerDown: _onPointerDown,
-          onPointerUp: _onPointerUp,
-          onPointerCancel: _onPointerCancel,
-          behavior: HitTestBehavior.opaque,
-          child: const SizedBox.expand(),
+        body: Stack(
+          children: [
+            Listener(
+              onPointerDown: _onPointerDown,
+              onPointerUp: _onPointerUp,
+              onPointerCancel: _onPointerCancel,
+              behavior: HitTestBehavior.opaque,
+              child: const SizedBox.expand(),
+            ),
+            const CompanionOverlay(),
+          ],
         ),
       ),
     );

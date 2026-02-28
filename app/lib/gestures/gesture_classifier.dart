@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/gestures/gesture_timing_config.dart';
 import 'package:feel_you/morse/morse.dart';
+import 'package:flutter/foundation.dart';
 
 /// Raw pointer data fed into the classifier.
 ///
@@ -57,6 +58,14 @@ class GestureClassifier {
   final List<MorseSymbol> _inputBuffer = [];
   Timer? _silenceTimer;
   Timer? _resetTimer;
+
+  /// Notifies listeners whenever the input buffer changes.
+  ///
+  /// Emits an unmodifiable copy of the current buffer contents.
+  /// Used by the companion overlay to display accumulated user input.
+  final ValueNotifier<List<MorseSymbol>> inputBufferNotifier = ValueNotifier(
+    const [],
+  );
 
   // Track the current press for tap/hold classification.
   Duration? _pressStartTime;
@@ -162,8 +171,13 @@ class GestureClassifier {
     return velocity >= config.minSwipeVelocity;
   }
 
+  void _notifyBufferChanged() {
+    inputBufferNotifier.value = List.unmodifiable(_inputBuffer);
+  }
+
   void _addSymbol(MorseSymbol symbol) {
     _inputBuffer.add(symbol);
+    _notifyBufferChanged();
     _emit(MorseInput(symbol));
     _startSilenceTimer();
   }
@@ -183,6 +197,7 @@ class GestureClassifier {
           _emit(InputComplete(List.unmodifiable(_inputBuffer)));
         }
         _inputBuffer.clear();
+        _notifyBufferChanged();
       }
     });
   }
@@ -195,6 +210,7 @@ class GestureClassifier {
   void _clearBuffer() {
     _cancelSilenceTimer();
     _inputBuffer.clear();
+    _notifyBufferChanged();
   }
 
   /// Cancels the reset (long-hold) timer without emitting any events.
@@ -212,6 +228,7 @@ class GestureClassifier {
   void insertCharGap() {
     if (_inputBuffer.isEmpty) return;
     _inputBuffer.add(MorseSymbol.charGap);
+    _notifyBufferChanged();
     _startSilenceTimer();
   }
 
@@ -222,6 +239,7 @@ class GestureClassifier {
     _cancelSilenceTimer();
     _emit(InputComplete(List.unmodifiable(_inputBuffer)));
     _inputBuffer.clear();
+    _notifyBufferChanged();
   }
 
   /// Emits an externally-created [GestureEvent] onto the event stream.
@@ -241,5 +259,6 @@ class GestureClassifier {
     _silenceTimer?.cancel();
     _resetTimer?.cancel();
     _controller.close();
+    inputBufferNotifier.dispose();
   }
 }

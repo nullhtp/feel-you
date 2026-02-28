@@ -75,8 +75,8 @@ void main() {
       final scaffold = tester.widget<Scaffold>(find.byType(Scaffold));
       expect(scaffold.backgroundColor, Colors.black);
 
-      // Verify there's a SizedBox.expand for full-screen coverage.
-      expect(find.byType(SizedBox), findsOneWidget);
+      // Verify the TouchSurface renders with overlay.
+      expect(find.byType(TouchSurface), findsOneWidget);
 
       await cleanUp(tester);
       classifier.dispose();
@@ -98,7 +98,7 @@ void main() {
         );
 
         // Simulate a pointer down event at a specific position.
-        final center = tester.getCenter(find.byType(SizedBox));
+        final center = tester.getCenter(find.byType(TouchSurface));
         final downGesture = await tester.startGesture(center);
 
         expect(classifier.touchEvents, hasLength(1));
@@ -123,7 +123,7 @@ void main() {
           buildTestWidget(classifier: classifier, vibration: vibration),
         );
 
-        final center = tester.getCenter(find.byType(SizedBox));
+        final center = tester.getCenter(find.byType(TouchSurface));
         final gesture = await tester.startGesture(center);
         await gesture.up();
 
@@ -152,7 +152,7 @@ void main() {
           buildTestWidget(classifier: classifier, vibration: vibration),
         );
 
-        final center = tester.getCenter(find.byType(SizedBox));
+        final center = tester.getCenter(find.byType(TouchSurface));
         final offset2 = center + const Offset(50, 0);
 
         // First finger down.
@@ -187,7 +187,7 @@ void main() {
         buildTestWidget(classifier: classifier, vibration: vibration),
       );
 
-      final center = tester.getCenter(find.byType(SizedBox));
+      final center = tester.getCenter(find.byType(TouchSurface));
       final gesture = await tester.startGesture(center);
 
       expect(classifier.touchEvents, hasLength(1));
@@ -213,7 +213,7 @@ void main() {
         buildTestWidget(classifier: classifier, vibration: vibration),
       );
 
-      final center = tester.getCenter(find.byType(SizedBox));
+      final center = tester.getCenter(find.byType(TouchSurface));
 
       // First gesture.
       final gesture1 = await tester.startGesture(center);
