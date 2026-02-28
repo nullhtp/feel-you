@@ -1,5 +1,5 @@
 ### Requirement: Configurable gesture timing thresholds
-The system SHALL define gesture timing through a configuration object (`GestureTimingConfig`) with the following defaults: reset hold minimum 2000ms, silence timeout 1000ms, minimum swipe distance 50px, minimum swipe velocity 200px/s. All values SHALL be overridable at construction time. The `dotMaxDuration` and `dashMaxDuration` parameters SHALL be removed since dot/dash classification is now position-based.
+The system SHALL define gesture timing through a configuration object (`GestureTimingConfig`) with the following defaults: reset hold minimum 2000ms, silence timeout 1000ms, minimum swipe distance 50px, minimum swipe velocity 200px/s. All values SHALL be overridable at construction time. The `dotMaxDuration`, `dashMaxDuration`, and `charGapThreshold` parameters SHALL be removed since dot/dash classification is now position-based and charGap insertion is now explicit via the bottom input zone.
 
 #### Scenario: Default timing values
 - **WHEN** a `GestureTimingConfig` is created with no arguments
@@ -9,9 +9,9 @@ The system SHALL define gesture timing through a configuration object (`GestureT
 - **WHEN** a `GestureTimingConfig` is created with silence timeout=1500ms
 - **THEN** that custom value is used and all other values remain at defaults
 
-#### Scenario: No dot/dash duration parameters exist
+#### Scenario: No dot/dash duration or charGapThreshold parameters exist
 - **WHEN** a developer inspects `GestureTimingConfig`
-- **THEN** there SHALL be no `dotMaxDuration` or `dashMaxDuration` properties
+- **THEN** there SHALL be no `dotMaxDuration`, `dashMaxDuration`, or `charGapThreshold` properties
 
 ### Requirement: Classify long hold as reset
 The system SHALL classify a press held longer than the configured reset threshold (default: 2000ms) as a `Reset` event. The reset event SHALL be emitted when the threshold is crossed, not when the user releases.
@@ -66,15 +66,15 @@ The `GestureClassifier` SHALL expose classified events as a Dart `Stream<Gesture
 - **THEN** both consumers receive all emitted events
 
 ### Requirement: Gesture event type hierarchy
-The system SHALL define a `GestureEvent` type with the following subtypes: `MorseInput` (contains a `MorseSymbol`), `InputComplete` (contains a `List<MorseSymbol>`), `NavigateNext`, `NavigatePrevious`, `Reset`, `NavigateUp`, `NavigateDown`, and `Home`. These types SHALL be exhaustively matchable (e.g., via sealed class or equivalent).
+The system SHALL define a `GestureEvent` type with the following subtypes: `MorseInput` (contains a `MorseSymbol`), `InputComplete` (contains a `List<MorseSymbol>`), `NavigateNext`, `NavigatePrevious`, `Reset`, `NavigateUp`, `NavigateDown`, `Home`, and `BottomZoneAction`. These types SHALL be exhaustively matchable (e.g., via sealed class or equivalent).
 
 #### Scenario: All event types are defined
 - **WHEN** a developer inspects the `GestureEvent` type hierarchy
-- **THEN** exactly eight subtypes exist: `MorseInput`, `InputComplete`, `NavigateNext`, `NavigatePrevious`, `Reset`, `NavigateUp`, `NavigateDown`, `Home`
+- **THEN** exactly nine subtypes exist: `MorseInput`, `InputComplete`, `NavigateNext`, `NavigatePrevious`, `Reset`, `NavigateUp`, `NavigateDown`, `Home`, `BottomZoneAction`
 
 #### Scenario: MorseInput carries symbol data
 - **WHEN** a `MorseInput` event is created
-- **THEN** it contains a `MorseSymbol` value (dot or dash)
+- **THEN** it contains a `MorseSymbol` value (dot, dash, or charGap)
 
 #### Scenario: InputComplete carries accumulated symbols
 - **WHEN** an `InputComplete` event is created

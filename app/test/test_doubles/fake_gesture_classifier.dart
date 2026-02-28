@@ -15,6 +15,12 @@ class FakeGestureClassifier extends GestureClassifier {
   /// Raw touch events received via [handleTouch].
   final List<RawTouchEvent> touchEvents = [];
 
+  /// Calls to [insertCharGap].
+  int insertCharGapCallCount = 0;
+
+  /// Calls to [submitInput].
+  int submitInputCallCount = 0;
+
   @override
   Stream<GestureEvent> get events => _testController.stream;
 
@@ -26,6 +32,16 @@ class FakeGestureClassifier extends GestureClassifier {
   @override
   void handleTouch(RawTouchEvent event) {
     touchEvents.add(event);
+  }
+
+  @override
+  void insertCharGap() {
+    insertCharGapCallCount++;
+  }
+
+  @override
+  void submitInput() {
+    submitInputCallCount++;
   }
 
   @override

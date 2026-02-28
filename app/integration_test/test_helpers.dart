@@ -18,7 +18,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // ---------------------------------------------------------------------------
 
 /// The type of vibration call made to [RecordingVibrationService].
-enum VibrationCallType { playMorsePattern, playSuccess, playError, cancel }
+enum VibrationCallType {
+  playMorsePattern,
+  playSuccess,
+  playError,
+  playTapFeedback,
+  cancel,
+}
 
 /// A single recorded call to [RecordingVibrationService].
 class VibrationCall {
@@ -76,6 +82,11 @@ class RecordingVibrationService implements VibrationService {
   }
 
   @override
+  Future<void> playTapFeedback() async {
+    calls.add(const VibrationCall(VibrationCallType.playTapFeedback));
+  }
+
+  @override
   Future<void> cancel() async {
     calls.add(const VibrationCall(VibrationCallType.cancel));
   }
@@ -89,7 +100,6 @@ class RecordingVibrationService implements VibrationService {
 const fastGestureConfig = GestureTimingConfig(
   resetMinDuration: 30,
   silenceTimeout: 10,
-  charGapThreshold: 5,
   minSwipeDistance: 50,
   minSwipeVelocity: 200,
 );

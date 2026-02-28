@@ -109,3 +109,18 @@ class Home extends GestureEvent {
   @override
   String toString() => 'Home';
 }
+
+/// Tap in the bottom input zone.
+///
+/// Level-agnostic marker event — the [TeachingOrchestrator] decides
+/// whether to insert a charGap (words level) or submit input (other levels).
+@immutable
+class BottomZoneAction extends GestureEvent {
+  const BottomZoneAction();
+
+  @override
+  List<Object?> get props => [];
+
+  @override
+  String toString() => 'BottomZoneAction';
+}

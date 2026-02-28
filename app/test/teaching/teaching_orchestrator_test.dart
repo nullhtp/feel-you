@@ -631,4 +631,166 @@ void main() {
       shake.dispose();
     });
   });
+
+  // -------------------------------------------------------------------------
+  // BottomZoneAction handling
+  // -------------------------------------------------------------------------
+  group('BottomZoneAction handling', () {
+    test(
+      'on words level during playing: interrupts and inserts charGap',
+      () async {
+        final t = createOrchestrator();
+        // Move to words level (index 2).
+        t.session.nextLevel(); // → letters
+        t.session.nextLevel(); // → words
+        expect(t.session.state.levelIndex, 2);
+
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(t.session.state.phase, SessionPhase.playing);
+
+        // Simulate first morse input to get some input in buffer.
+        t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+        await Future<void>.delayed(Duration.zero);
+        expect(t.session.state.phase, SessionPhase.listening);
+
+        // Now send BottomZoneAction — should call insertCharGap.
+        t.gestures.addEvent(const BottomZoneAction());
+        await Future<void>.delayed(Duration.zero);
+
+        expect(t.gestures.insertCharGapCallCount, 1);
+        expect(t.gestures.submitInputCallCount, 0);
+        // Tap feedback should have been played.
+        expect(t.vibration.callLog, contains('playTapFeedback'));
+        // Should still be in listening phase.
+        expect(t.session.state.phase, SessionPhase.listening);
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      },
+    );
+
+    test(
+      'on words level during playing with no prior input: interrupts and inserts charGap',
+      () async {
+        final t = createOrchestrator();
+        t.session.nextLevel();
+        t.session.nextLevel();
+
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        // Send BottomZoneAction during playing (no prior input).
+        // Should interrupt playback and call insertCharGap.
+        t.gestures.addEvent(const BottomZoneAction());
+        await Future<void>.delayed(Duration.zero);
+
+        expect(t.session.state.phase, SessionPhase.listening);
+        expect(t.gestures.insertCharGapCallCount, 1);
+        expect(t.vibration.callLog, contains('cancel'));
+        // Tap feedback should come after cancel (no overlap).
+        expect(t.vibration.callLog, contains('playTapFeedback'));
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      },
+    );
+
+    test('on letters level during listening: submits input', () async {
+      final t = createOrchestrator();
+      // Move to letters level (index 1).
+      t.session.nextLevel();
+      expect(t.session.state.levelIndex, 1);
+
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Simulate input to get to listening phase.
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      await Future<void>.delayed(Duration.zero);
+      expect(t.session.state.phase, SessionPhase.listening);
+
+      // Send BottomZoneAction — should call submitInput with tap feedback.
+      t.vibration.reset();
+      t.gestures.addEvent(const BottomZoneAction());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(t.gestures.submitInputCallCount, 1);
+      expect(t.gestures.insertCharGapCallCount, 0);
+      expect(t.vibration.callLog, contains('playTapFeedback'));
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('on digits level during listening: submits input', () async {
+      final t = createOrchestrator();
+      // Stay on digits level (index 0).
+      expect(t.session.state.levelIndex, 0);
+
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Simulate input.
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dash));
+      await Future<void>.delayed(Duration.zero);
+      expect(t.session.state.phase, SessionPhase.listening);
+
+      // Send BottomZoneAction — should call submitInput with tap feedback.
+      t.vibration.reset();
+      t.gestures.addEvent(const BottomZoneAction());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(t.gestures.submitInputCallCount, 1);
+      expect(t.vibration.callLog, contains('playTapFeedback'));
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test(
+      'on non-words level during playing: ignored (no input to submit)',
+      () async {
+        final t = createOrchestrator();
+        t.session.nextLevel(); // letters
+        expect(t.session.state.levelIndex, 1);
+
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(t.session.state.phase, SessionPhase.playing);
+
+        // Send BottomZoneAction during playing — should be ignored on
+        // non-words level (only acts during listening).
+        t.vibration.reset();
+        t.gestures.addEvent(const BottomZoneAction());
+        await Future<void>.delayed(Duration.zero);
+
+        expect(t.gestures.submitInputCallCount, 0);
+        expect(t.gestures.insertCharGapCallCount, 0);
+        // No tap feedback when ignored.
+        expect(t.vibration.callLog, isNot(contains('playTapFeedback')));
+        // Phase should remain playing.
+        expect(t.session.state.phase, SessionPhase.playing);
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      },
+    );
+
+    test('during feedback: ignored', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Manually set to feedback phase.
+      t.session.setPhase(SessionPhase.feedback);
+
+      t.vibration.reset();
+      t.gestures.addEvent(const BottomZoneAction());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(t.gestures.insertCharGapCallCount, 0);
+      expect(t.gestures.submitInputCallCount, 0);
+      // No tap feedback when ignored.
+      expect(t.vibration.callLog, isNot(contains('playTapFeedback')));
+      expect(t.session.state.phase, SessionPhase.feedback);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+  });
 }

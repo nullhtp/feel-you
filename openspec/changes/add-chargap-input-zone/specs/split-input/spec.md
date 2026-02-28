@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: Position-based dot/dash classification
 The system SHALL classify Morse input based on the horizontal position of the touch relative to the screen width. A tap on the left half of the screen (x-position < screenWidth / 2) SHALL produce a dot. A tap on the right half of the screen (x-position >= screenWidth / 2) SHALL produce a dash. This classification SHALL only apply to taps in the upper region of the screen (above the bottom input zone boundary at 85% of screen height). Taps in the bottom 15% are handled as bottom-zone actions by the `TouchSurface` and are never classified as dot or dash.
 
@@ -16,14 +18,3 @@ The system SHALL classify Morse input based on the horizontal position of the to
 #### Scenario: Tap in bottom zone does not produce dot or dash
 - **WHEN** the user taps at x-position 100, y-position 360 on a screen with width 800 and height 400
 - **THEN** the system SHALL NOT emit a `MorseInput` event (y=360 >= 340 boundary — this is a bottom-zone tap)
-
-### Requirement: Tap duration does not affect dot/dash classification
-Any non-swipe tap that is shorter than the reset threshold SHALL be classified as dot or dash based solely on position. There SHALL be no dead zone between a maximum tap duration and the reset threshold for Morse input purposes.
-
-#### Scenario: Long tap still classified by position
-- **WHEN** the user taps on the left half and holds for 800ms (previously in the dead zone)
-- **THEN** the system SHALL emit a `MorseInput(dot)` event based on position
-
-#### Scenario: Very short tap classified by position
-- **WHEN** the user taps on the right half for 50ms
-- **THEN** the system SHALL emit a `MorseInput(dash)` event based on position

@@ -38,13 +38,24 @@ class MockVibrationService implements VibrationService {
   }
 
   @override
+  Future<void> playTapFeedback() async {
+    calls.add(const VibrationCall(VibrationCallType.playTapFeedback));
+  }
+
+  @override
   Future<void> cancel() async {
     calls.add(const VibrationCall(VibrationCallType.cancel));
   }
 }
 
 /// The type of vibration call made to [MockVibrationService].
-enum VibrationCallType { playMorsePattern, playSuccess, playError, cancel }
+enum VibrationCallType {
+  playMorsePattern,
+  playSuccess,
+  playError,
+  playTapFeedback,
+  cancel,
+}
 
 /// A single recorded call to [MockVibrationService].
 class VibrationCall {
@@ -64,6 +75,8 @@ class VibrationCall {
         return 'playSuccess';
       case VibrationCallType.playError:
         return 'playError';
+      case VibrationCallType.playTapFeedback:
+        return 'playTapFeedback';
       case VibrationCallType.cancel:
         return 'cancel';
     }

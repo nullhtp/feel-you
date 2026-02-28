@@ -13,6 +13,12 @@ abstract class VibrationService {
   /// Plays the error signal (single long buzz).
   Future<void> playError();
 
+  /// Plays a short tap-confirmation vibration (~50 ms).
+  ///
+  /// Used for bottom-zone haptic feedback. Routed through this service
+  /// so it doesn't race with [cancel] or pattern playback.
+  Future<void> playTapFeedback();
+
   /// Cancels any ongoing vibration.
   Future<void> cancel();
 }

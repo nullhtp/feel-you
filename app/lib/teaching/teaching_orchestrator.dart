@@ -56,11 +56,13 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     required this.sessionNotifier,
     this.config = const TeachingTimingConfig(),
     ShakeDetector? shakeDetector,
-  }) : super(const TeachingOrchestratorState()) {
+  }) : _gestureClassifier = gestureClassifier,
+       super(const TeachingOrchestratorState()) {
     _gestureSubscription = gestureClassifier.events.listen(_onGestureEvent);
     _shakeSubscription = shakeDetector?.events.listen(_onGestureEvent);
   }
 
+  final GestureClassifier _gestureClassifier;
   final VibrationService vibrationService;
   final SessionNotifier sessionNotifier;
   final TeachingTimingConfig config;
@@ -185,6 +187,8 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
         _onNavigate(sessionNotifier.previousLevel);
       case Home():
         _onNavigate(sessionNotifier.home);
+      case BottomZoneAction():
+        _onBottomZoneAction();
     }
   }
 
@@ -218,6 +222,36 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       _handleFeedback(vibrationService.playSuccess);
     } else {
       _handleFeedback(vibrationService.playError);
+    }
+  }
+
+  Future<void> _onBottomZoneAction() async {
+    final phase = sessionNotifier.state.phase;
+
+    // Ignore during feedback (consistent with MorseInput/InputComplete).
+    if (phase == SessionPhase.feedback) return;
+
+    final levelIndex = sessionNotifier.state.levelIndex;
+
+    if (levelIndex == 2) {
+      // Words level: insert charGap into the input buffer.
+      // Works during playing (triggers interrupt like MorseInput) or listening.
+      if (phase == SessionPhase.playing) {
+        // Interrupt playback first, same as _onMorseInput.
+        state = state.copyWith(isInterrupted: true);
+        _cancelPause();
+        await vibrationService.cancel();
+        sessionNotifier.setPhase(SessionPhase.listening);
+      }
+      // Haptic confirmation *after* cancel so the two don't collide.
+      await vibrationService.playTapFeedback();
+      _gestureClassifier.insertCharGap();
+    } else {
+      // Digits/letters: submit input immediately.
+      // Only act during listening (when there's input to submit).
+      if (phase != SessionPhase.listening) return;
+      await vibrationService.playTapFeedback();
+      _gestureClassifier.submitInput();
     }
   }
 

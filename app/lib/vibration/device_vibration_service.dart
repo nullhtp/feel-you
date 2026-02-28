@@ -47,6 +47,12 @@ class DeviceVibrationService implements VibrationService {
   }
 
   @override
+  Future<void> playTapFeedback() async {
+    await Vibration.vibrate(duration: 50);
+    await Future<void>.delayed(const Duration(milliseconds: 50));
+  }
+
+  @override
   Future<void> cancel() async {
     await Vibration.cancel();
   }

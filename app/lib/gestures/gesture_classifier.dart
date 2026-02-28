@@ -56,7 +56,6 @@ class GestureClassifier {
   final _controller = StreamController<GestureEvent>.broadcast();
   final List<MorseSymbol> _inputBuffer = [];
   Timer? _silenceTimer;
-  Timer? _charGapTimer;
   Timer? _resetTimer;
 
   // Track the current press for tap/hold classification.
@@ -172,17 +171,10 @@ class GestureClassifier {
   void _startSilenceTimer() {
     _cancelSilenceTimer();
 
-    // Stage 1: After charGapThreshold, insert a charGap into the buffer.
-    _charGapTimer = Timer(Duration(milliseconds: config.charGapThreshold), () {
-      if (_inputBuffer.isNotEmpty) {
-        _inputBuffer.add(MorseSymbol.charGap);
-      }
-    });
-
-    // Stage 2: After silenceTimeout, emit InputComplete.
+    // After silenceTimeout, emit InputComplete as a fallback.
     _silenceTimer = Timer(Duration(milliseconds: config.silenceTimeout), () {
       if (_inputBuffer.isNotEmpty) {
-        // Remove trailing charGap if present (added by stage 1 but no
+        // Remove trailing charGap if present (explicitly inserted but no
         // subsequent input arrived before timeout).
         if (_inputBuffer.last == MorseSymbol.charGap) {
           _inputBuffer.removeLast();
@@ -198,14 +190,45 @@ class GestureClassifier {
   void _cancelSilenceTimer() {
     _silenceTimer?.cancel();
     _silenceTimer = null;
-    _charGapTimer?.cancel();
-    _charGapTimer = null;
   }
 
   void _clearBuffer() {
     _cancelSilenceTimer();
     _inputBuffer.clear();
   }
+
+  /// Cancels the reset (long-hold) timer without emitting any events.
+  ///
+  /// Called by the UI layer when a bottom-zone tap consumes the pointer
+  /// release, preventing the normal [TouchUp] from reaching the classifier.
+  void cancelResetTimer() {
+    _resetTimer?.cancel();
+  }
+
+  /// Inserts a [MorseSymbol.charGap] into the input buffer.
+  ///
+  /// Does nothing if the buffer is empty (cannot start with a charGap).
+  /// Restarts the silence timer after inserting.
+  void insertCharGap() {
+    if (_inputBuffer.isEmpty) return;
+    _inputBuffer.add(MorseSymbol.charGap);
+    _startSilenceTimer();
+  }
+
+  /// Immediately emits [InputComplete] with the current buffer contents
+  /// and clears the buffer. Does nothing if the buffer is empty.
+  void submitInput() {
+    if (_inputBuffer.isEmpty) return;
+    _cancelSilenceTimer();
+    _emit(InputComplete(List.unmodifiable(_inputBuffer)));
+    _inputBuffer.clear();
+  }
+
+  /// Emits an externally-created [GestureEvent] onto the event stream.
+  ///
+  /// Used by [TouchSurface] to inject [BottomZoneAction] events without
+  /// going through the normal touch-classification pipeline.
+  void emitEvent(GestureEvent event) => _emit(event);
 
   void _emit(GestureEvent event) {
     if (!_controller.isClosed) {
@@ -216,7 +239,6 @@ class GestureClassifier {
   /// Release resources. After calling this, the classifier should not be used.
   void dispose() {
     _silenceTimer?.cancel();
-    _charGapTimer?.cancel();
     _resetTimer?.cancel();
     _controller.close();
   }

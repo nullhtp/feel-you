@@ -202,7 +202,6 @@ void main() {
       tap(100, startX: leftX); // dot
       await Future<void>.delayed(const Duration(milliseconds: 500));
       // Timer hasn't fired yet. Tap again to reset it.
-      // Note: 500ms > charGapThreshold (400ms), so a charGap is inserted.
       tap(100, startX: rightX); // dash
 
       // Wait less than the full timeout from the second tap.
@@ -213,11 +212,7 @@ void main() {
       // Now wait for full timeout to elapse.
       await Future<void>.delayed(const Duration(milliseconds: 400));
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([
-          MorseSymbol.dot,
-          MorseSymbol.charGap,
-          MorseSymbol.dash,
-        ]),
+        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
       ]);
     });
 
@@ -228,72 +223,173 @@ void main() {
     });
   });
 
-  group('charGap detection', () {
-    test('short silence does not insert charGap', () async {
+  group('insertCharGap', () {
+    test('inserts charGap when buffer is non-empty', () async {
       tap(100, startX: leftX); // dot
-      await Future<void>.delayed(const Duration(milliseconds: 200)); // < 400ms
+      await pump();
+
+      classifier.insertCharGap();
+      // Now add another symbol after the charGap.
       tap(100, startX: rightX); // dash
 
       // Wait for silence timeout to get InputComplete.
       await Future<void>.delayed(const Duration(milliseconds: 1100));
 
-      // Should be [dot, dash] with no charGap.
+      expect(events.whereType<InputComplete>().toList(), [
+        const InputComplete([
+          MorseSymbol.dot,
+          MorseSymbol.charGap,
+          MorseSymbol.dash,
+        ]),
+      ]);
+    });
+
+    test('does nothing when buffer is empty', () async {
+      classifier.insertCharGap();
+      await pump();
+
+      // No events should be emitted.
+      expect(events, isEmpty);
+
+      // Wait for silence timeout — nothing should happen.
+      await Future<void>.delayed(const Duration(milliseconds: 1100));
+      expect(events, isEmpty);
+    });
+
+    test('restarts silence timer', () async {
+      tap(100, startX: leftX); // dot
+      await pump();
+
+      // Wait 800ms (close to 1000ms timeout).
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+
+      // Insert charGap — this should restart the timer.
+      classifier.insertCharGap();
+
+      // Wait 800ms more — should NOT have InputComplete yet (timer restarted).
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+      expect(events.whereType<InputComplete>().toList(), isEmpty);
+
+      // Wait for full timeout from the insertCharGap call.
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      // Trailing charGap should be stripped by the silence timer.
+      expect(events.whereType<InputComplete>().toList(), [
+        const InputComplete([MorseSymbol.dot]),
+      ]);
+    });
+  });
+
+  group('submitInput', () {
+    test('emits InputComplete with buffer contents', () async {
+      tap(100, startX: leftX); // dot
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      tap(100, startX: rightX); // dash
+      await pump();
+
+      classifier.submitInput();
+      await pump();
+
       expect(events.whereType<InputComplete>().toList(), [
         const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
       ]);
     });
 
-    test('medium silence inserts charGap between taps', () async {
+    test('clears buffer after submit', () async {
       tap(100, startX: leftX); // dot
-      // Wait longer than charGapThreshold (400ms) but less than
-      // silenceTimeout (1000ms).
+      await pump();
+
+      classifier.submitInput();
+      await pump();
+
+      // Wait for silence timeout — should not emit another InputComplete.
+      await Future<void>.delayed(const Duration(milliseconds: 1100));
+      expect(events.whereType<InputComplete>().toList(), hasLength(1));
+    });
+
+    test('does nothing when buffer is empty', () async {
+      classifier.submitInput();
+      await pump();
+
+      expect(events, isEmpty);
+    });
+
+    test('includes charGap in submitted buffer', () async {
+      tap(100, startX: leftX); // dot
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      tap(100, startX: leftX); // dot
+      await pump();
+
+      classifier.insertCharGap();
+      tap(100, startX: rightX); // dash
+      await pump();
+
+      classifier.submitInput();
+      await pump();
+
+      expect(events.whereType<InputComplete>().toList(), [
+        const InputComplete([
+          MorseSymbol.dot,
+          MorseSymbol.dot,
+          MorseSymbol.charGap,
+          MorseSymbol.dash,
+        ]),
+      ]);
+    });
+  });
+
+  group('emitEvent', () {
+    test('emits provided event on the stream', () async {
+      classifier.emitEvent(const BottomZoneAction());
+      await pump();
+      expect(events, [const BottomZoneAction()]);
+    });
+
+    test('emits multiple events in order', () async {
+      classifier.emitEvent(const BottomZoneAction());
+      classifier.emitEvent(const NavigateNext());
+      await pump();
+      expect(events, [const BottomZoneAction(), const NavigateNext()]);
+    });
+  });
+
+  group('silence timeout fallback', () {
+    test('silence timeout still works as InputComplete fallback', () async {
+      tap(100, startX: leftX); // dot
+      await pump();
+
+      // Wait for silence timeout (1000ms).
+      await Future<void>.delayed(const Duration(milliseconds: 1100));
+
+      expect(events.whereType<InputComplete>().toList(), [
+        const InputComplete([MorseSymbol.dot]),
+      ]);
+    });
+
+    test('no auto charGap inserted during silence', () async {
+      tap(100, startX: leftX); // dot
+      // Wait 600ms (would have triggered charGap in old behavior).
       await Future<void>.delayed(const Duration(milliseconds: 600));
       tap(100, startX: rightX); // dash
 
       // Wait for silence timeout.
       await Future<void>.delayed(const Duration(milliseconds: 1100));
 
+      // Should be [dot, dash] with NO charGap (auto-insertion removed).
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([
-          MorseSymbol.dot,
-          MorseSymbol.charGap,
-          MorseSymbol.dash,
-        ]),
+        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
       ]);
     });
 
-    test(
-      'long silence triggers InputComplete without trailing charGap',
-      () async {
-        tap(100, startX: leftX); // dot
-        // Wait for silence timeout (1000ms).
-        await Future<void>.delayed(const Duration(milliseconds: 1100));
+    test('trailing charGap stripped on silence timeout', () async {
+      tap(100, startX: leftX); // dot
+      await pump();
+      classifier.insertCharGap();
 
-        // Should get InputComplete with just [dot], no trailing charGap.
-        final completes = events.whereType<InputComplete>().toList();
-        expect(completes, hasLength(1));
-        expect(completes.first.symbols, [MorseSymbol.dot]);
-      },
-    );
-
-    test('multiple charGaps in sequence', () async {
-      tap(100, startX: leftX); // dot (I first dot)
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-      tap(100, startX: leftX); // dot (I second dot)
-      // charGap
-      await Future<void>.delayed(const Duration(milliseconds: 600));
-      tap(100, startX: rightX); // dash (T)
-
-      // Wait for InputComplete.
+      // Wait for silence timeout — trailing charGap should be stripped.
       await Future<void>.delayed(const Duration(milliseconds: 1100));
 
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.charGap,
-          MorseSymbol.dash,
-        ]),
+        const InputComplete([MorseSymbol.dot]),
       ]);
     });
   });
