@@ -1,4 +1,4 @@
-import 'package:feel_you/morse/morse_alphabet.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

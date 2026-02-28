@@ -1,11 +1,12 @@
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:equatable/equatable.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter/foundation.dart' show immutable;
 
 /// All possible classified gesture events.
 ///
 /// Sealed so that switch/match expressions are exhaustive.
 @immutable
-sealed class GestureEvent {
+sealed class GestureEvent extends Equatable {
   const GestureEvent();
 }
 
@@ -17,11 +18,7 @@ class MorseInput extends GestureEvent {
   final MorseSymbol symbol;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is MorseInput && symbol == other.symbol;
-
-  @override
-  int get hashCode => symbol.hashCode;
+  List<Object?> get props => [symbol];
 
   @override
   String toString() => 'MorseInput($symbol)';
@@ -35,12 +32,7 @@ class InputComplete extends GestureEvent {
   final List<MorseSymbol> symbols;
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is InputComplete && _listEquals(symbols, other.symbols);
-
-  @override
-  int get hashCode => Object.hashAll(symbols);
+  List<Object?> get props => [symbols];
 
   @override
   String toString() => 'InputComplete($symbols)';
@@ -52,11 +44,7 @@ class NavigateNext extends GestureEvent {
   const NavigateNext();
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is NavigateNext;
-
-  @override
-  int get hashCode => runtimeType.hashCode;
+  List<Object?> get props => [];
 
   @override
   String toString() => 'NavigateNext';
@@ -68,11 +56,7 @@ class NavigatePrevious extends GestureEvent {
   const NavigatePrevious();
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) || other is NavigatePrevious;
-
-  @override
-  int get hashCode => runtimeType.hashCode;
+  List<Object?> get props => [];
 
   @override
   String toString() => 'NavigatePrevious';
@@ -84,20 +68,8 @@ class Reset extends GestureEvent {
   const Reset();
 
   @override
-  bool operator ==(Object other) => identical(this, other) || other is Reset;
-
-  @override
-  int get hashCode => runtimeType.hashCode;
+  List<Object?> get props => [];
 
   @override
   String toString() => 'Reset';
-}
-
-bool _listEquals<T>(List<T> a, List<T> b) {
-  if (identical(a, b)) return true;
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
 }

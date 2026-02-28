@@ -1,4 +1,5 @@
-import 'package:feel_you/morse/morse_alphabet.dart';
+import 'package:equatable/equatable.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:flutter/foundation.dart' show immutable;
 
@@ -7,7 +8,7 @@ import 'package:flutter/foundation.dart' show immutable;
 /// Tracks the user's current position in the A-Z learning sequence
 /// and the current phase of the teaching loop.
 @immutable
-class SessionState {
+class SessionState extends Equatable {
   /// Creates a session state.
   ///
   /// [letterIndex] must be in the range `[0, morseLetters.length)`.
@@ -31,14 +32,7 @@ class SessionState {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is SessionState &&
-          letterIndex == other.letterIndex &&
-          phase == other.phase;
-
-  @override
-  int get hashCode => Object.hash(letterIndex, phase);
+  List<Object?> get props => [letterIndex, phase];
 
   @override
   String toString() => 'SessionState(letter: $currentLetter, phase: $phase)';

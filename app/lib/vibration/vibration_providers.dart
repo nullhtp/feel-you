@@ -1,3 +1,4 @@
+import 'package:feel_you/vibration/device_vibration_service.dart';
 import 'package:feel_you/vibration/morse_timing_config.dart';
 import 'package:feel_you/vibration/vibration_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

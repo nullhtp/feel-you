@@ -1,63 +1,13 @@
-import 'dart:async';
-
-import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
-import 'package:feel_you/vibration/vibration_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// ---------------------------------------------------------------------------
-// Test doubles
-// ---------------------------------------------------------------------------
-
-/// Records calls to the vibration service for verification.
-class MockVibrationService implements VibrationService {
-  final List<String> calls = [];
-
-  @override
-  Future<void> playMorsePattern(List<MorseSymbol> symbols) async {
-    calls.add('playMorsePattern:$symbols');
-  }
-
-  @override
-  Future<void> playSuccess() async {
-    calls.add('playSuccess');
-  }
-
-  @override
-  Future<void> playError() async {
-    calls.add('playError');
-  }
-
-  @override
-  Future<void> cancel() async {
-    calls.add('cancel');
-  }
-}
-
-/// A gesture classifier that exposes a stream controller for injecting events.
-class TestGestureClassifier extends GestureClassifier {
-  TestGestureClassifier() : super(screenWidth: 800);
-
-  final _testController = StreamController<GestureEvent>.broadcast();
-
-  @override
-  Stream<GestureEvent> get events => _testController.stream;
-
-  void addEvent(GestureEvent event) {
-    _testController.add(event);
-  }
-
-  @override
-  void dispose() {
-    _testController.close();
-    super.dispose();
-  }
-}
+import '../test_doubles/fake_gesture_classifier.dart';
+import '../test_doubles/mock_vibration_service.dart';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -69,10 +19,10 @@ class TestGestureClassifier extends GestureClassifier {
   TeachingOrchestrator orchestrator,
   MockVibrationService vibration,
   SessionNotifier session,
-  TestGestureClassifier gestures,
+  FakeGestureClassifier gestures,
 })
 createOrchestrator({Duration repeatPause = const Duration(milliseconds: 10)}) {
-  final gestures = TestGestureClassifier();
+  final gestures = FakeGestureClassifier();
   final vibration = MockVibrationService();
   final session = SessionNotifier();
   final orchestrator = TeachingOrchestrator(
@@ -92,7 +42,7 @@ createOrchestrator({Duration repeatPause = const Duration(milliseconds: 10)}) {
 /// Properly tear down an orchestrator: stop, let microtasks drain, dispose.
 Future<void> tearDownOrchestrator(
   TeachingOrchestrator orchestrator,
-  TestGestureClassifier gestures,
+  FakeGestureClassifier gestures,
 ) async {
   await orchestrator.stop();
   // Let any pending microtasks from the loop drain.
@@ -150,7 +100,7 @@ void main() {
       final t = createOrchestrator();
       // Give microtasks a chance to run.
       await Future<void>.delayed(Duration.zero);
-      expect(t.vibration.calls, isEmpty);
+      expect(t.vibration.callLog, isEmpty);
       expect(t.orchestrator.state.isRunning, false);
       await tearDownOrchestrator(t.orchestrator, t.gestures);
     });
@@ -164,7 +114,7 @@ void main() {
 
       // Default letter is A (dot-dash). Should have played at least once.
       expect(
-        t.vibration.calls.where(
+        t.vibration.callLog.where(
           (c) => c == 'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]',
         ),
         isNotEmpty,
@@ -181,7 +131,7 @@ void main() {
       // Wait long enough for multiple iterations (10ms pause).
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
-      final playCount = t.vibration.calls
+      final playCount = t.vibration.callLog
           .where(
             (c) => c == 'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]',
           )
@@ -198,11 +148,11 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 30));
       await t.orchestrator.stop();
 
-      final countAfterStop = t.vibration.calls.length;
+      final countAfterStop = t.vibration.callLog.length;
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
       // No new calls after stop (allow for one extra due to async timing).
-      expect(t.vibration.calls.length, lessThanOrEqualTo(countAfterStop + 1));
+      expect(t.vibration.callLog.length, lessThanOrEqualTo(countAfterStop + 1));
       expect(t.orchestrator.state.isRunning, false);
 
       await tearDownOrchestrator(t.orchestrator, t.gestures);
@@ -235,7 +185,7 @@ void main() {
         await Future<void>.delayed(Duration.zero);
 
         expect(t.session.state.phase, SessionPhase.listening);
-        expect(t.vibration.calls, contains('cancel'));
+        expect(t.vibration.callLog, contains('cancel'));
 
         await tearDownOrchestrator(t.orchestrator, t.gestures);
       },
@@ -249,14 +199,14 @@ void main() {
       // First tap — transitions to listening.
       t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
       await Future<void>.delayed(Duration.zero);
-      final cancelCountAfterFirst = t.vibration.calls
+      final cancelCountAfterFirst = t.vibration.callLog
           .where((c) => c == 'cancel')
           .length;
 
       // Second tap during listening — should be no-op.
       t.gestures.addEvent(const MorseInput(MorseSymbol.dash));
       await Future<void>.delayed(Duration.zero);
-      final cancelCountAfterSecond = t.vibration.calls
+      final cancelCountAfterSecond = t.vibration.callLog
           .where((c) => c == 'cancel')
           .length;
 
@@ -275,7 +225,7 @@ void main() {
       t.session.setPhase(SessionPhase.feedback);
 
       // Record cancel count before the tap.
-      final cancelCountBefore = t.vibration.calls
+      final cancelCountBefore = t.vibration.callLog
           .where((c) => c == 'cancel')
           .length;
 
@@ -283,7 +233,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
 
       // No new cancel calls from the MorseInput handler.
-      final cancelCountAfter = t.vibration.calls
+      final cancelCountAfter = t.vibration.callLog
           .where((c) => c == 'cancel')
           .length;
       expect(cancelCountAfter, cancelCountBefore);
@@ -314,7 +264,7 @@ void main() {
       // Wait for feedback signal + 500ms post-feedback pause + loop start.
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
-      expect(t.vibration.calls, contains('playSuccess'));
+      expect(t.vibration.callLog, contains('playSuccess'));
       // Should have resumed to playing.
       expect(t.session.state.phase, SessionPhase.playing);
 
@@ -335,7 +285,7 @@ void main() {
       // Wait for error signal + 500ms post-feedback pause + loop start.
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
-      expect(t.vibration.calls, contains('playError'));
+      expect(t.vibration.callLog, contains('playError'));
       // Loop resumes — the letter replays naturally via the loop.
       expect(t.session.state.phase, SessionPhase.playing);
 
@@ -355,7 +305,7 @@ void main() {
       t.gestures.addEvent(const InputComplete([]));
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(t.vibration.calls, contains('playError'));
+      expect(t.vibration.callLog, contains('playError'));
 
       await tearDownOrchestrator(t.orchestrator, t.gestures);
     });
@@ -368,14 +318,14 @@ void main() {
       // Manually set to feedback.
       t.session.setPhase(SessionPhase.feedback);
 
-      final callsBefore = t.vibration.calls.length;
+      final callsBefore = t.vibration.callLog.length;
       t.gestures.addEvent(
         const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
       );
       await Future<void>.delayed(Duration.zero);
 
       // No new playSuccess or playError calls from evaluation.
-      final newCalls = t.vibration.calls.sublist(callsBefore);
+      final newCalls = t.vibration.callLog.sublist(callsBefore);
       expect(newCalls.where((c) => c == 'playSuccess'), isEmpty);
       expect(newCalls.where((c) => c == 'playError'), isEmpty);
 
@@ -390,14 +340,14 @@ void main() {
       // Phase should be playing.
       expect(t.session.state.phase, SessionPhase.playing);
 
-      final callsBefore = t.vibration.calls.length;
+      final callsBefore = t.vibration.callLog.length;
       t.gestures.addEvent(
         const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
       );
       await Future<void>.delayed(Duration.zero);
 
       // No evaluation calls.
-      final newCalls = t.vibration.calls.sublist(callsBefore);
+      final newCalls = t.vibration.callLog.sublist(callsBefore);
       expect(newCalls.where((c) => c == 'playSuccess'), isEmpty);
       expect(newCalls.where((c) => c == 'playError'), isEmpty);
 
@@ -420,11 +370,11 @@ void main() {
       // Letter should have advanced from A to B.
       expect(t.session.state.currentLetter, 'B');
       expect(t.session.state.phase, SessionPhase.playing);
-      expect(t.vibration.calls, contains('cancel'));
+      expect(t.vibration.callLog, contains('cancel'));
 
       // Should now be playing B's pattern (dash-dot-dot-dot).
       expect(
-        t.vibration.calls,
+        t.vibration.callLog,
         contains(
           'playMorsePattern:[MorseSymbol.dash, MorseSymbol.dot, '
           'MorseSymbol.dot, MorseSymbol.dot]',
@@ -488,7 +438,7 @@ void main() {
 
       expect(t.session.state.currentLetter, 'B');
       expect(t.session.state.phase, SessionPhase.playing);
-      expect(t.vibration.calls, contains('cancel'));
+      expect(t.vibration.callLog, contains('cancel'));
 
       await tearDownOrchestrator(t.orchestrator, t.gestures);
     });

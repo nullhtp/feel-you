@@ -5,6 +5,7 @@
 class TeachingTimingConfig {
   const TeachingTimingConfig({
     this.repeatPause = const Duration(milliseconds: 3000),
+    this.postFeedbackPause = const Duration(milliseconds: 500),
   });
 
   /// Pause between pattern repetitions in the play-wait-repeat loop.
@@ -12,4 +13,10 @@ class TeachingTimingConfig {
   /// After the orchestrator finishes vibrating the current letter's
   /// Morse pattern, it waits this long before replaying it.
   final Duration repeatPause;
+
+  /// Pause after feedback (success/error) vibration before resuming the loop.
+  ///
+  /// Gives the user time to register the feedback before the next
+  /// Morse pattern begins.
+  final Duration postFeedbackPause;
 }

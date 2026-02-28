@@ -1,12 +1,11 @@
 import 'dart:async';
 
-import 'package:feel_you/gestures/gesture_classifier.dart';
-import 'package:feel_you/gestures/gesture_event.dart';
-import 'package:feel_you/morse/morse_utils.dart';
-import 'package:feel_you/session/session_notifier.dart';
-import 'package:feel_you/session/session_phase.dart';
+import 'package:equatable/equatable.dart';
+import 'package:feel_you/gestures/gestures.dart';
+import 'package:feel_you/morse/morse.dart';
+import 'package:feel_you/session/session.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
-import 'package:feel_you/vibration/vibration_service.dart';
+import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/foundation.dart' show immutable;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -15,7 +14,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Tracks whether the play-wait-repeat loop is active and whether
 /// it has been interrupted by user input.
 @immutable
-class TeachingOrchestratorState {
+class TeachingOrchestratorState extends Equatable {
   const TeachingOrchestratorState({
     this.isRunning = false,
     this.isInterrupted = false,
@@ -35,14 +34,7 @@ class TeachingOrchestratorState {
   }
 
   @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is TeachingOrchestratorState &&
-          isRunning == other.isRunning &&
-          isInterrupted == other.isInterrupted;
-
-  @override
-  int get hashCode => Object.hash(isRunning, isInterrupted);
+  List<Object?> get props => [isRunning, isInterrupted];
 
   @override
   String toString() =>
@@ -211,37 +203,17 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
         expected != null && patternsEqual(event.symbols, expected);
 
     if (isCorrect) {
-      _handleCorrectAnswer();
+      _handleFeedback(vibrationService.playSuccess);
     } else {
-      _handleWrongAnswer();
+      _handleFeedback(vibrationService.playError);
     }
   }
 
-  Future<void> _handleCorrectAnswer() async {
+  /// Plays feedback (success or error), pauses briefly, then resumes the loop.
+  Future<void> _handleFeedback(Future<void> Function() playFeedback) async {
     if (_disposed) return;
     sessionNotifier.setPhase(SessionPhase.feedback);
-    await vibrationService.playSuccess();
-
-    // Check if disposed or navigation happened during feedback.
-    if (_disposed || !mounted) return;
-    if (sessionNotifier.state.phase != SessionPhase.feedback) return;
-
-    // Brief silence so the user can register the feedback before the
-    // loop resumes with the next Morse pattern.
-    await Future<void>.delayed(const Duration(milliseconds: 500));
-    if (_disposed || !mounted) return;
-    if (sessionNotifier.state.phase != SessionPhase.feedback) return;
-
-    // Resume the loop (fire-and-forget — the loop manages its own lifecycle).
-    _loopGeneration++;
-    state = state.copyWith(isInterrupted: false);
-    unawaited(_runLoop());
-  }
-
-  Future<void> _handleWrongAnswer() async {
-    if (_disposed) return;
-    sessionNotifier.setPhase(SessionPhase.feedback);
-    await vibrationService.playError();
+    await playFeedback();
 
     // Check if disposed or navigation happened during feedback.
     if (_disposed || !mounted) return;
@@ -249,11 +221,11 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
     // Brief silence so the user can register the feedback before the
     // loop resumes with the Morse pattern.
-    await Future<void>.delayed(const Duration(milliseconds: 500));
+    await Future<void>.delayed(config.postFeedbackPause);
     if (_disposed || !mounted) return;
     if (sessionNotifier.state.phase != SessionPhase.feedback) return;
 
-    // Resume the loop — it will replay the letter pattern naturally.
+    // Resume the loop (fire-and-forget — the loop manages its own lifecycle).
     _loopGeneration++;
     state = state.copyWith(isInterrupted: false);
     unawaited(_runLoop());

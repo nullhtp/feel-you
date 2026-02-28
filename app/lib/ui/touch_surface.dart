@@ -1,7 +1,5 @@
-import 'package:feel_you/gestures/gesture_classifier.dart';
-import 'package:feel_you/gestures/gesture_providers.dart';
-import 'package:feel_you/teaching/teaching_orchestrator.dart';
-import 'package:feel_you/teaching/teaching_providers.dart';
+import 'package:feel_you/gestures/gestures.dart';
+import 'package:feel_you/teaching/teaching.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';

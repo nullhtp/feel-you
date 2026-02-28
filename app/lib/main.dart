@@ -1,7 +1,7 @@
 import 'dart:ui';
 
 import 'package:feel_you/app.dart';
-import 'package:feel_you/gestures/gesture_providers.dart';
+import 'package:feel_you/gestures/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

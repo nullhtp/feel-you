@@ -1,6 +1,7 @@
 import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/vibration/morse_timing_config.dart';
-import 'package:feel_you/vibration/vibration_service.dart';
+import 'package:feel_you/vibration/morse_vibration_pattern.dart';
+import 'package:feel_you/vibration/signal_pattern.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

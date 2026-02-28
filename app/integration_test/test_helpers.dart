@@ -9,9 +9,7 @@ import 'package:feel_you/session/session_providers.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
-import 'package:feel_you/vibration/morse_timing_config.dart';
-import 'package:feel_you/vibration/vibration_providers.dart';
-import 'package:feel_you/vibration/vibration_service.dart';
+import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 

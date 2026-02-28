@@ -1,68 +1,15 @@
-import 'dart:async';
-
 import 'package:feel_you/gestures/gesture_classifier.dart';
-import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/gestures/gesture_providers.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration_providers.dart';
-import 'package:feel_you/vibration/vibration_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// ---------------------------------------------------------------------------
-// Test doubles
-// ---------------------------------------------------------------------------
-
-/// Records calls to the vibration service for verification.
-class MockVibrationService implements VibrationService {
-  final List<String> calls = [];
-
-  @override
-  Future<void> playMorsePattern(List<MorseSymbol> symbols) async {
-    calls.add('playMorsePattern:$symbols');
-  }
-
-  @override
-  Future<void> playSuccess() async {
-    calls.add('playSuccess');
-  }
-
-  @override
-  Future<void> playError() async {
-    calls.add('playError');
-  }
-
-  @override
-  Future<void> cancel() async {
-    calls.add('cancel');
-  }
-}
-
-/// A gesture classifier that records handleTouch calls.
-class RecordingGestureClassifier extends GestureClassifier {
-  RecordingGestureClassifier() : super(screenWidth: 800);
-
-  final List<RawTouchEvent> touchEvents = [];
-  final _testController = StreamController<GestureEvent>.broadcast();
-
-  @override
-  Stream<GestureEvent> get events => _testController.stream;
-
-  @override
-  void handleTouch(RawTouchEvent event) {
-    touchEvents.add(event);
-  }
-
-  @override
-  void dispose() {
-    _testController.close();
-    super.dispose();
-  }
-}
+import '../test_doubles/fake_gesture_classifier.dart';
+import '../test_doubles/mock_vibration_service.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -74,7 +21,7 @@ const _testRepeatPause = Duration(seconds: 5);
 
 /// Builds a [ProviderScope] with test overrides and [TouchSurface] as child.
 Widget buildTestWidget({
-  required RecordingGestureClassifier classifier,
+  required FakeGestureClassifier classifier,
   required MockVibrationService vibration,
 }) {
   return ProviderScope(
@@ -115,7 +62,7 @@ void main() {
   // -------------------------------------------------------------------------
   group('rendering', () {
     testWidgets('renders a full-screen black Scaffold', (tester) async {
-      final classifier = RecordingGestureClassifier();
+      final classifier = FakeGestureClassifier();
       final vibration = MockVibrationService();
 
       await tester.pumpWidget(
@@ -141,7 +88,7 @@ void main() {
     testWidgets(
       'pointer down event is forwarded as TouchDown with timestamp and x',
       (tester) async {
-        final classifier = RecordingGestureClassifier();
+        final classifier = FakeGestureClassifier();
         final vibration = MockVibrationService();
 
         await tester.pumpWidget(
@@ -167,7 +114,7 @@ void main() {
     testWidgets(
       'pointer up event is forwarded as TouchUp with timestamp and x',
       (tester) async {
-        final classifier = RecordingGestureClassifier();
+        final classifier = FakeGestureClassifier();
         final vibration = MockVibrationService();
 
         await tester.pumpWidget(
@@ -196,7 +143,7 @@ void main() {
     testWidgets(
       'only primary pointer events are forwarded (multi-touch ignored)',
       (tester) async {
-        final classifier = RecordingGestureClassifier();
+        final classifier = FakeGestureClassifier();
         final vibration = MockVibrationService();
 
         await tester.pumpWidget(
@@ -231,7 +178,7 @@ void main() {
     );
 
     testWidgets('pointer cancel is forwarded as TouchUp', (tester) async {
-      final classifier = RecordingGestureClassifier();
+      final classifier = FakeGestureClassifier();
       final vibration = MockVibrationService();
 
       await tester.pumpWidget(
@@ -257,7 +204,7 @@ void main() {
     testWidgets('new primary pointer is accepted after previous one ends', (
       tester,
     ) async {
-      final classifier = RecordingGestureClassifier();
+      final classifier = FakeGestureClassifier();
       final vibration = MockVibrationService();
 
       await tester.pumpWidget(
@@ -290,7 +237,7 @@ void main() {
   // -------------------------------------------------------------------------
   group('back navigation prevention', () {
     testWidgets('PopScope has canPop set to false', (tester) async {
-      final classifier = RecordingGestureClassifier();
+      final classifier = FakeGestureClassifier();
       final vibration = MockVibrationService();
 
       await tester.pumpWidget(
@@ -310,7 +257,7 @@ void main() {
   // -------------------------------------------------------------------------
   group('teaching orchestrator lifecycle', () {
     testWidgets('orchestrator is started on mount', (tester) async {
-      final classifier = RecordingGestureClassifier();
+      final classifier = FakeGestureClassifier();
       final vibration = MockVibrationService();
 
       await tester.pumpWidget(
@@ -332,7 +279,7 @@ void main() {
     });
 
     testWidgets('orchestrator is stopped on dispose', (tester) async {
-      final classifier = RecordingGestureClassifier();
+      final classifier = FakeGestureClassifier();
       final vibration = MockVibrationService();
 
       await tester.pumpWidget(
@@ -352,7 +299,7 @@ void main() {
 
       // After dispose, the orchestrator's stop should have been called.
       // We verify via the vibration service — stop calls cancel.
-      expect(vibration.calls, contains('cancel'));
+      expect(vibration.callLog, contains('cancel'));
 
       classifier.dispose();
     });

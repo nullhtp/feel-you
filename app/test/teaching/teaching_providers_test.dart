@@ -1,24 +1,12 @@
 import 'package:feel_you/gestures/gesture_providers.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/vibration/vibration_providers.dart';
-import 'package:feel_you/vibration/vibration_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// Mock vibration service for provider tests.
-class _MockVibrationService implements VibrationService {
-  @override
-  Future<void> playMorsePattern(List<MorseSymbol> symbols) async {}
-  @override
-  Future<void> playSuccess() async {}
-  @override
-  Future<void> playError() async {}
-  @override
-  Future<void> cancel() async {}
-}
+import '../test_doubles/mock_vibration_service.dart';
 
 void main() {
   group('teachingTimingConfigProvider', () {
@@ -48,7 +36,7 @@ void main() {
     test('creates orchestrator with correct dependencies', () {
       final container = ProviderContainer(
         overrides: [
-          vibrationServiceProvider.overrideWithValue(_MockVibrationService()),
+          vibrationServiceProvider.overrideWithValue(MockVibrationService()),
           screenWidthProvider.overrideWithValue(800),
         ],
       );
@@ -64,7 +52,7 @@ void main() {
       // Create, read (to instantiate the provider), then dispose.
       ProviderContainer(
           overrides: [
-            vibrationServiceProvider.overrideWithValue(_MockVibrationService()),
+            vibrationServiceProvider.overrideWithValue(MockVibrationService()),
             screenWidthProvider.overrideWithValue(800),
           ],
         )

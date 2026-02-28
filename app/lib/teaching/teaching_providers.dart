@@ -1,8 +1,8 @@
-import 'package:feel_you/gestures/gesture_providers.dart';
-import 'package:feel_you/session/session_providers.dart';
+import 'package:feel_you/gestures/gestures.dart';
+import 'package:feel_you/session/session.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
-import 'package:feel_you/vibration/vibration_providers.dart';
+import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Provides the [TeachingTimingConfig] used by the teaching loop.

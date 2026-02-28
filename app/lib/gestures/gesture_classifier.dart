@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/gestures/gesture_timing_config.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 
 /// Raw pointer data fed into the classifier.
 ///
