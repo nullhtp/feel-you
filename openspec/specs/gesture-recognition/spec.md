@@ -1,35 +1,17 @@
 ### Requirement: Configurable gesture timing thresholds
-The system SHALL define gesture timing through a configuration object (`GestureTimingConfig`) with the following defaults: dot tap maximum 150ms, dash tap maximum 500ms, reset hold minimum 2000ms, silence timeout 1000ms, minimum swipe distance 50px, minimum swipe velocity 200px/s. All values SHALL be overridable at construction time.
+The system SHALL define gesture timing through a configuration object (`GestureTimingConfig`) with the following defaults: reset hold minimum 2000ms, silence timeout 1000ms, minimum swipe distance 50px, minimum swipe velocity 200px/s. All values SHALL be overridable at construction time. The `dotMaxDuration` and `dashMaxDuration` parameters SHALL be removed since dot/dash classification is now position-based.
 
 #### Scenario: Default timing values
 - **WHEN** a `GestureTimingConfig` is created with no arguments
-- **THEN** dot max is 150ms, dash max is 500ms, reset min is 2000ms, silence timeout is 1000ms, min swipe distance is 50px, and min swipe velocity is 200px/s
+- **THEN** reset min is 2000ms, silence timeout is 1000ms, min swipe distance is 50px, and min swipe velocity is 200px/s
 
 #### Scenario: Custom timing values
-- **WHEN** a `GestureTimingConfig` is created with dot max=200ms and silence timeout=1500ms
-- **THEN** those custom values are used and all other values remain at defaults
+- **WHEN** a `GestureTimingConfig` is created with silence timeout=1500ms
+- **THEN** that custom value is used and all other values remain at defaults
 
-### Requirement: Classify tap as dot
-The system SHALL classify a tap-and-release where the press duration is less than the configured dot threshold (default: 150ms) as a `dot` Morse input.
-
-#### Scenario: Quick tap produces dot
-- **WHEN** a user presses and releases within 100ms
-- **THEN** the system emits a `MorseInput(dot)` event
-
-#### Scenario: Tap at exact threshold boundary
-- **WHEN** a user presses and releases at exactly 150ms
-- **THEN** the system emits a `MorseInput(dash)` event (boundary is exclusive for dot, inclusive for dash)
-
-### Requirement: Classify tap as dash
-The system SHALL classify a tap-and-release where the press duration is between the configured dot threshold (inclusive) and dash threshold (inclusive) as a `dash` Morse input.
-
-#### Scenario: Medium press produces dash
-- **WHEN** a user presses and releases after 300ms
-- **THEN** the system emits a `MorseInput(dash)` event
-
-#### Scenario: Press at dash maximum boundary
-- **WHEN** a user presses and releases at exactly 500ms
-- **THEN** the system emits a `MorseInput(dash)` event
+#### Scenario: No dot/dash duration parameters exist
+- **WHEN** a developer inspects `GestureTimingConfig`
+- **THEN** there SHALL be no `dotMaxDuration` or `dashMaxDuration` properties
 
 ### Requirement: Classify long hold as reset
 The system SHALL classify a press held longer than the configured reset threshold (default: 2000ms) as a `Reset` event. The reset event SHALL be emitted when the threshold is crossed, not when the user releases.
@@ -37,10 +19,6 @@ The system SHALL classify a press held longer than the configured reset threshol
 #### Scenario: Long hold triggers reset
 - **WHEN** a user presses and holds for more than 2000ms
 - **THEN** the system emits a `Reset` event at the 2000ms mark
-
-#### Scenario: Press between dash and reset is ignored
-- **WHEN** a user presses for 800ms (between dash max 500ms and reset min 2000ms)
-- **THEN** the system does NOT emit a MorseInput or Reset event (it falls in the dead zone)
 
 ### Requirement: Detect input completion via silence timeout
 The system SHALL track time since the last Morse input event. When the configured silence timeout (default: 1000ms) elapses without a new input, the system SHALL emit an `InputComplete` event containing the accumulated list of `MorseSymbol` values.

@@ -10,15 +10,15 @@ The system SHALL define Morse vibration timing through a configuration object (`
 - **THEN** those custom values are used instead of defaults
 
 ### Requirement: Configurable signal vibration timing
-The `MorseTimingConfig` SHALL also define signal vibration timing with defaults: success pulse duration 80ms, success inter-pulse gap 80ms, success pulse count 3, error buzz duration 600ms. All values SHALL be overridable.
+The `MorseTimingConfig` SHALL also define signal vibration timing with defaults: signal duration 400ms, signal steps 4. Both success and error signals share the same duration and step count but differ in intensity direction. All values SHALL be overridable.
 
 #### Scenario: Default signal timing values
 - **WHEN** a `MorseTimingConfig` is created with no arguments
-- **THEN** success pulse is 80ms, success gap is 80ms, success count is 3, and error buzz is 600ms
+- **THEN** signal duration is 400ms and signal steps is 4
 
 #### Scenario: Custom signal timing
-- **WHEN** a `MorseTimingConfig` is created with error buzz=800ms
-- **THEN** the error buzz duration is 800ms and all other values remain at defaults
+- **WHEN** a `MorseTimingConfig` is created with signal duration=600ms
+- **THEN** the signal duration is 600ms and all other values remain at defaults
 
 ### Requirement: Play Morse pattern as vibration
 The system SHALL provide a `VibrationService` that can play a list of `MorseSymbol` values as a vibration sequence. Each dot SHALL vibrate for the configured dot duration, each dash for the configured dash duration, and symbols SHALL be separated by the configured inter-symbol gap (silence).
@@ -36,26 +36,26 @@ The system SHALL provide a `VibrationService` that can play a list of `MorseSymb
 - **THEN** the device vibrates 100ms, pauses 100ms, vibrates 100ms, pauses 100ms, vibrates 100ms
 
 ### Requirement: Play success signal
-The `VibrationService` SHALL provide a `playSuccess()` method that vibrates the configured success pattern: a series of quick pulses (default: 3 pulses of 80ms with 80ms gaps between them).
+The `VibrationService` SHALL provide a `playSuccess()` method that vibrates a continuous signal with rising intensity. The signal duration is split into steps, with amplitude ramping linearly from low (1) to high (255). With defaults (400ms, 4 steps): 4 segments of 100ms at intensities 64, 128, 191, 255.
 
 #### Scenario: Success signal with default config
 - **WHEN** `playSuccess()` is called with default config
-- **THEN** the device vibrates 80ms, pauses 80ms, vibrates 80ms, pauses 80ms, vibrates 80ms
+- **THEN** the device vibrates continuously for 400ms with intensity rising from low to max
 
 #### Scenario: Success signal is distinct from Morse patterns
-- **WHEN** comparing the success vibration pattern to any single-letter Morse pattern
-- **THEN** the success pattern (3 very short equal pulses) is tactilely distinct from Morse patterns (which mix dots and dashes of different lengths)
+- **WHEN** comparing the success vibration to any Morse pattern
+- **THEN** the success signal (continuous rising intensity) is tactilely distinct from Morse patterns (on/off at constant intensity)
 
 ### Requirement: Play error signal
-The `VibrationService` SHALL provide a `playError()` method that vibrates the configured error pattern: one long continuous buzz (default: 600ms).
+The `VibrationService` SHALL provide a `playError()` method that vibrates a continuous signal with falling intensity. The signal duration is split into steps, with amplitude ramping linearly from high (255) to low (1). With defaults (400ms, 4 steps): 4 segments of 100ms at intensities 255, 191, 128, 64.
 
 #### Scenario: Error signal with default config
 - **WHEN** `playError()` is called with default config
-- **THEN** the device vibrates continuously for 600ms
+- **THEN** the device vibrates continuously for 400ms with intensity falling from max to low
 
-#### Scenario: Error signal is distinct from Morse patterns
-- **WHEN** comparing the error vibration to any Morse pattern
-- **THEN** the error buzz (600ms continuous) is longer than any single Morse dash (300ms) making it tactilely distinct
+#### Scenario: Error signal is distinct from Morse and success patterns
+- **WHEN** comparing the error vibration to Morse or success patterns
+- **THEN** the error signal (continuous falling intensity) is the opposite of success (rising) and tactilely distinct from Morse (on/off at constant intensity)
 
 ### Requirement: VibrationService is abstract with injectable implementation
 The `VibrationService` SHALL be defined as an abstract class with methods for playing Morse patterns, success signals, error signals, and cancelling ongoing vibration. A concrete implementation using the `vibration` package SHALL be provided. The service SHALL be exposed through a Riverpod provider, allowing the implementation to be swapped for testing.

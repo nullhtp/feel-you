@@ -6,6 +6,10 @@ class FeelYouApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(title: 'Feel You', home: TouchSurface());
+    return MaterialApp(
+      title: 'Feel You',
+      theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: Colors.black),
+      home: const TouchSurface(),
+    );
   }
 }

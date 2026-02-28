@@ -1,5 +1,5 @@
 ### Requirement: Full-screen touch capture
-The app SHALL present a full-screen touch surface that captures all pointer events (touch down, touch up) and converts them into `RawTouchEvent` objects (`TouchDown`, `TouchUp`) fed to the `GestureClassifier` via `handleTouch`.
+The app SHALL present a full-screen touch surface that captures all pointer events (touch down, touch up) and converts them into `RawTouchEvent` objects (`TouchDown`, `TouchUp`) fed to the `GestureClassifier` via `handleTouch`. The touch surface SHALL provide the screen width to the `GestureClassifier` so it can perform position-based dot/dash classification.
 
 #### Scenario: Touch down event is forwarded to classifier
 - **WHEN** the user touches the screen
@@ -12,6 +12,10 @@ The app SHALL present a full-screen touch surface that captures all pointer even
 #### Scenario: Entire screen area is touch-sensitive
 - **WHEN** the widget is displayed
 - **THEN** the touch-sensitive area SHALL cover the entire screen with no dead zones
+
+#### Scenario: Screen width provided to classifier
+- **WHEN** the touch surface widget is built
+- **THEN** it SHALL obtain the screen width from `MediaQuery` and ensure the `GestureClassifier` has access to this value for position-based classification
 
 ### Requirement: Solid black background
 The touch surface SHALL render a solid black background with no visual elements, text, or decorations.

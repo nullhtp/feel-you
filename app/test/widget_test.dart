@@ -29,7 +29,7 @@ class _MockVibrationService implements VibrationService {
 }
 
 class _StubGestureClassifier extends GestureClassifier {
-  _StubGestureClassifier() : super();
+  _StubGestureClassifier() : super(screenWidth: 800);
   final _controller = StreamController<GestureEvent>.broadcast();
   @override
   Stream<GestureEvent> get events => _controller.stream;

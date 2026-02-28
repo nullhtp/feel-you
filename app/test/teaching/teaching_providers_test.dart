@@ -1,3 +1,4 @@
+import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
@@ -48,6 +49,7 @@ void main() {
       final container = ProviderContainer(
         overrides: [
           vibrationServiceProvider.overrideWithValue(_MockVibrationService()),
+          screenWidthProvider.overrideWithValue(800),
         ],
       );
       addTearDown(container.dispose);
@@ -63,6 +65,7 @@ void main() {
       ProviderContainer(
           overrides: [
             vibrationServiceProvider.overrideWithValue(_MockVibrationService()),
+            screenWidthProvider.overrideWithValue(800),
           ],
         )
         ..read(teachingOrchestratorProvider)

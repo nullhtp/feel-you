@@ -2,27 +2,18 @@
 ///
 /// All duration values are in milliseconds. Distance is in logical pixels.
 /// Velocity is in logical pixels per second.
+///
+/// Dot/dash classification is position-based (left half = dot, right half =
+/// dash), so no duration thresholds for dot/dash are needed.
 class GestureTimingConfig {
   const GestureTimingConfig({
-    this.dotMaxDuration = 150,
-    this.dashMaxDuration = 500,
     this.resetMinDuration = 2000,
     this.silenceTimeout = 1000,
     this.minSwipeDistance = 50,
     this.minSwipeVelocity = 200,
   });
 
-  /// Maximum press duration (exclusive) to classify as a dot, in ms.
-  final int dotMaxDuration;
-
-  /// Maximum press duration (inclusive) to classify as a dash, in ms.
-  /// Presses between [dotMaxDuration] (inclusive) and this value (inclusive)
-  /// are classified as dashes.
-  final int dashMaxDuration;
-
   /// Minimum press duration to trigger a reset, in ms.
-  /// Presses longer than [dashMaxDuration] but shorter than this value
-  /// fall in the dead zone and are ignored.
   final int resetMinDuration;
 
   /// Time of silence after the last Morse input before emitting

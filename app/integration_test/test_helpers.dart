@@ -89,8 +89,6 @@ class RecordingVibrationService implements VibrationService {
 
 /// Gesture timing with very short durations for fast tests.
 const fastGestureConfig = GestureTimingConfig(
-  dotMaxDuration: 5,
-  dashMaxDuration: 15,
   resetMinDuration: 30,
   silenceTimeout: 10,
   minSwipeDistance: 50,
@@ -102,10 +100,6 @@ const fastMorseTimingConfig = MorseTimingConfig(
   dotDuration: 1,
   dashDuration: 2,
   interSymbolGap: 1,
-  successPulseDuration: 1,
-  successPulseGap: 1,
-  successPulseCount: 3,
-  errorBuzzDuration: 1,
 );
 
 /// Teaching timing with minimal pause for fast tests.
@@ -117,9 +111,10 @@ const fastTeachingConfig = TeachingTimingConfig(
 // Gesture simulation helpers
 // ---------------------------------------------------------------------------
 
-/// Simulates a dot tap (short press) on the given [classifier].
+/// Simulates a dot tap (tap on left half) on the given [classifier].
 ///
 /// Uses timestamps relative to [baseTime] to ensure consistent timing.
+/// Position 100 is on the left half (< 400 midpoint for 800px screen).
 void simulateDot(GestureClassifier classifier, {required Duration baseTime}) {
   classifier.handleTouch(TouchDown(timestamp: baseTime, position: 100));
   classifier.handleTouch(
@@ -130,13 +125,14 @@ void simulateDot(GestureClassifier classifier, {required Duration baseTime}) {
   );
 }
 
-/// Simulates a dash tap (longer press) on the given [classifier].
+/// Simulates a dash tap (tap on right half) on the given [classifier].
+/// Position 600 is on the right half (>= 400 midpoint for 800px screen).
 void simulateDash(GestureClassifier classifier, {required Duration baseTime}) {
-  classifier.handleTouch(TouchDown(timestamp: baseTime, position: 100));
+  classifier.handleTouch(TouchDown(timestamp: baseTime, position: 600));
   classifier.handleTouch(
     TouchUp(
-      timestamp: baseTime + const Duration(milliseconds: 8),
-      position: 100,
+      timestamp: baseTime + const Duration(milliseconds: 2),
+      position: 600,
     ),
   );
 }
@@ -237,6 +233,7 @@ TestHarness createTestHarness() {
     overrides: [
       vibrationServiceProvider.overrideWithValue(vibration),
       gestureTimingConfigProvider.overrideWithValue(fastGestureConfig),
+      screenWidthProvider.overrideWithValue(800),
       morseTimingConfigProvider.overrideWithValue(fastMorseTimingConfig),
       teachingTimingConfigProvider.overrideWithValue(fastTeachingConfig),
     ],

@@ -30,10 +30,20 @@ class TouchUp extends RawTouchEvent {
 
 /// Classifies raw touch events into [GestureEvent]s.
 ///
+/// Dot/dash classification is position-based: taps on the left half of the
+/// screen (x < screenWidth / 2) produce dots; taps on the right half
+/// (x >= screenWidth / 2) produce dashes.
+///
 /// Emits events via a broadcast [Stream]. Manages an internal input buffer
 /// and silence timer for input completion detection.
 class GestureClassifier {
-  GestureClassifier({this.config = const GestureTimingConfig()});
+  GestureClassifier({
+    required this.screenWidth,
+    this.config = const GestureTimingConfig(),
+  });
+
+  /// Screen width in logical pixels, used to determine the dot/dash boundary.
+  final double screenWidth;
 
   final GestureTimingConfig config;
 
@@ -103,13 +113,13 @@ class GestureClassifier {
       return;
     }
 
-    // Classify tap duration.
-    if (durationMs < config.dotMaxDuration) {
-      _addSymbol(MorseSymbol.dot);
-    } else if (durationMs <= config.dashMaxDuration) {
-      _addSymbol(MorseSymbol.dash);
-    }
-    // Dead zone (> dashMax, < resetMin): intentionally ignored.
+    // Position-based dot/dash classification.
+    // Left half (x < midpoint) = dot, right half (x >= midpoint) = dash.
+    // Any non-swipe tap shorter than resetMinDuration is classified.
+    final symbol = startX < screenWidth / 2
+        ? MorseSymbol.dot
+        : MorseSymbol.dash;
+    _addSymbol(symbol);
   }
 
   bool _isSwipe(int durationMs, double dx) {

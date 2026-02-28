@@ -44,7 +44,7 @@ class MockVibrationService implements VibrationService {
 
 /// A gesture classifier that records handleTouch calls.
 class RecordingGestureClassifier extends GestureClassifier {
-  RecordingGestureClassifier() : super();
+  RecordingGestureClassifier() : super(screenWidth: 800);
 
   final List<RawTouchEvent> touchEvents = [];
   final _testController = StreamController<GestureEvent>.broadcast();

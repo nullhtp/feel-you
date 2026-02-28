@@ -82,6 +82,11 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// been disposed.
   bool _disposed = false;
 
+  /// Generation counter to invalidate stale loops. Each call to [_runLoop]
+  /// captures the current generation; if it changes (due to navigation or
+  /// stop), the old loop exits.
+  int _loopGeneration = 0;
+
   /// Whether the loop should keep running. Checked by the async loop to
   /// avoid accessing [state] after dispose.
   bool get _shouldRun => !_disposed && mounted && state.isRunning;
@@ -94,6 +99,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// No-op if already running.
   void start() {
     if (!mounted || state.isRunning) return;
+    _loopGeneration++;
     state = state.copyWith(isRunning: true, isInterrupted: false);
     unawaited(_runLoop());
   }
@@ -101,6 +107,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// Stops the play-wait-repeat loop and cancels any ongoing vibration.
   Future<void> stop() async {
     if (!mounted || !state.isRunning) return;
+    _loopGeneration++;
     state = state.copyWith(isRunning: false, isInterrupted: true);
     _cancelPause();
     await vibrationService.cancel();
@@ -122,9 +129,14 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
   Future<void> _runLoop() async {
     if (_disposed) return;
+
+    // Capture the generation so this loop can detect if a newer loop
+    // was started (e.g. by navigation) while it was awaiting.
+    final gen = _loopGeneration;
+
     sessionNotifier.setPhase(SessionPhase.playing);
 
-    while (_shouldRun && !_isInterrupted) {
+    while (_shouldRun && !_isInterrupted && gen == _loopGeneration) {
       // Look up the current letter's Morse pattern.
       final letter = sessionNotifier.state.currentLetter;
       final pattern = encodeLetter(letter);
@@ -133,8 +145,8 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       // Play the pattern.
       await vibrationService.playMorsePattern(pattern);
 
-      // Check if interrupted during playback.
-      if (!_shouldRun || _isInterrupted) break;
+      // Check if interrupted during playback or superseded by a new loop.
+      if (!_shouldRun || _isInterrupted || gen != _loopGeneration) break;
 
       // Wait for the configured pause.
       _pauseCompleter = Completer<void>();
@@ -143,7 +155,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       _pauseCompleter = null;
 
       // Check again after the pause.
-      if (!_shouldRun || _isInterrupted) break;
+      if (!_shouldRun || _isInterrupted || gen != _loopGeneration) break;
     }
   }
 
@@ -214,7 +226,14 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     if (_disposed || !mounted) return;
     if (sessionNotifier.state.phase != SessionPhase.feedback) return;
 
+    // Brief silence so the user can register the feedback before the
+    // loop resumes with the next Morse pattern.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
+    if (_disposed || !mounted) return;
+    if (sessionNotifier.state.phase != SessionPhase.feedback) return;
+
     // Resume the loop (fire-and-forget — the loop manages its own lifecycle).
+    _loopGeneration++;
     state = state.copyWith(isInterrupted: false);
     unawaited(_runLoop());
   }
@@ -228,18 +247,14 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     if (_disposed || !mounted) return;
     if (sessionNotifier.state.phase != SessionPhase.feedback) return;
 
-    // Replay the correct pattern.
-    final letter = sessionNotifier.state.currentLetter;
-    final pattern = encodeLetter(letter);
-    if (pattern != null) {
-      await vibrationService.playMorsePattern(pattern);
-    }
-
-    // Check again after replay.
+    // Brief silence so the user can register the feedback before the
+    // loop resumes with the Morse pattern.
+    await Future<void>.delayed(const Duration(milliseconds: 500));
     if (_disposed || !mounted) return;
     if (sessionNotifier.state.phase != SessionPhase.feedback) return;
 
-    // Resume the loop (fire-and-forget — the loop manages its own lifecycle).
+    // Resume the loop — it will replay the letter pattern naturally.
+    _loopGeneration++;
     state = state.copyWith(isInterrupted: false);
     unawaited(_runLoop());
   }
@@ -268,6 +283,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     if (clampAtBoundary && indexBefore == indexAfter) return;
 
     // Restart the loop for the new (or reset) letter.
+    _loopGeneration++;
     state = state.copyWith(isRunning: true, isInterrupted: false);
     unawaited(_runLoop());
   }

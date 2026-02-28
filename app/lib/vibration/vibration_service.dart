@@ -29,27 +29,79 @@ List<int> buildMorseVibrationPattern(
   return pattern;
 }
 
-/// Builds the vibration pattern for the success signal.
+/// A signal pattern consisting of durations and corresponding amplitudes.
 ///
-/// Returns alternating wait/vibrate durations for the configured pulse count,
-/// with pulses separated by the configured gap.
-List<int> buildSuccessVibrationPattern(MorseTimingConfig config) {
-  final pattern = <int>[0]; // initial wait of 0ms
-  for (var i = 0; i < config.successPulseCount; i++) {
-    pattern.add(config.successPulseDuration);
-    if (i < config.successPulseCount - 1) {
-      pattern.add(config.successPulseGap);
+/// Used with `Vibration.vibrate(pattern:, intensities:)` to produce a
+/// continuous vibration in a single native call — no gaps between steps.
+class SignalPattern {
+  const SignalPattern(this.pattern, this.intensities);
+
+  /// Duration of each consecutive segment in ms.
+  final List<int> pattern;
+
+  /// Amplitude (1–255) for each segment.
+  final List<int> intensities;
+
+  /// Total duration of the signal in ms.
+  int get totalDuration => pattern.fold(0, (sum, d) => sum + d);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SignalPattern &&
+          _listEquals(pattern, other.pattern) &&
+          _listEquals(intensities, other.intensities);
+
+  @override
+  int get hashCode =>
+      Object.hash(Object.hashAll(pattern), Object.hashAll(intensities));
+
+  @override
+  String toString() =>
+      'SignalPattern(pattern: $pattern, intensities: $intensities)';
+
+  static bool _listEquals(List<int> a, List<int> b) {
+    if (a.length != b.length) return false;
+    for (var i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
     }
+    return true;
   }
-  return pattern;
 }
 
-/// Builds the vibration pattern for the error signal.
+/// Success signal: five rapid taps — "ta-ta-ta-ta-ta".
 ///
-/// Returns a single long buzz with the configured error duration.
-List<int> buildErrorVibrationPattern(MorseTimingConfig config) {
-  return [0, config.errorBuzzDuration];
-}
+/// Five very short full-intensity taps with tiny gaps.
+/// Unmistakably different from Morse because:
+///   - 50ms taps are shorter than any Morse symbol (dot=100ms).
+///   - 40ms gaps are shorter than any Morse gap (100ms).
+///   - Five equal rapid taps match no Morse letter.
+///
+/// ```
+///   50ms  40ms  50ms  40ms  50ms  40ms  50ms  40ms  50ms
+///   ████  ····  ████  ····  ████  ····  ████  ····  ████
+/// ```
+///
+/// Total duration: 410ms.
+const successSignal = SignalPattern(
+  [50, 40, 50, 40, 50, 40, 50, 40, 50],
+  [255, 0, 255, 0, 255, 0, 255, 0, 255],
+);
+
+/// Error signal: single long continuous buzz.
+///
+/// One unbroken full-intensity vibration, longer than any Morse dash (300ms).
+/// Unmistakably different from Morse because:
+///   - 500ms is longer than any single Morse symbol.
+///   - No gaps — one solid wall of vibration.
+///
+/// ```
+///   500ms
+///   ██████████████████████████
+/// ```
+///
+/// Total duration: 500ms.
+const errorSignal = SignalPattern([500], [255]);
 
 /// Abstract interface for triggering vibrations.
 ///
@@ -58,10 +110,10 @@ abstract class VibrationService {
   /// Plays a Morse code pattern as a vibration sequence.
   Future<void> playMorsePattern(List<MorseSymbol> symbols);
 
-  /// Plays the success signal (short rhythmic pulses).
+  /// Plays the success signal (triple rapid tap).
   Future<void> playSuccess();
 
-  /// Plays the error signal (one long buzz).
+  /// Plays the error signal (single long buzz).
   Future<void> playError();
 
   /// Cancels any ongoing vibration.
@@ -70,52 +122,43 @@ abstract class VibrationService {
 
 /// Concrete [VibrationService] that uses the `vibration` package.
 ///
-/// The `vibration` plugin fires the vibration asynchronously on the platform
-/// and returns immediately. To give callers (e.g. the teaching orchestrator)
-/// accurate timing, each play method waits for the total duration of the
-/// vibration pattern before returning.
+/// For Morse patterns, uses the standard `pattern:` API (no intensities).
+/// For success/error signals, uses a single `vibrate(pattern:, intensities:)`
+/// call so the OS plays the entire ramp natively without gaps.
 class DeviceVibrationService implements VibrationService {
   DeviceVibrationService({this.config = const MorseTimingConfig()});
 
   final MorseTimingConfig config;
-
-  /// Calculates the total duration of a vibration pattern in milliseconds.
-  ///
-  /// The pattern is a list of alternating wait/vibrate durations.
-  static int _patternDuration(List<int> pattern) {
-    var total = 0;
-    for (final ms in pattern) {
-      total += ms;
-    }
-    return total;
-  }
 
   @override
   Future<void> playMorsePattern(List<MorseSymbol> symbols) async {
     final pattern = buildMorseVibrationPattern(symbols, config);
     if (pattern.isEmpty) return;
     await Vibration.vibrate(pattern: pattern);
-    await Future<void>.delayed(
-      Duration(milliseconds: _patternDuration(pattern)),
-    );
+    var total = 0;
+    for (final ms in pattern) {
+      total += ms;
+    }
+    await Future<void>.delayed(Duration(milliseconds: total));
   }
 
   @override
   Future<void> playSuccess() async {
-    final pattern = buildSuccessVibrationPattern(config);
-    await Vibration.vibrate(pattern: pattern);
-    await Future<void>.delayed(
-      Duration(milliseconds: _patternDuration(pattern)),
-    );
+    await _playSignal(successSignal);
   }
 
   @override
   Future<void> playError() async {
-    final pattern = buildErrorVibrationPattern(config);
-    await Vibration.vibrate(pattern: pattern);
-    await Future<void>.delayed(
-      Duration(milliseconds: _patternDuration(pattern)),
+    await _playSignal(errorSignal);
+  }
+
+  /// Plays a signal pattern in a single native call.
+  Future<void> _playSignal(SignalPattern signal) async {
+    await Vibration.vibrate(
+      pattern: signal.pattern,
+      intensities: signal.intensities,
     );
+    await Future<void>.delayed(Duration(milliseconds: signal.totalDuration));
   }
 
   @override

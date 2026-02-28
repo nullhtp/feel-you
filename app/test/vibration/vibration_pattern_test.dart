@@ -53,41 +53,72 @@ void main() {
     });
   });
 
-  group('buildSuccessVibrationPattern', () {
-    test('default produces 3 pulses of 80ms with 80ms gaps', () {
-      final pattern = buildSuccessVibrationPattern(config);
-      // [0, 80, 80, 80, 80, 80] = wait 0, vib 80, wait 80, vib 80, wait 80,
-      // vib 80
-      expect(pattern, [0, 80, 80, 80, 80, 80]);
+  group('successSignal', () {
+    test('is five rapid taps with gaps', () {
+      expect(successSignal.pattern, [50, 40, 50, 40, 50, 40, 50, 40, 50]);
+      expect(successSignal.intensities, [255, 0, 255, 0, 255, 0, 255, 0, 255]);
     });
 
-    test('custom pulse count', () {
-      const custom = MorseTimingConfig(
-        successPulseCount: 2,
-        successPulseDuration: 50,
-        successPulseGap: 60,
-      );
-      final pattern = buildSuccessVibrationPattern(custom);
-      expect(pattern, [0, 50, 60, 50]);
+    test('total duration is 410ms', () {
+      expect(successSignal.totalDuration, 410);
     });
 
-    test('single pulse has no gap', () {
-      const custom = MorseTimingConfig(successPulseCount: 1);
-      final pattern = buildSuccessVibrationPattern(custom);
-      expect(pattern, [0, 80]);
+    test('all pulses are equal length', () {
+      final pulses = <int>[];
+      for (var i = 0; i < successSignal.pattern.length; i++) {
+        if (successSignal.intensities[i] > 0) {
+          pulses.add(successSignal.pattern[i]);
+        }
+      }
+      expect(pulses, [50, 50, 50, 50, 50]);
+    });
+
+    test('pulse duration is shorter than Morse dot', () {
+      for (var i = 0; i < successSignal.pattern.length; i++) {
+        if (successSignal.intensities[i] > 0) {
+          expect(successSignal.pattern[i], lessThan(config.dotDuration));
+        }
+      }
+    });
+
+    test('gap duration is shorter than Morse gap', () {
+      for (var i = 0; i < successSignal.pattern.length; i++) {
+        if (successSignal.intensities[i] == 0) {
+          expect(successSignal.pattern[i], lessThan(config.interSymbolGap));
+        }
+      }
     });
   });
 
-  group('buildErrorVibrationPattern', () {
-    test('default produces [0, 600]', () {
-      final pattern = buildErrorVibrationPattern(config);
-      expect(pattern, [0, 600]);
+  group('errorSignal', () {
+    test('is a single long continuous buzz', () {
+      expect(errorSignal.pattern, [500]);
+      expect(errorSignal.intensities, [255]);
     });
 
-    test('custom error buzz duration', () {
-      const custom = MorseTimingConfig(errorBuzzDuration: 800);
-      final pattern = buildErrorVibrationPattern(custom);
-      expect(pattern, [0, 800]);
+    test('total duration is 500ms', () {
+      expect(errorSignal.totalDuration, 500);
+    });
+
+    test('duration is longer than Morse dash', () {
+      expect(errorSignal.pattern[0], greaterThan(config.dashDuration));
+    });
+
+    test('has no gaps', () {
+      for (final intensity in errorSignal.intensities) {
+        expect(intensity, greaterThan(0));
+      }
+    });
+  });
+
+  group('success vs error contrast', () {
+    test('success has multiple segments, error has one', () {
+      expect(successSignal.pattern.length, greaterThan(1));
+      expect(errorSignal.pattern.length, 1);
+    });
+
+    test('success is shorter than error', () {
+      expect(successSignal.totalDuration, lessThan(errorSignal.totalDuration));
     });
   });
 }

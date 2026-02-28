@@ -41,7 +41,7 @@ class MockVibrationService implements VibrationService {
 
 /// A gesture classifier that exposes a stream controller for injecting events.
 class TestGestureClassifier extends GestureClassifier {
-  TestGestureClassifier() : super();
+  TestGestureClassifier() : super(screenWidth: 800);
 
   final _testController = StreamController<GestureEvent>.broadcast();
 
@@ -311,7 +311,8 @@ void main() {
       t.gestures.addEvent(
         const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
       );
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+      // Wait for feedback signal + 500ms post-feedback pause + loop start.
+      await Future<void>.delayed(const Duration(milliseconds: 600));
 
       expect(t.vibration.calls, contains('playSuccess'));
       // Should have resumed to playing.
@@ -320,34 +321,26 @@ void main() {
       await tearDownOrchestrator(t.orchestrator, t.gestures);
     });
 
-    test(
-      'wrong input triggers error, replays pattern, and resumes loop',
-      () async {
-        final t = createOrchestrator();
-        t.orchestrator.start();
-        await Future<void>.delayed(const Duration(milliseconds: 20));
+    test('wrong input triggers error and resumes loop', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
 
-        // Interrupt.
-        t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
-        await Future<void>.delayed(Duration.zero);
+      // Interrupt.
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      await Future<void>.delayed(Duration.zero);
 
-        // Submit wrong answer for A.
-        t.gestures.addEvent(const InputComplete([MorseSymbol.dash]));
-        await Future<void>.delayed(const Duration(milliseconds: 50));
+      // Submit wrong answer for A.
+      t.gestures.addEvent(const InputComplete([MorseSymbol.dash]));
+      // Wait for error signal + 500ms post-feedback pause + loop start.
+      await Future<void>.delayed(const Duration(milliseconds: 600));
 
-        expect(t.vibration.calls, contains('playError'));
-        // After error, the correct pattern should be replayed.
-        final errorIndex = t.vibration.calls.indexOf('playError');
-        final callsAfterError = t.vibration.calls.sublist(errorIndex + 1);
-        expect(
-          callsAfterError,
-          contains('playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]'),
-        );
-        expect(t.session.state.phase, SessionPhase.playing);
+      expect(t.vibration.calls, contains('playError'));
+      // Loop resumes — the letter replays naturally via the loop.
+      expect(t.session.state.phase, SessionPhase.playing);
 
-        await tearDownOrchestrator(t.orchestrator, t.gestures);
-      },
-    );
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
 
     test('empty input is treated as wrong answer', () async {
       final t = createOrchestrator();

@@ -7,48 +7,48 @@
 - [x] Gesture recognition (tap/swipe/hold classifier, stream-based)
 - [x] Vibration engine (Morse pattern, success/error signal playback)
 
-## Remaining Changes
+## Completed Changes
 
-### Change 1: Learning Session State
+### Change 1: Learning Session State (Complete)
 
 Core state machine tracking the user's learning session.
 
-- [ ] Current letter index tracking (A-Z position)
-- [ ] Session state enum: `playing`, `listening`, `feedback`
-- [ ] Navigation handling (swipe right/left moves between letters, long hold resets to A)
-- [ ] Riverpod providers for session state
-- [ ] In-memory only, no persistence needed
+- [x] Current letter index tracking (A-Z position)
+- [x] Session state enum: `playing`, `listening`, `feedback`
+- [x] Navigation handling (swipe right/left moves between letters, long hold resets to A)
+- [x] Riverpod providers for session state
+- [x] In-memory only, no persistence needed
 
-### Change 2: Teaching Loop (Orchestrator)
+### Change 2: Teaching Loop (Orchestrator) (Complete)
 
 The brain that connects gesture input, vibration output, and session state.
 
-- [ ] Play-wait-repeat loop: continuously vibrate the current letter's Morse pattern with pauses, infinitely, until the user taps
-- [ ] Input evaluation: on `InputComplete`, compare user's pattern against current letter via `patternsEqual`
-- [ ] Correct answer: play success vibration (`· · ·`), resume repeat loop
-- [ ] Wrong answer: play error vibration (`−−−−−`), replay correct pattern, resume loop
-- [ ] Interrupt handling: stop playback when user starts tapping, resume after feedback
-- [ ] Navigation integration: on `NavigateNext`/`NavigatePrevious`/`Reset`, update letter, restart loop
+- [x] Play-wait-repeat loop: continuously vibrate the current letter's Morse pattern with pauses, infinitely, until the user taps
+- [x] Input evaluation: on `InputComplete`, compare user's pattern against current letter via `patternsEqual`
+- [x] Correct answer: play success vibration (`· · ·`), resume repeat loop
+- [x] Wrong answer: play error vibration (`−−−−−`), replay correct pattern, resume loop
+- [x] Interrupt handling: stop playback when user starts tapping, resume after feedback
+- [x] Navigation integration: on `NavigateNext`/`NavigatePrevious`/`Reset`, update letter, restart loop
 
-### Change 3: Touch UI Layer
+### Change 3: Touch UI Layer (Complete)
 
 Single full-screen widget connecting real touch events to the gesture classifier.
 
-- [ ] Full-screen `GestureDetector` capturing all taps, holds, and swipes
-- [ ] Feed raw touch events (`onPanDown`/`onPanEnd`/`onPanUpdate`) into `RawTouchEvent` for the classifier
-- [ ] No visual elements (blank screen — the user is deaf-blind)
-- [ ] Start button: one large tap target for a sighted person to press once to begin
-- [ ] Accessibility metadata / semantics
+- [x] Full-screen `GestureDetector` capturing all taps, holds, and swipes
+- [x] Feed raw touch events (`onPanDown`/`onPanEnd`/`onPanUpdate`) into `RawTouchEvent` for the classifier
+- [x] No visual elements (blank screen — the user is deaf-blind)
+- [x] Start button: one large tap target for a sighted person to press once to begin
+- [x] Accessibility metadata / semantics
 
-### Change 4: Integration Testing & Polish
+### Change 4: Integration Testing & Polish (Complete)
 
 End-to-end validation and platform-specific tuning.
 
-- [ ] Integration tests: full learning flow (start → play A → user taps → success → swipe to B → ...)
-- [ ] Vibration tuning on real iOS and Android devices
-- [ ] Timing calibration: adjust gesture thresholds and vibration durations from real-device feedback
-- [ ] Edge cases: rapid swipes, double taps, background/foreground transitions
-- [ ] Clean release builds for both platforms
+- [x] Integration tests: full learning flow (start → play A → user taps → success → swipe to B → ...)
+- [x] Vibration tuning on real iOS and Android devices
+- [x] Timing calibration: adjust gesture thresholds and vibration durations from real-device feedback
+- [x] Edge cases: rapid swipes, double taps, background/foreground transitions
+- [x] Clean release builds for both platforms
 
 ## Dependency Order
 

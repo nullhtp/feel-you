@@ -10,7 +10,7 @@ The system SHALL provide a centralized Dart file that documents all adjustable t
 
 #### Scenario: All vibration timing constants documented
 - **WHEN** a developer opens the tuning reference file
-- **THEN** it SHALL list all `MorseTimingConfig` parameters: `dotDuration`, `dashDuration`, `interSymbolGap`, `successPulseDuration`, `successPulseGap`, `successPulseCount`, `errorBuzzDuration`
+- **THEN** it SHALL list all `MorseTimingConfig` parameters: `dotDuration`, `dashDuration`, `interSymbolGap`, `signalDuration`, `signalSteps`
 - **THEN** each parameter SHALL have a doc comment explaining its role and units
 
 #### Scenario: All teaching timing constants documented
@@ -23,7 +23,7 @@ The tuning reference SHALL mark timing values that need real-device validation w
 
 #### Scenario: Vibration durations marked for tuning
 - **WHEN** reviewing the tuning reference
-- **THEN** `dotDuration`, `dashDuration`, `interSymbolGap`, `successPulseDuration`, `successPulseGap`, and `errorBuzzDuration` SHALL each have a `// TODO(tuning):` comment indicating they need real-device validation
+- **THEN** `dotDuration`, `dashDuration`, `interSymbolGap`, `signalDuration`, and `signalSteps` SHALL each have a `// TODO(tuning):` comment indicating they need real-device validation
 
 #### Scenario: Gesture thresholds marked for tuning
 - **WHEN** reviewing the tuning reference

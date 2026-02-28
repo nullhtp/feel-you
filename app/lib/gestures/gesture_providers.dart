@@ -9,12 +9,28 @@ final gestureTimingConfigProvider = Provider<GestureTimingConfig>(
   (ref) => const GestureTimingConfig(),
 );
 
+/// Provides the screen width in logical pixels for position-based
+/// dot/dash classification.
+///
+/// Must be overridden with the actual screen width before the
+/// [gestureClassifierProvider] is read. In the app, [TouchSurface]
+/// sets this via a provider override. In tests, override directly.
+final screenWidthProvider = Provider<double>(
+  (ref) => throw UnimplementedError(
+    'screenWidthProvider must be overridden with the actual screen width.',
+  ),
+);
+
 /// Provides the [GestureClassifier] for interpreting touch input.
 ///
 /// The classifier is disposed automatically when the provider is disposed.
 final gestureClassifierProvider = Provider<GestureClassifier>((ref) {
   final config = ref.watch(gestureTimingConfigProvider);
-  final classifier = GestureClassifier(config: config);
+  final screenWidth = ref.watch(screenWidthProvider);
+  final classifier = GestureClassifier(
+    screenWidth: screenWidth,
+    config: config,
+  );
   ref.onDispose(classifier.dispose);
   return classifier;
 });

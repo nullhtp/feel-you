@@ -26,23 +26,11 @@ import 'package:feel_you/vibration/morse_timing_config.dart';
 
 /// All gesture timing thresholds in one place.
 ///
-/// These control how raw touch events are classified into dots, dashes,
-/// swipes, and resets. Adjusting these changes input sensitivity.
+/// These control how raw touch events are classified into swipes and resets.
+/// Dot/dash classification is position-based (left half = dot, right half =
+/// dash), so no duration thresholds for dot/dash are needed.
 const gestureDefaults = GestureTimingConfig(
-  /// Maximum press duration to classify as a dot, in ms.
-  /// Shorter = harder to register dots; longer = easier but may overlap dash.
-  // TODO(tuning): Validate on real devices — 150ms feels right on simulator
-  // but may be too short for users with motor impairments.
-  dotMaxDuration: 150,
-
-  /// Maximum press duration to classify as a dash, in ms.
-  /// Presses between dotMaxDuration and this are dashes.
-  // TODO(tuning): 500ms upper bound — test if deaf-blind users need more
-  // time to distinguish dot from dash.
-  dashMaxDuration: 500,
-
   /// Minimum press duration to trigger a reset (long hold), in ms.
-  /// Presses in the dead zone (dashMax..resetMin) are ignored.
   // TODO(tuning): 2000ms — ensure this is long enough to feel intentional
   // but short enough to not frustrate.
   resetMinDuration: 2000,
@@ -64,10 +52,14 @@ const gestureDefaults = GestureTimingConfig(
 // Vibration output timing
 // ---------------------------------------------------------------------------
 
-/// All vibration duration parameters in one place.
+/// Morse code vibration timing parameters.
 ///
 /// These control how long each vibration pulse lasts and the gaps between
 /// them. The "feel" of Morse code depends heavily on these ratios.
+///
+/// Note: success/error signal patterns are hardcoded as [successSignal]
+/// and [errorSignal] constants in `vibration_service.dart` — their
+/// rhythmic structure doesn't reduce to simple config parameters.
 const vibrationDefaults = MorseTimingConfig(
   /// Duration of a dot vibration, in ms.
   // TODO(tuning): 100ms — may need to increase for perceptibility on
@@ -84,23 +76,6 @@ const vibrationDefaults = MorseTimingConfig(
   // TODO(tuning): 100ms gap — must be long enough to feel like a pause
   // but short enough to keep the letter cohesive.
   interSymbolGap: 100,
-
-  /// Duration of each pulse in the success signal, in ms.
-  // TODO(tuning): 80ms quick pulses — should feel distinctly different
-  // from dot/dash Morse input.
-  successPulseDuration: 80,
-
-  /// Silence between success pulses, in ms.
-  // TODO(tuning): 80ms gap between success pulses — rhythmic feel.
-  successPulseGap: 80,
-
-  /// Number of pulses in the success signal.
-  successPulseCount: 3,
-
-  /// Duration of the error buzz, in ms.
-  // TODO(tuning): 600ms long buzz — should feel unmistakably different
-  // from any Morse pattern or the success signal.
-  errorBuzzDuration: 600,
 );
 
 // ---------------------------------------------------------------------------
