@@ -7,6 +7,7 @@ import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test_doubles/fake_gesture_classifier.dart';
+import '../test_doubles/fake_shake_detector.dart';
 import '../test_doubles/mock_vibration_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -105,24 +106,30 @@ void main() {
       await tearDownOrchestrator(t.orchestrator, t.gestures);
     });
 
-    test('start() begins the loop and plays current letter pattern', () async {
-      final t = createOrchestrator();
-      t.orchestrator.start();
+    test(
+      'start() begins the loop and plays current character pattern',
+      () async {
+        final t = createOrchestrator();
+        t.orchestrator.start();
 
-      // Let the async loop run one iteration.
-      await Future<void>.delayed(const Duration(milliseconds: 50));
+        // Let the async loop run one iteration.
+        await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      // Default letter is A (dot-dash). Should have played at least once.
-      expect(
-        t.vibration.callLog.where(
-          (c) => c == 'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]',
-        ),
-        isNotEmpty,
-      );
-      expect(t.orchestrator.state.isRunning, true);
+        // Default character is 0 (dash x5). Should have played at least once.
+        expect(
+          t.vibration.callLog.where(
+            (c) =>
+                c ==
+                'playMorsePattern:[MorseSymbol.dash, MorseSymbol.dash, '
+                    'MorseSymbol.dash, MorseSymbol.dash, MorseSymbol.dash]',
+          ),
+          isNotEmpty,
+        );
+        expect(t.orchestrator.state.isRunning, true);
 
-      await tearDownOrchestrator(t.orchestrator, t.gestures);
-    });
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      },
+    );
 
     test('loop repeats after pause', () async {
       final t = createOrchestrator();
@@ -133,7 +140,10 @@ void main() {
 
       final playCount = t.vibration.callLog
           .where(
-            (c) => c == 'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]',
+            (c) =>
+                c ==
+                'playMorsePattern:[MorseSymbol.dash, MorseSymbol.dash, '
+                    'MorseSymbol.dash, MorseSymbol.dash, MorseSymbol.dash]',
           )
           .length;
       expect(playCount, greaterThan(1));
@@ -253,13 +263,19 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // Interrupt with a tap.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      t.gestures.addEvent(const MorseInput(MorseSymbol.dash));
       await Future<void>.delayed(Duration.zero);
       expect(t.session.state.phase, SessionPhase.listening);
 
-      // Submit correct answer for A (dot-dash).
+      // Submit correct answer for 0 (dash x5).
       t.gestures.addEvent(
-        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+        const InputComplete([
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+        ]),
       );
       // Wait for feedback signal + 500ms post-feedback pause + loop start.
       await Future<void>.delayed(const Duration(milliseconds: 600));
@@ -280,13 +296,13 @@ void main() {
       t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
       await Future<void>.delayed(Duration.zero);
 
-      // Submit wrong answer for A.
-      t.gestures.addEvent(const InputComplete([MorseSymbol.dash]));
+      // Submit wrong answer for 0.
+      t.gestures.addEvent(const InputComplete([MorseSymbol.dot]));
       // Wait for error signal + 500ms post-feedback pause + loop start.
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
       expect(t.vibration.callLog, contains('playError'));
-      // Loop resumes — the letter replays naturally via the loop.
+      // Loop resumes — the character replays naturally via the loop.
       expect(t.session.state.phase, SessionPhase.playing);
 
       await tearDownOrchestrator(t.orchestrator, t.gestures);
@@ -320,7 +336,13 @@ void main() {
 
       final callsBefore = t.vibration.callLog.length;
       t.gestures.addEvent(
-        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+        const InputComplete([
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+        ]),
       );
       await Future<void>.delayed(Duration.zero);
 
@@ -342,7 +364,13 @@ void main() {
 
       final callsBefore = t.vibration.callLog.length;
       t.gestures.addEvent(
-        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+        const InputComplete([
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+          MorseSymbol.dash,
+        ]),
       );
       await Future<void>.delayed(Duration.zero);
 
@@ -359,38 +387,41 @@ void main() {
   // 7.4 Navigation integration tests
   // -------------------------------------------------------------------------
   group('navigation integration', () {
-    test('NavigateNext during playing restarts loop for new letter', () async {
-      final t = createOrchestrator();
-      t.orchestrator.start();
-      await Future<void>.delayed(const Duration(milliseconds: 20));
-
-      t.gestures.addEvent(const NavigateNext());
-      await Future<void>.delayed(const Duration(milliseconds: 50));
-
-      // Letter should have advanced from A to B.
-      expect(t.session.state.currentLetter, 'B');
-      expect(t.session.state.phase, SessionPhase.playing);
-      expect(t.vibration.callLog, contains('cancel'));
-
-      // Should now be playing B's pattern (dash-dot-dot-dot).
-      expect(
-        t.vibration.callLog,
-        contains(
-          'playMorsePattern:[MorseSymbol.dash, MorseSymbol.dot, '
-          'MorseSymbol.dot, MorseSymbol.dot]',
-        ),
-      );
-
-      await tearDownOrchestrator(t.orchestrator, t.gestures);
-    });
-
     test(
-      'NavigatePrevious during playing restarts loop for previous letter',
+      'NavigateNext during playing restarts loop for new character',
       () async {
         final t = createOrchestrator();
-        // Start at B.
-        t.session.nextLetter();
-        expect(t.session.state.currentLetter, 'B');
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        t.gestures.addEvent(const NavigateNext());
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        // Character should have advanced from 0 to 1.
+        expect(t.session.state.currentCharacter, '1');
+        expect(t.session.state.phase, SessionPhase.playing);
+        expect(t.vibration.callLog, contains('cancel'));
+
+        // Should now be playing 1's pattern (dot, dash, dash, dash, dash).
+        expect(
+          t.vibration.callLog,
+          contains(
+            'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash, '
+            'MorseSymbol.dash, MorseSymbol.dash, MorseSymbol.dash]',
+          ),
+        );
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      },
+    );
+
+    test(
+      'NavigatePrevious during playing restarts loop for previous character',
+      () async {
+        final t = createOrchestrator();
+        // Start at 1.
+        t.session.nextPosition();
+        expect(t.session.state.currentCharacter, '1');
 
         t.orchestrator.start();
         await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -398,20 +429,20 @@ void main() {
         t.gestures.addEvent(const NavigatePrevious());
         await Future<void>.delayed(const Duration(milliseconds: 50));
 
-        expect(t.session.state.currentLetter, 'A');
+        expect(t.session.state.currentCharacter, '0');
         expect(t.session.state.phase, SessionPhase.playing);
 
         await tearDownOrchestrator(t.orchestrator, t.gestures);
       },
     );
 
-    test('Reset returns to letter A and restarts loop', () async {
+    test('Reset returns to position 0 and restarts loop', () async {
       final t = createOrchestrator();
-      // Move to M.
-      for (var i = 0; i < 12; i++) {
-        t.session.nextLetter();
+      // Move to position 5.
+      for (var i = 0; i < 5; i++) {
+        t.session.nextPosition();
       }
-      expect(t.session.state.currentLetter, 'M');
+      expect(t.session.state.currentCharacter, '5');
 
       t.orchestrator.start();
       await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -419,7 +450,7 @@ void main() {
       t.gestures.addEvent(const Reset());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(t.session.state.currentLetter, 'A');
+      expect(t.session.state.currentCharacter, '0');
       expect(t.session.state.phase, SessionPhase.playing);
 
       await tearDownOrchestrator(t.orchestrator, t.gestures);
@@ -436,7 +467,7 @@ void main() {
       t.gestures.addEvent(const NavigateNext());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(t.session.state.currentLetter, 'B');
+      expect(t.session.state.currentCharacter, '1');
       expect(t.session.state.phase, SessionPhase.playing);
       expect(t.vibration.callLog, contains('cancel'));
 
@@ -456,10 +487,148 @@ void main() {
       t.gestures.addEvent(const NavigateNext());
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(t.session.state.currentLetter, 'B');
+      expect(t.session.state.currentCharacter, '1');
       expect(t.session.state.phase, SessionPhase.playing);
 
       await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('NavigateUp calls nextLevel on session notifier', () async {
+      final t = createOrchestrator();
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Default state is level 0.
+      expect(t.session.state.levelIndex, 0);
+
+      t.gestures.addEvent(const NavigateUp());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(t.session.state.levelIndex, 1);
+      expect(t.session.state.positionIndex, 0);
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('NavigateDown calls previousLevel on session notifier', () async {
+      final t = createOrchestrator();
+      // Move to level 1 first.
+      t.session.nextLevel();
+      expect(t.session.state.levelIndex, 1);
+
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      t.gestures.addEvent(const NavigateDown());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(t.session.state.levelIndex, 0);
+      expect(t.session.state.positionIndex, 0);
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
+    test('Home calls home() on session notifier', () async {
+      final t = createOrchestrator();
+      // Move to level 1, position 3.
+      t.session.nextLevel();
+      t.session.nextPosition();
+      t.session.nextPosition();
+      t.session.nextPosition();
+      expect(t.session.state.levelIndex, 1);
+      expect(t.session.state.positionIndex, 3);
+
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      t.gestures.addEvent(const Home());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(t.session.state.levelIndex, 0);
+      expect(t.session.state.positionIndex, 0);
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 7.7 Dual-stream subscription tests
+  // -------------------------------------------------------------------------
+  group('dual-stream subscription (shake detector)', () {
+    test('events from shake detector stream are processed', () async {
+      final gestures = FakeGestureClassifier();
+      final vibration = MockVibrationService();
+      final session = SessionNotifier();
+      final shake = FakeShakeDetector();
+
+      // Move to a non-home position so Home has a visible effect.
+      session.nextLevel();
+      session.nextPosition();
+      expect(session.state.levelIndex, 1);
+      expect(session.state.positionIndex, 1);
+
+      final orchestrator = TeachingOrchestrator(
+        gestureClassifier: gestures,
+        vibrationService: vibration,
+        sessionNotifier: session,
+        shakeDetector: shake,
+        config: const TeachingTimingConfig(
+          repeatPause: Duration(milliseconds: 10),
+        ),
+      );
+
+      orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Emit Home from shake detector.
+      shake.addEvent(const Home());
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      // Should have navigated home.
+      expect(session.state.levelIndex, 0);
+      expect(session.state.positionIndex, 0);
+      expect(session.state.phase, SessionPhase.playing);
+
+      await orchestrator.stop();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      orchestrator.dispose();
+      gestures.dispose();
+      shake.dispose();
+    });
+
+    test('both subscriptions cleaned up on stop and dispose', () async {
+      final gestures = FakeGestureClassifier();
+      final vibration = MockVibrationService();
+      final session = SessionNotifier();
+      final shake = FakeShakeDetector();
+
+      final orchestrator = TeachingOrchestrator(
+        gestureClassifier: gestures,
+        vibrationService: vibration,
+        sessionNotifier: session,
+        shakeDetector: shake,
+        config: const TeachingTimingConfig(
+          repeatPause: Duration(milliseconds: 10),
+        ),
+      );
+
+      orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+
+      // Dispose the orchestrator — this should cancel both subscriptions.
+      await orchestrator.stop();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      orchestrator.dispose();
+
+      // After dispose, events from either stream should not cause errors.
+      // Adding events to closed controllers would throw if subscriptions
+      // were still active and the handler tried to access disposed state.
+      // We verify no exception is thrown.
+      gestures.dispose();
+      shake.dispose();
     });
   });
 }

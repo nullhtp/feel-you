@@ -337,4 +337,103 @@ void main() {
       ]);
     });
   });
+
+  group('vertical swipe detection', () {
+    // Helper for vertical swipe: short duration, large vertical displacement.
+    void verticalSwipe({
+      required double startY,
+      required double endY,
+      int durationMs = 100,
+    }) {
+      const start = Duration(milliseconds: 100);
+      final end = start + Duration(milliseconds: durationMs);
+      classifier
+        ..handleTouch(TouchDown(timestamp: start, position: leftX, y: startY))
+        ..handleTouch(TouchUp(timestamp: end, position: leftX, y: endY));
+    }
+
+    test('swipe up emits NavigateUp', () async {
+      // Upward swipe: startY=300, endY=100 → dy=-200, distance=200 > 50
+      verticalSwipe(startY: 300, endY: 100);
+      await pump();
+      expect(events, [const NavigateUp()]);
+    });
+
+    test('swipe down emits NavigateDown', () async {
+      // Downward swipe: startY=100, endY=300 → dy=200
+      verticalSwipe(startY: 100, endY: 300);
+      await pump();
+      expect(events, [const NavigateDown()]);
+    });
+
+    test('slow vertical swipe is ignored', () async {
+      // Distance=200 but duration=2000ms → velocity=100px/s < 200
+      verticalSwipe(startY: 100, endY: 300, durationMs: 2000);
+      // Will be classified as a tap (not a swipe), so should emit MorseInput
+      await pump();
+      expect(events.whereType<NavigateDown>(), isEmpty);
+    });
+
+    test('short vertical swipe is ignored', () async {
+      // Distance=30 < 50px threshold
+      verticalSwipe(startY: 100, endY: 130);
+      await pump();
+      expect(events.whereType<NavigateUp>(), isEmpty);
+      expect(events.whereType<NavigateDown>(), isEmpty);
+    });
+
+    test(
+      'diagonal swipe favoring horizontal emits horizontal navigation',
+      () async {
+        // dx=200 (horizontal dominant), dy=30 (small vertical)
+        const start = Duration(milliseconds: 100);
+        const end = Duration(milliseconds: 200);
+        classifier
+          ..handleTouch(TouchDown(timestamp: start, position: 100, y: 100))
+          ..handleTouch(TouchUp(timestamp: end, position: 300, y: 130));
+        await pump();
+        expect(events, [const NavigateNext()]);
+      },
+    );
+
+    test(
+      'diagonal swipe favoring vertical emits vertical navigation',
+      () async {
+        // dx=30 (small horizontal), dy=-200 (vertical dominant)
+        const start = Duration(milliseconds: 100);
+        const end = Duration(milliseconds: 200);
+        classifier
+          ..handleTouch(TouchDown(timestamp: start, position: 100, y: 300))
+          ..handleTouch(TouchUp(timestamp: end, position: 130, y: 100));
+        await pump();
+        expect(events, [const NavigateUp()]);
+      },
+    );
+
+    test('equal displacement favors horizontal', () async {
+      // dx=100, dy=-100 → equal, should be horizontal (NavigateNext)
+      const start = Duration(milliseconds: 100);
+      const end = Duration(milliseconds: 200);
+      classifier
+        ..handleTouch(TouchDown(timestamp: start, position: 100, y: 200))
+        ..handleTouch(TouchUp(timestamp: end, position: 200, y: 100));
+      await pump();
+      expect(events, [const NavigateNext()]);
+    });
+
+    test('vertical swipe clears input buffer', () async {
+      // Start typing, then vertical swipe should clear buffer
+      tap(100, startX: leftX); // dot
+      await pump();
+      events.clear();
+
+      verticalSwipe(startY: 300, endY: 100); // swipe up
+      // Wait for silence timeout — should NOT get InputComplete
+      await Future<void>.delayed(const Duration(milliseconds: 1200));
+      await pump();
+
+      expect(events.whereType<InputComplete>(), isEmpty);
+      expect(events, [const NavigateUp()]);
+    });
+  });
 }

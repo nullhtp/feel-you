@@ -55,8 +55,10 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     required this.vibrationService,
     required this.sessionNotifier,
     this.config = const TeachingTimingConfig(),
+    ShakeDetector? shakeDetector,
   }) : super(const TeachingOrchestratorState()) {
     _gestureSubscription = gestureClassifier.events.listen(_onGestureEvent);
+    _shakeSubscription = shakeDetector?.events.listen(_onGestureEvent);
   }
 
   final VibrationService vibrationService;
@@ -64,6 +66,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   final TeachingTimingConfig config;
 
   late final StreamSubscription<GestureEvent> _gestureSubscription;
+  StreamSubscription<GestureEvent>? _shakeSubscription;
 
   /// Completer used to cancel the pause between pattern repetitions.
   /// Completing it breaks the delay early so the loop can exit.
@@ -86,7 +89,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// Whether the current iteration was interrupted.
   bool get _isInterrupted => _disposed || !mounted || state.isInterrupted;
 
-  /// Starts the play-wait-repeat loop for the current letter.
+  /// Starts the play-wait-repeat loop for the current character.
   ///
   /// No-op if already running.
   void start() {
@@ -109,6 +112,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   void dispose() {
     _disposed = true;
     _gestureSubscription.cancel();
+    _shakeSubscription?.cancel();
     _cancelPause();
     // Best-effort cancel; we can't await in dispose.
     vibrationService.cancel();
@@ -129,10 +133,11 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     sessionNotifier.setPhase(SessionPhase.playing);
 
     while (_shouldRun && !_isInterrupted && gen == _loopGeneration) {
-      // Look up the current letter's Morse pattern.
-      final letter = sessionNotifier.state.currentLetter;
-      final pattern = encodeLetter(letter);
-      if (pattern == null) break; // Should never happen for A-Z.
+      // Look up the current character's Morse pattern from the level.
+      final character = sessionNotifier.state.currentCharacter;
+      final level = sessionNotifier.state.currentLevel;
+      final pattern = level.patterns[character];
+      if (pattern == null) break; // Should never happen for valid state.
 
       // Play the pattern.
       await vibrationService.playMorsePattern(pattern);
@@ -169,11 +174,17 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       case InputComplete():
         _onInputComplete(event);
       case NavigateNext():
-        _onNavigate(sessionNotifier.nextLetter, clampAtBoundary: true);
+        _onNavigate(sessionNotifier.nextPosition, clampAtBoundary: true);
       case NavigatePrevious():
-        _onNavigate(sessionNotifier.previousLetter, clampAtBoundary: true);
+        _onNavigate(sessionNotifier.previousPosition, clampAtBoundary: true);
       case Reset():
         _onNavigate(sessionNotifier.reset);
+      case NavigateUp():
+        _onNavigate(sessionNotifier.nextLevel);
+      case NavigateDown():
+        _onNavigate(sessionNotifier.previousLevel);
+      case Home():
+        _onNavigate(sessionNotifier.home);
     }
   }
 
@@ -196,8 +207,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     // Only evaluate input during listening phase.
     if (phase != SessionPhase.listening) return;
 
-    final letter = sessionNotifier.state.currentLetter;
-    final expected = encodeLetter(letter);
+    final character = sessionNotifier.state.currentCharacter;
+    final level = sessionNotifier.state.currentLevel;
+    final expected = level.patterns[character];
 
     final isCorrect =
         expected != null && patternsEqual(event.symbols, expected);
@@ -241,20 +253,19 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     _cancelPause();
     vibrationService.cancel();
 
-    // Capture index before navigation to detect boundary no-ops.
-    final indexBefore = sessionNotifier.state.letterIndex;
+    // Capture state before navigation to detect boundary no-ops.
+    final stateBefore = sessionNotifier.state;
 
     // Perform the navigation (this resets phase to playing).
     navigationAction();
 
-    final indexAfter = sessionNotifier.state.letterIndex;
+    final stateAfter = sessionNotifier.state;
 
-    // For next/previous: if already at the boundary (A or Z), the
-    // navigation is a no-op. Don't restart the loop to avoid an
-    // unexpected vibration pattern replay.
-    if (clampAtBoundary && indexBefore == indexAfter) return;
+    // For next/previous: if already at the boundary, the navigation is a
+    // no-op. Don't restart the loop to avoid an unexpected pattern replay.
+    if (clampAtBoundary && stateBefore == stateAfter) return;
 
-    // Restart the loop for the new (or reset) letter.
+    // Restart the loop for the new (or reset) character.
     _loopGeneration++;
     state = state.copyWith(isRunning: true, isInterrupted: false);
     unawaited(_runLoop());

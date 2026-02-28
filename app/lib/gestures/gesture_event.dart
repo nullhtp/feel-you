@@ -73,3 +73,39 @@ class Reset extends GestureEvent {
   @override
   String toString() => 'Reset';
 }
+
+/// Vertical swipe up — move to next level.
+@immutable
+class NavigateUp extends GestureEvent {
+  const NavigateUp();
+
+  @override
+  List<Object?> get props => [];
+
+  @override
+  String toString() => 'NavigateUp';
+}
+
+/// Vertical swipe down — move to previous level.
+@immutable
+class NavigateDown extends GestureEvent {
+  const NavigateDown();
+
+  @override
+  List<Object?> get props => [];
+
+  @override
+  String toString() => 'NavigateDown';
+}
+
+/// Shake detected — reset to level 0 position 0.
+@immutable
+class Home extends GestureEvent {
+  const Home();
+
+  @override
+  List<Object?> get props => [];
+
+  @override
+  String toString() => 'Home';
+}

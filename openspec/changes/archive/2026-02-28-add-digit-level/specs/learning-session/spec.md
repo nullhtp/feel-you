@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: Session state tracks current letter
 
 The system SHALL maintain a `levelIndex` and `positionIndex` representing the user's position in the level-based learning system. The initial level SHALL be the first level in the levels list (index 0, digits). The initial position SHALL be 0. A `currentCharacter` getter SHALL return the character at the current position in the current level. A `currentLevel` getter SHALL return the current `Level` object.
@@ -11,20 +13,6 @@ The system SHALL maintain a `levelIndex` and `positionIndex` representing the us
 
 - **WHEN** the session state exists
 - **THEN** the current character (as a String), the current level index, and the current position index SHALL all be accessible
-
-### Requirement: Session state tracks current phase
-
-The system SHALL maintain a session phase enum with exactly three values: `playing`, `listening`, and `feedback`. The initial phase SHALL be `playing`.
-
-#### Scenario: Initial state is playing phase
-
-- **WHEN** a new session state is created
-- **THEN** the session phase SHALL be `playing`
-
-#### Scenario: Phase can be set to any valid value
-
-- **WHEN** the phase is set to `listening`, `feedback`, or `playing`
-- **THEN** the session phase SHALL update to the requested value
 
 ### Requirement: Navigate to next letter
 
@@ -82,28 +70,7 @@ The system SHALL reset the position to 0 within the current level and the phase 
 - **AND** the phase SHALL be `playing`
 - **AND** the level SHALL remain letters
 
-### Requirement: State is exposed via Riverpod provider
-
-The session state SHALL be exposed as a `StateNotifierProvider` so that other parts of the app can watch for state changes reactively. The provider SHALL be overridable for testing.
-
-#### Scenario: Provider exposes current state
-
-- **WHEN** a consumer watches the session state provider
-- **THEN** it SHALL receive the current `SessionState` including letter index and phase
-
-#### Scenario: Provider notifies on state change
-
-- **WHEN** the session state changes (letter or phase)
-- **THEN** all watching consumers SHALL be notified with the new state
-
-### Requirement: State is in-memory only
-
-The session state SHALL NOT be persisted to disk or any external storage. The state SHALL reset to its initial values (level 0 digits, position 0, phase `playing`) when the app restarts.
-
-#### Scenario: State resets on fresh provider creation
-
-- **WHEN** a new `ProviderScope` is created (e.g., app restart)
-- **THEN** the session state SHALL be at level 0 (digits), position 0, with phase `playing`
+## ADDED Requirements
 
 ### Requirement: Navigate to next level
 
@@ -156,3 +123,12 @@ The system SHALL reset `levelIndex` to 0 and `positionIndex` to 0 and the phase 
 - **WHEN** the current level is digits (index 0) and position is 0
 - **AND** home is requested
 - **THEN** the state SHALL remain unchanged except phase SHALL be `playing`
+
+### Requirement: State is in-memory only
+
+The session state SHALL NOT be persisted to disk or any external storage. The state SHALL reset to its initial values (level 0 digits, position 0, phase `playing`) when the app restarts.
+
+#### Scenario: State resets on fresh provider creation
+
+- **WHEN** a new `ProviderScope` is created (e.g., app restart)
+- **THEN** the session state SHALL be at level 0 (digits), position 0, with phase `playing`

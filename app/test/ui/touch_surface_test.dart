@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test_doubles/fake_gesture_classifier.dart';
+import '../test_doubles/fake_shake_detector.dart';
 import '../test_doubles/mock_vibration_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -28,6 +29,7 @@ Widget buildTestWidget({
     overrides: [
       gestureClassifierProvider.overrideWithValue(classifier),
       vibrationServiceProvider.overrideWithValue(vibration),
+      shakeDetectorProvider.overrideWithValue(FakeShakeDetector()),
       teachingTimingConfigProvider.overrideWithValue(
         const TeachingTimingConfig(repeatPause: _testRepeatPause),
       ),

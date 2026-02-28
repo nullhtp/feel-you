@@ -24,12 +24,14 @@ final teachingOrchestratorProvider =
       final vibrationService = ref.watch(vibrationServiceProvider);
       final sessionNotifier = ref.watch(sessionNotifierProvider.notifier);
       final config = ref.watch(teachingTimingConfigProvider);
+      final shakeDetector = ref.watch(shakeDetectorProvider);
 
       final orchestrator = TeachingOrchestrator(
         gestureClassifier: gestureClassifier,
         vibrationService: vibrationService,
         sessionNotifier: sessionNotifier,
         config: config,
+        shakeDetector: shakeDetector,
       );
 
       // Note: StateNotifierProvider automatically calls dispose() on the

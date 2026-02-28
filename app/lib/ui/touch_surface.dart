@@ -52,7 +52,11 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
 
     final classifier = ref.read(gestureClassifierProvider);
     classifier.handleTouch(
-      TouchDown(timestamp: event.timeStamp, position: event.position.dx),
+      TouchDown(
+        timestamp: event.timeStamp,
+        position: event.position.dx,
+        y: event.position.dy,
+      ),
     );
   }
 
@@ -62,7 +66,11 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
 
     final classifier = ref.read(gestureClassifierProvider);
     classifier.handleTouch(
-      TouchUp(timestamp: event.timeStamp, position: event.position.dx),
+      TouchUp(
+        timestamp: event.timeStamp,
+        position: event.position.dx,
+        y: event.position.dy,
+      ),
     );
   }
 
@@ -73,7 +81,11 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
     // Treat cancel as a release so the classifier can clean up.
     final classifier = ref.read(gestureClassifierProvider);
     classifier.handleTouch(
-      TouchUp(timestamp: event.timeStamp, position: event.position.dx),
+      TouchUp(
+        timestamp: event.timeStamp,
+        position: event.position.dx,
+        y: event.position.dy,
+      ),
     );
   }
 

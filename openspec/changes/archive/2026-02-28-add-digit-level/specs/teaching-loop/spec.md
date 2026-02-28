@@ -1,3 +1,5 @@
+## MODIFIED Requirements
+
 ### Requirement: Play-wait-repeat loop vibrates current letter continuously
 
 The orchestrator SHALL continuously vibrate the current character's Morse pattern followed by a configurable pause (default: 3000ms), repeating indefinitely until the user provides input or navigates. The pattern SHALL be looked up from the current level's pattern data using the current character from the session state.
@@ -18,73 +20,6 @@ The orchestrator SHALL continuously vibrate the current character's Morse patter
 
 - **WHEN** the current level is letters and position is 0 (character "A", pattern dot-dash)
 - **THEN** the orchestrator plays `[dot, dash]` via the vibration service on each repetition
-
-### Requirement: Interrupt playback when user starts tapping
-
-The orchestrator SHALL stop ongoing vibration playback when the first `MorseInput` event is received during the `playing` phase. The session phase SHALL transition to `listening` and the repeat loop SHALL pause until input evaluation completes.
-
-#### Scenario: First tap interrupts playback
-
-- **WHEN** the orchestrator is playing the current letter's pattern
-- **AND** the user taps (producing a `MorseInput` event)
-- **THEN** the vibration service `cancel()` is called
-- **AND** the session phase transitions to `listening`
-- **AND** the repeat loop stops
-
-#### Scenario: Subsequent taps during listening do not trigger additional interrupts
-
-- **WHEN** the session phase is already `listening`
-- **AND** the user continues tapping (additional `MorseInput` events)
-- **THEN** no additional `cancel()` calls are made
-- **AND** the orchestrator waits for `InputComplete`
-
-### Requirement: Evaluate user input on InputComplete
-
-The orchestrator SHALL compare the user's input pattern (from `InputComplete`) against the current letter's expected Morse pattern using `patternsEqual`. The result determines the feedback path.
-
-#### Scenario: Correct input matches current letter
-
-- **WHEN** the current letter is "S" (dot-dot-dot)
-- **AND** the user taps `[dot, dot, dot]` and `InputComplete` fires
-- **THEN** `patternsEqual` returns true
-- **AND** the orchestrator enters the correct-answer feedback path
-
-#### Scenario: Incorrect input does not match
-
-- **WHEN** the current letter is "S" (dot-dot-dot)
-- **AND** the user taps `[dot, dash]` and `InputComplete` fires
-- **THEN** `patternsEqual` returns false
-- **AND** the orchestrator enters the wrong-answer feedback path
-
-#### Scenario: Empty input is treated as incorrect
-
-- **WHEN** `InputComplete` fires with an empty symbol list
-- **THEN** the orchestrator enters the wrong-answer feedback path
-
-### Requirement: Correct answer plays success vibration and resumes loop
-
-On a correct answer, the orchestrator SHALL transition the session phase to `feedback`, play the success vibration signal, then transition back to `playing` and resume the repeat loop.
-
-#### Scenario: Correct answer feedback sequence
-
-- **WHEN** the user's input matches the current letter
-- **THEN** the session phase transitions to `feedback`
-- **AND** the vibration service plays the success signal (3 quick pulses)
-- **AND** after the success signal completes, the session phase transitions to `playing`
-- **AND** the repeat loop resumes from the beginning of a cycle
-
-### Requirement: Wrong answer plays error vibration, replays pattern, and resumes loop
-
-On a wrong answer, the orchestrator SHALL transition the session phase to `feedback`, play the error vibration signal, then replay the correct Morse pattern for the current letter, then transition back to `playing` and resume the repeat loop.
-
-#### Scenario: Wrong answer feedback sequence
-
-- **WHEN** the user's input does not match the current letter
-- **THEN** the session phase transitions to `feedback`
-- **AND** the vibration service plays the error signal (long buzz)
-- **AND** then the vibration service plays the current letter's correct Morse pattern
-- **AND** after both complete, the session phase transitions to `playing`
-- **AND** the repeat loop resumes from the beginning of a cycle
 
 ### Requirement: Navigation events update letter and restart loop
 
@@ -155,56 +90,7 @@ The orchestrator SHALL ignore `MorseInput` and `InputComplete` events when the s
 - **AND** a `NavigateUp` event is received
 - **THEN** the navigation is processed normally
 
-### Requirement: Configurable teaching loop timing
-
-The orchestrator SHALL use a `TeachingTimingConfig` configuration object with a `repeatPause` duration (default: 3000ms). The config SHALL be overridable via a Riverpod provider.
-
-#### Scenario: Default repeat pause
-
-- **WHEN** a `TeachingTimingConfig` is created with no arguments
-- **THEN** the repeat pause is 3000ms
-
-#### Scenario: Custom repeat pause
-
-- **WHEN** a `TeachingTimingConfig` is created with `repeatPause: Duration(milliseconds: 5000)`
-- **THEN** the repeat pause is 5000ms
-
-### Requirement: Orchestrator is exposed via Riverpod provider
-
-The teaching loop orchestrator SHALL be exposed as a `StateNotifierProvider`. It SHALL depend on the gesture classifier, vibration service, and session notifier providers. It SHALL clean up stream subscriptions and cancel any running loops on dispose.
-
-#### Scenario: Provider creates orchestrator with dependencies
-
-- **WHEN** the orchestrator provider is read
-- **THEN** it receives the gesture classifier, vibration service, and session notifier from their respective providers
-
-#### Scenario: Provider cleans up on dispose
-
-- **WHEN** the orchestrator provider is disposed
-- **THEN** the gesture stream subscription is cancelled
-- **AND** any running vibration is cancelled
-- **AND** the repeat loop is stopped
-
-### Requirement: Orchestrator can be started and stopped
-
-The orchestrator SHALL provide `start()` and `stop()` methods. `start()` begins the play-wait-repeat loop. `stop()` cancels any running loop and vibration. The orchestrator SHALL not auto-start on creation — it waits for an explicit `start()` call.
-
-#### Scenario: Start begins the loop
-
-- **WHEN** `start()` is called on the orchestrator
-- **THEN** the play-wait-repeat loop begins for the current letter
-
-#### Scenario: Stop halts the loop
-
-- **WHEN** `stop()` is called while the loop is running
-- **THEN** vibration is cancelled
-- **AND** the loop stops
-- **AND** no further vibrations occur until `start()` is called again
-
-#### Scenario: Orchestrator does not auto-start
-
-- **WHEN** the orchestrator is created via its provider
-- **THEN** no vibration occurs until `start()` is explicitly called
+## ADDED Requirements
 
 ### Requirement: Orchestrator subscribes to both touch and shake event streams
 

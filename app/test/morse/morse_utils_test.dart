@@ -1,4 +1,5 @@
 import 'package:feel_you/morse/morse_alphabet.dart';
+import 'package:feel_you/morse/morse_digits.dart';
 import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/morse/morse_utils.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -21,8 +22,14 @@ void main() {
       ]);
     });
 
-    test('returns null for non-letter character', () {
-      expect(encodeLetter('5'), isNull);
+    test('encodes digit character', () {
+      expect(encodeLetter('5'), [
+        MorseSymbol.dot,
+        MorseSymbol.dot,
+        MorseSymbol.dot,
+        MorseSymbol.dot,
+        MorseSymbol.dot,
+      ]);
     });
 
     test('returns null for empty string', () {
@@ -46,7 +53,7 @@ void main() {
       expect(decodePattern([MorseSymbol.dot, MorseSymbol.dash]), 'A');
     });
 
-    test('returns null for invalid pattern', () {
+    test('decodes digit pattern', () {
       expect(
         decodePattern([
           MorseSymbol.dot,
@@ -55,7 +62,7 @@ void main() {
           MorseSymbol.dot,
           MorseSymbol.dot,
         ]),
-        isNull,
+        '5',
       );
     });
 
@@ -85,7 +92,7 @@ void main() {
       );
     });
 
-    test('returns false for invalid pattern', () {
+    test('returns true for digit pattern (0 = five dashes)', () {
       expect(
         isValidPattern([
           MorseSymbol.dash,
@@ -93,6 +100,21 @@ void main() {
           MorseSymbol.dash,
           MorseSymbol.dash,
           MorseSymbol.dash,
+        ]),
+        isTrue,
+      );
+    });
+
+    test('returns false for invalid pattern', () {
+      // six dots is not a valid pattern for any character
+      expect(
+        isValidPattern([
+          MorseSymbol.dot,
+          MorseSymbol.dot,
+          MorseSymbol.dot,
+          MorseSymbol.dot,
+          MorseSymbol.dot,
+          MorseSymbol.dot,
         ]),
         isFalse,
       );
@@ -110,6 +132,15 @@ void main() {
         expect(pattern, isNotNull, reason: 'Failed to encode $letter');
         final decoded = decodePattern(pattern!);
         expect(decoded, letter, reason: 'Round-trip failed for $letter');
+      }
+    });
+
+    test('encode then decode returns original digit for all 0-9', () {
+      for (final digit in morseDigitsList) {
+        final pattern = encodeLetter(digit);
+        expect(pattern, isNotNull, reason: 'Failed to encode $digit');
+        final decoded = decodePattern(pattern!);
+        expect(decoded, digit, reason: 'Round-trip failed for $digit');
       }
     });
   });

@@ -163,6 +163,36 @@ void simulateSwipeLeft(
   );
 }
 
+/// Simulates a swipe-up gesture on the given [classifier].
+void simulateSwipeUp(
+  GestureClassifier classifier, {
+  required Duration baseTime,
+}) {
+  classifier.handleTouch(TouchDown(timestamp: baseTime, position: 400, y: 100));
+  classifier.handleTouch(
+    TouchUp(
+      timestamp: baseTime + const Duration(milliseconds: 2),
+      position: 400,
+      y: 0, // 100px up in 2ms = high velocity
+    ),
+  );
+}
+
+/// Simulates a swipe-down gesture on the given [classifier].
+void simulateSwipeDown(
+  GestureClassifier classifier, {
+  required Duration baseTime,
+}) {
+  classifier.handleTouch(TouchDown(timestamp: baseTime, position: 400, y: 0));
+  classifier.handleTouch(
+    TouchUp(
+      timestamp: baseTime + const Duration(milliseconds: 2),
+      position: 400,
+      y: 100, // 100px down in 2ms = high velocity
+    ),
+  );
+}
+
 /// Simulates a long hold that triggers a reset on the given [classifier].
 ///
 /// Returns a future that completes after the reset timer fires.
@@ -210,10 +240,13 @@ class TestHarness {
   final GestureClassifier classifier;
   final TeachingOrchestrator orchestrator;
 
-  /// Reads the current session state.
+  /// Reads the current character from session state.
   // ignore: avoid_dynamic_calls
-  String get currentLetter =>
-      container.read(sessionNotifierProvider).currentLetter;
+  String get currentCharacter =>
+      container.read(sessionNotifierProvider).currentCharacter;
+
+  /// Legacy alias used by existing integration tests.
+  String get currentLetter => currentCharacter;
 
   /// Disposes the provider container and all providers.
   Future<void> dispose() async {

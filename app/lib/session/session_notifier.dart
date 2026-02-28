@@ -1,4 +1,4 @@
-import 'package:feel_you/morse/morse.dart';
+import 'package:feel_you/morse/levels.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,42 +9,73 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// methods. No transition validation is enforced here — the orchestrator
 /// owns the valid transition sequences.
 class SessionNotifier extends StateNotifier<SessionState> {
-  /// Creates a notifier with the default initial state (letter A, playing).
+  /// Creates a notifier with the default initial state (digit 0, playing).
   SessionNotifier() : super(const SessionState());
 
-  /// The index of the last letter in the learning sequence.
-  static final int _maxIndex = morseLetters.length - 1;
-
-  /// Advances to the next letter in the sequence.
+  /// Advances to the next position within the current level.
   ///
   /// Resets the phase to [SessionPhase.playing].
-  /// No-op if already at the last letter (Z).
-  void nextLetter() {
-    if (state.letterIndex >= _maxIndex) return;
+  /// No-op if already at the last position.
+  void nextPosition() {
+    final maxIndex = levels[state.levelIndex].characters.length - 1;
+    if (state.positionIndex >= maxIndex) return;
     state = state.copyWith(
-      letterIndex: state.letterIndex + 1,
+      positionIndex: state.positionIndex + 1,
       phase: SessionPhase.playing,
     );
   }
 
-  /// Moves to the previous letter in the sequence.
+  /// Moves to the previous position within the current level.
   ///
   /// Resets the phase to [SessionPhase.playing].
-  /// No-op if already at the first letter (A).
-  void previousLetter() {
-    if (state.letterIndex <= 0) return;
+  /// No-op if already at the first position.
+  void previousPosition() {
+    if (state.positionIndex <= 0) return;
     state = state.copyWith(
-      letterIndex: state.letterIndex - 1,
+      positionIndex: state.positionIndex - 1,
       phase: SessionPhase.playing,
     );
   }
 
-  /// Resets the session to letter A with phase [SessionPhase.playing].
+  /// Resets the position to the first character of the current level.
+  ///
+  /// Sets the phase to [SessionPhase.playing]. Does NOT change levelIndex.
   void reset() {
+    state = state.copyWith(positionIndex: 0, phase: SessionPhase.playing);
+  }
+
+  /// Advances to the next level, resetting position to 0.
+  ///
+  /// Resets the phase to [SessionPhase.playing].
+  /// No-op if already at the last level.
+  void nextLevel() {
+    if (state.levelIndex >= levels.length - 1) return;
+    state = state.copyWith(
+      levelIndex: state.levelIndex + 1,
+      positionIndex: 0,
+      phase: SessionPhase.playing,
+    );
+  }
+
+  /// Moves to the previous level, resetting position to 0.
+  ///
+  /// Resets the phase to [SessionPhase.playing].
+  /// No-op if already at the first level.
+  void previousLevel() {
+    if (state.levelIndex <= 0) return;
+    state = state.copyWith(
+      levelIndex: state.levelIndex - 1,
+      positionIndex: 0,
+      phase: SessionPhase.playing,
+    );
+  }
+
+  /// Resets to the very beginning: level 0, position 0, playing.
+  void home() {
     state = const SessionState();
   }
 
-  /// Updates the session phase without changing the current letter.
+  /// Updates the session phase without changing the current position or level.
   void setPhase(SessionPhase phase) {
     state = state.copyWith(phase: phase);
   }

@@ -21,6 +21,10 @@ void main() {
   // 3.2 Rapid navigation — three consecutive swipe-right gestures
   // -------------------------------------------------------------------------
   test('rapid navigation: three swipes right lands on D', () async {
+    // Switch to letters level.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -54,6 +58,10 @@ void main() {
   // 3.3 Rapid swipe right then left
   // -------------------------------------------------------------------------
   test('rapid swipe right then left returns to original letter', () async {
+    // Switch to letters level.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -103,6 +111,10 @@ void main() {
   test(
     'double tap: first interrupts, second is accumulated as input',
     () async {
+      // Switch to letters level so we can test with A (dot-dash).
+      final session = h.container.read(sessionNotifierProvider.notifier);
+      session.nextLevel();
+
       h.orchestrator.start();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -153,6 +165,10 @@ void main() {
   // 3.6 Navigation during feedback
   // -------------------------------------------------------------------------
   test('swipe right during success feedback advances to next letter', () async {
+    // Switch to letters level.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -190,6 +206,10 @@ void main() {
   // 3.7 Navigate previous at letter A
   // -------------------------------------------------------------------------
   test('navigate previous at letter A stays on A', () async {
+    // Switch to letters level.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -217,10 +237,11 @@ void main() {
   // 3.8 Navigate next at letter Z
   // -------------------------------------------------------------------------
   test('navigate next at letter Z stays on Z', () async {
-    // Advance session to Z (index 25).
+    // Switch to letters level and advance to Z (index 25).
     final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
     for (var i = 0; i < morseLetters.length - 1; i++) {
-      session.nextLetter();
+      session.nextPosition();
     }
     expect(h.currentLetter, 'Z');
 

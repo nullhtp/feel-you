@@ -1,5 +1,7 @@
 import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_timing_config.dart';
+import 'package:feel_you/gestures/shake_config.dart';
+import 'package:feel_you/gestures/shake_detector.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Provides the [GestureTimingConfig] used for gesture classification.
@@ -33,4 +35,19 @@ final gestureClassifierProvider = Provider<GestureClassifier>((ref) {
   );
   ref.onDispose(classifier.dispose);
   return classifier;
+});
+
+/// Provides the [ShakeConfig] used for shake detection.
+///
+/// Override this provider in tests or to tune threshold values.
+final shakeConfigProvider = Provider<ShakeConfig>((ref) => const ShakeConfig());
+
+/// Provides the [ShakeDetector] for detecting device shakes.
+///
+/// The detector is disposed automatically when the provider is disposed.
+final shakeDetectorProvider = Provider<ShakeDetector>((ref) {
+  final config = ref.watch(shakeConfigProvider);
+  final detector = ShakeDetector(config: config);
+  ref.onDispose(detector.dispose);
+  return detector;
 });

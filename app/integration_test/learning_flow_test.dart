@@ -17,24 +17,28 @@ void main() {
   });
 
   // -------------------------------------------------------------------------
-  // 2.2 App start plays letter A
+  // 2.2 App start plays digit 0 (initial state is now digits level)
   // -------------------------------------------------------------------------
-  test('app start plays letter A pattern', () async {
+  test('app start plays digit 0 pattern', () async {
     h.orchestrator.start();
 
     // Let the async loop run one iteration.
     await Future<void>.delayed(const Duration(milliseconds: 30));
 
-    // A = dot, dash
-    final aPattern = encodeLetter('A')!;
+    // 0 = dash x5
+    final zeroPattern = encodeLetter('0')!;
     expect(h.vibration.patterns, isNotEmpty);
-    expect(h.vibration.patterns.first, aPattern);
+    expect(h.vibration.patterns.first, zeroPattern);
   });
 
   // -------------------------------------------------------------------------
-  // 2.3 Correct input for A
+  // 2.3 Correct input for A (after switching to letters level)
   // -------------------------------------------------------------------------
   test('correct input for A triggers success and resumes loop', () async {
+    // Switch to letters level first.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -53,7 +57,7 @@ void main() {
     time += const Duration(milliseconds: 20);
     simulateDash(h.classifier, baseTime: time);
 
-    // Wait for silence timeout → InputComplete.
+    // Wait for silence timeout -> InputComplete.
     await waitForSilenceTimeout();
     // Let the feedback handler run.
     await Future<void>.delayed(const Duration(milliseconds: 30));
@@ -74,6 +78,10 @@ void main() {
   test(
     'wrong input triggers error feedback and correct pattern replay',
     () async {
+      // Switch to letters level.
+      final session = h.container.read(sessionNotifierProvider.notifier);
+      session.nextLevel();
+
       h.orchestrator.start();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -98,6 +106,9 @@ void main() {
       await h.dispose();
 
       h = createTestHarness();
+      // Switch to letters level again.
+      h.container.read(sessionNotifierProvider.notifier).nextLevel();
+
       h.orchestrator.start();
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -142,6 +153,10 @@ void main() {
   // 2.5 Navigate next
   // -------------------------------------------------------------------------
   test('navigate next advances to B and plays B pattern', () async {
+    // Switch to letters level.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -167,6 +182,10 @@ void main() {
   // 2.6 Navigate previous
   // -------------------------------------------------------------------------
   test('navigate previous from B goes back to A', () async {
+    // Switch to letters level.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -196,6 +215,10 @@ void main() {
   // 2.7 Reset
   // -------------------------------------------------------------------------
   test('reset from C returns to A', () async {
+    // Switch to letters level.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
@@ -230,13 +253,17 @@ void main() {
   // 2.8 Multi-letter sequence
   // -------------------------------------------------------------------------
   test('learn A correctly then navigate to B and learn B', () async {
+    // Switch to letters level.
+    final session = h.container.read(sessionNotifierProvider.notifier);
+    session.nextLevel();
+
     h.orchestrator.start();
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
     // --- Learn A (dot, dash) ---
     var time = const Duration(milliseconds: 100);
 
-    // First tap interrupts playback → listening.
+    // First tap interrupts playback -> listening.
     simulateDot(h.classifier, baseTime: time);
     await Future<void>.delayed(const Duration(milliseconds: 5));
     expect(

@@ -14,18 +14,24 @@ sealed class RawTouchEvent {
 
 /// Finger touched the screen.
 class TouchDown extends RawTouchEvent {
-  const TouchDown({required this.timestamp, required this.position});
+  const TouchDown({
+    required this.timestamp,
+    required this.position,
+    this.y = 0,
+  });
 
   final Duration timestamp;
   final double position; // x-coordinate in logical pixels
+  final double y; // y-coordinate in logical pixels
 }
 
 /// Finger lifted from the screen.
 class TouchUp extends RawTouchEvent {
-  const TouchUp({required this.timestamp, required this.position});
+  const TouchUp({required this.timestamp, required this.position, this.y = 0});
 
   final Duration timestamp;
   final double position; // x-coordinate in logical pixels
+  final double y; // y-coordinate in logical pixels
 }
 
 /// Classifies raw touch events into [GestureEvent]s.
@@ -55,6 +61,7 @@ class GestureClassifier {
   // Track the current press for tap/hold classification.
   Duration? _pressStartTime;
   double? _pressStartX;
+  double? _pressStartY;
   bool _resetEmitted = false;
 
   /// Stream of classified gesture events.
@@ -73,6 +80,7 @@ class GestureClassifier {
   void _onTouchDown(TouchDown event) {
     _pressStartTime = event.timestamp;
     _pressStartX = event.position;
+    _pressStartY = event.y;
     _resetEmitted = false;
     _cancelSilenceTimer();
 
@@ -90,27 +98,49 @@ class GestureClassifier {
 
     final startTime = _pressStartTime;
     final startX = _pressStartX;
-    if (startTime == null || startX == null) return;
+    final startY = _pressStartY;
+    if (startTime == null || startX == null || startY == null) return;
 
     _pressStartTime = null;
     _pressStartX = null;
+    _pressStartY = null;
 
     // If reset was already emitted during this press, ignore the release.
     if (_resetEmitted) return;
 
     final durationMs = (event.timestamp - startTime).inMilliseconds;
     final dx = event.position - startX;
+    final dy = event.y - startY;
 
-    // Check for swipe first.
-    if (_isSwipe(durationMs, dx)) {
-      _cancelSilenceTimer();
-      _clearBuffer();
-      if (dx > 0) {
-        _emit(const NavigateNext());
-      } else {
-        _emit(const NavigatePrevious());
+    // Dominant-axis swipe discrimination: the axis with the larger absolute
+    // displacement determines the swipe direction. Equal displacement favors
+    // horizontal.
+    final isHorizontalDominant = dx.abs() >= dy.abs();
+
+    if (isHorizontalDominant) {
+      // Check for horizontal swipe.
+      if (_isSwipe(durationMs, dx)) {
+        _cancelSilenceTimer();
+        _clearBuffer();
+        if (dx > 0) {
+          _emit(const NavigateNext());
+        } else {
+          _emit(const NavigatePrevious());
+        }
+        return;
       }
-      return;
+    } else {
+      // Check for vertical swipe.
+      if (_isSwipe(durationMs, dy)) {
+        _cancelSilenceTimer();
+        _clearBuffer();
+        if (dy < 0) {
+          _emit(const NavigateUp());
+        } else {
+          _emit(const NavigateDown());
+        }
+        return;
+      }
     }
 
     // Position-based dot/dash classification.
