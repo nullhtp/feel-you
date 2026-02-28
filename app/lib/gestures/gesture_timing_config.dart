@@ -9,6 +9,7 @@ class GestureTimingConfig {
   const GestureTimingConfig({
     this.resetMinDuration = 2000,
     this.silenceTimeout = 1000,
+    this.charGapThreshold = 400,
     this.minSwipeDistance = 50,
     this.minSwipeVelocity = 200,
   });
@@ -19,6 +20,11 @@ class GestureTimingConfig {
   /// Time of silence after the last Morse input before emitting
   /// an input-complete event, in ms.
   final int silenceTimeout;
+
+  /// Minimum silence duration between taps to classify as an
+  /// inter-character gap (charGap) rather than an inter-symbol gap, in ms.
+  /// Must be less than [silenceTimeout].
+  final int charGapThreshold;
 
   /// Minimum horizontal distance for a swipe, in logical pixels.
   final double minSwipeDistance;

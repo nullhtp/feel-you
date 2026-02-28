@@ -16,13 +16,20 @@ List<int> buildMorseVibrationPattern(
 
   final pattern = <int>[0]; // initial wait of 0ms
   for (var i = 0; i < symbols.length; i++) {
-    final duration = switch (symbols[i]) {
-      MorseSymbol.dot => config.dotDuration,
-      MorseSymbol.dash => config.dashDuration,
-    };
-    pattern.add(duration);
-    if (i < symbols.length - 1) {
-      pattern.add(config.interSymbolGap);
+    switch (symbols[i]) {
+      case MorseSymbol.dot:
+      case MorseSymbol.dash:
+        final duration = symbols[i] == MorseSymbol.dot
+            ? config.dotDuration
+            : config.dashDuration;
+        pattern.add(duration);
+        if (i < symbols.length - 1 && symbols[i + 1] != MorseSymbol.charGap) {
+          pattern.add(config.interSymbolGap);
+        }
+      case MorseSymbol.charGap:
+        // Replace the trailing inter-symbol gap (if any) with the char gap,
+        // or add the char gap silence directly.
+        pattern.add(config.interCharGap);
     }
   }
   return pattern;

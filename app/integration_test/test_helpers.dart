@@ -89,6 +89,7 @@ class RecordingVibrationService implements VibrationService {
 const fastGestureConfig = GestureTimingConfig(
   resetMinDuration: 30,
   silenceTimeout: 10,
+  charGapThreshold: 5,
   minSwipeDistance: 50,
   minSwipeVelocity: 200,
 );

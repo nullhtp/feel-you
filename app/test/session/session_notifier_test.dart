@@ -194,10 +194,11 @@ void main() {
 
       test('clamps at last level — no-op', () {
         notifier.nextLevel(); // digits -> letters
-        expect(notifier.state.levelIndex, 1);
+        notifier.nextLevel(); // letters -> words
+        expect(notifier.state.levelIndex, 2);
 
         final stateBeforeExtra = notifier.state;
-        notifier.nextLevel(); // already at last level
+        notifier.nextLevel(); // already at last level (words)
         expect(notifier.state, stateBeforeExtra);
       });
     });
@@ -373,10 +374,11 @@ void main() {
 
       test('nextLevel at last level does not change state', () {
         notifier.nextLevel(); // digits -> letters
+        notifier.nextLevel(); // letters -> words
         notifier.setPhase(SessionPhase.feedback);
         final stateAtLastLevel = notifier.state;
 
-        notifier.nextLevel();
+        notifier.nextLevel(); // already at last level (words)
         expect(notifier.state, stateAtLastLevel);
       });
 

@@ -11,16 +11,17 @@ void main() {
   });
 
   group('vertical swipe at level boundary', () {
-    test('nextLevel at last level (letters) is a no-op', () {
-      // Move to last level (letters, index 1).
+    test('nextLevel at last level (words) is a no-op', () {
+      // Move to last level (words, index 2).
       notifier.nextLevel();
-      expect(notifier.state.levelIndex, 1);
-      expect(notifier.state.currentLevel.name, 'letters');
+      notifier.nextLevel();
+      expect(notifier.state.levelIndex, 2);
+      expect(notifier.state.currentLevel.name, 'words');
 
       final stateBefore = notifier.state;
       notifier.nextLevel(); // Already at last level.
       expect(notifier.state, stateBefore);
-      expect(notifier.state.levelIndex, 1);
+      expect(notifier.state.levelIndex, 2);
     });
 
     test('previousLevel at first level (digits) is a no-op', () {
@@ -36,6 +37,7 @@ void main() {
 
     test('nextLevel at last level preserves position and phase', () {
       notifier.nextLevel(); // digits -> letters
+      notifier.nextLevel(); // letters -> words
       // Move to position 5 and change phase.
       for (var i = 0; i < 5; i++) {
         notifier.nextPosition();
@@ -43,7 +45,7 @@ void main() {
       notifier.setPhase(SessionPhase.feedback);
 
       final stateBefore = notifier.state;
-      notifier.nextLevel(); // No-op — already at last level.
+      notifier.nextLevel(); // No-op — already at last level (words).
       expect(notifier.state, stateBefore);
       expect(notifier.state.positionIndex, 5);
       expect(notifier.state.phase, SessionPhase.feedback);
@@ -67,11 +69,11 @@ void main() {
   group('rapid level switching', () {
     test('multiple consecutive nextLevel calls clamp at last level', () {
       notifier.nextLevel(); // 0 -> 1 (digits -> letters)
-      notifier.nextLevel(); // 1 -> 1 (no-op)
-      notifier.nextLevel(); // 1 -> 1 (no-op)
-      notifier.nextLevel(); // 1 -> 1 (no-op)
-      expect(notifier.state.levelIndex, 1);
-      expect(notifier.state.currentCharacter, 'A');
+      notifier.nextLevel(); // 1 -> 2 (letters -> words)
+      notifier.nextLevel(); // 2 -> 2 (no-op)
+      notifier.nextLevel(); // 2 -> 2 (no-op)
+      expect(notifier.state.levelIndex, 2);
+      expect(notifier.state.currentCharacter, 'IT');
     });
 
     test('multiple consecutive previousLevel calls clamp at first level', () {
@@ -96,7 +98,13 @@ void main() {
       notifier.nextLevel(); // 0 -> 1
       expect(notifier.state.levelIndex, 1);
 
-      notifier.nextLevel(); // no-op
+      notifier.nextLevel(); // 1 -> 2
+      expect(notifier.state.levelIndex, 2);
+
+      notifier.nextLevel(); // no-op (at last level)
+      expect(notifier.state.levelIndex, 2);
+
+      notifier.previousLevel(); // 2 -> 1
       expect(notifier.state.levelIndex, 1);
 
       notifier.previousLevel(); // 1 -> 0

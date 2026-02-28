@@ -4,8 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('levels registry', () {
-    test('contains exactly 2 levels', () {
-      expect(levels.length, 2);
+    test('contains exactly 3 levels', () {
+      expect(levels.length, 3);
     });
 
     test('digits is at index 0', () {
@@ -70,6 +70,44 @@ void main() {
 
     test('pattern lookup for A', () {
       expect(levels[1].patterns['A'], [MorseSymbol.dot, MorseSymbol.dash]);
+    });
+  });
+
+  group('words level', () {
+    test('is at index 2', () {
+      expect(levels[2].name, 'words');
+    });
+
+    test('has 20 characters', () {
+      expect(levels[2].characters.length, 20);
+    });
+
+    test('characters start with IT and end with THERE', () {
+      expect(levels[2].characters.first, 'IT');
+      expect(levels[2].characters.last, 'THERE');
+    });
+
+    test('has patterns for all characters', () {
+      for (final char in levels[2].characters) {
+        expect(
+          levels[2].patterns.containsKey(char),
+          isTrue,
+          reason: 'Missing pattern for $char',
+        );
+      }
+    });
+
+    test('pattern lookup for THE', () {
+      expect(levels[2].patterns['THE'], [
+        MorseSymbol.dash,
+        MorseSymbol.charGap,
+        MorseSymbol.dot,
+        MorseSymbol.dot,
+        MorseSymbol.dot,
+        MorseSymbol.dot,
+        MorseSymbol.charGap,
+        MorseSymbol.dot,
+      ]);
     });
   });
 

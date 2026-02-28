@@ -56,6 +56,7 @@ class GestureClassifier {
   final _controller = StreamController<GestureEvent>.broadcast();
   final List<MorseSymbol> _inputBuffer = [];
   Timer? _silenceTimer;
+  Timer? _charGapTimer;
   Timer? _resetTimer;
 
   // Track the current press for tap/hold classification.
@@ -170,9 +171,25 @@ class GestureClassifier {
 
   void _startSilenceTimer() {
     _cancelSilenceTimer();
+
+    // Stage 1: After charGapThreshold, insert a charGap into the buffer.
+    _charGapTimer = Timer(Duration(milliseconds: config.charGapThreshold), () {
+      if (_inputBuffer.isNotEmpty) {
+        _inputBuffer.add(MorseSymbol.charGap);
+      }
+    });
+
+    // Stage 2: After silenceTimeout, emit InputComplete.
     _silenceTimer = Timer(Duration(milliseconds: config.silenceTimeout), () {
       if (_inputBuffer.isNotEmpty) {
-        _emit(InputComplete(List.unmodifiable(_inputBuffer)));
+        // Remove trailing charGap if present (added by stage 1 but no
+        // subsequent input arrived before timeout).
+        if (_inputBuffer.last == MorseSymbol.charGap) {
+          _inputBuffer.removeLast();
+        }
+        if (_inputBuffer.isNotEmpty) {
+          _emit(InputComplete(List.unmodifiable(_inputBuffer)));
+        }
         _inputBuffer.clear();
       }
     });
@@ -181,6 +198,8 @@ class GestureClassifier {
   void _cancelSilenceTimer() {
     _silenceTimer?.cancel();
     _silenceTimer = null;
+    _charGapTimer?.cancel();
+    _charGapTimer = null;
   }
 
   void _clearBuffer() {
@@ -197,6 +216,7 @@ class GestureClassifier {
   /// Release resources. After calling this, the classifier should not be used.
   void dispose() {
     _silenceTimer?.cancel();
+    _charGapTimer?.cancel();
     _resetTimer?.cancel();
     _controller.close();
   }

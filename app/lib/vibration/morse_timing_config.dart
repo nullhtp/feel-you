@@ -11,6 +11,7 @@ class MorseTimingConfig {
     this.dotDuration = 100,
     this.dashDuration = 300,
     this.interSymbolGap = 100,
+    this.interCharGap = 300,
   });
 
   /// Duration of a dot vibration in ms.
@@ -21,4 +22,7 @@ class MorseTimingConfig {
 
   /// Silence between consecutive symbols in ms.
   final int interSymbolGap;
+
+  /// Silence between characters within a word in ms (3× dot duration per ITU).
+  final int interCharGap;
 }
