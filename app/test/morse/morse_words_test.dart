@@ -1,4 +1,3 @@
-import 'package:feel_you/morse/morse_alphabet.dart';
 import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/morse/morse_words.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -155,31 +154,18 @@ void main() {
       ]);
     });
 
-    test('each word pattern matches composed letter patterns', () {
-      for (final entry in morseWords.entries) {
-        final word = entry.key;
-        final pattern = entry.value;
-
-        // Build expected pattern by composing letter patterns with charGaps
-        final expected = <MorseSymbol>[];
-        for (var i = 0; i < word.length; i++) {
-          final letterPattern = morseAlphabet[word[i]];
-          expect(
-            letterPattern,
-            isNotNull,
-            reason: 'Unknown letter ${word[i]} in $word',
-          );
-          expected.addAll(letterPattern!);
-          if (i < word.length - 1) {
-            expected.add(MorseSymbol.charGap);
-          }
-        }
-        expect(
-          pattern,
-          expected,
-          reason: '$word pattern does not match composed letter patterns',
-        );
-      }
+    test('THERE pattern is T + H + E + R + E', () {
+      expect(morseWords['THERE'], [
+        MorseSymbol.dash, // T
+        MorseSymbol.charGap,
+        MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dot, // H
+        MorseSymbol.charGap,
+        MorseSymbol.dot, // E
+        MorseSymbol.charGap,
+        MorseSymbol.dot, MorseSymbol.dash, MorseSymbol.dot, // R
+        MorseSymbol.charGap,
+        MorseSymbol.dot, // E
+      ]);
     });
   });
 }

@@ -1,4 +1,3 @@
-import 'package:feel_you/morse/morse_arabic.dart';
 import 'package:feel_you/morse/morse_arabic_words.dart';
 import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -124,38 +123,16 @@ void main() {
       ]);
     });
 
-    test('each word pattern matches composed letter patterns', () {
-      // Build a combined alphabet that includes أ and ى mapped to alif pattern.
-      final alphabet = Map<String, List<MorseSymbol>>.from(morseArabicAlphabet);
-      // أ (hamza on alif) uses same pattern as ا
-      alphabet['أ'] = morseArabicAlphabet['ا']!;
-      // ى (alif maqsura) uses same pattern as ا
-      alphabet['ى'] = morseArabicAlphabet['ا']!;
-
-      for (final entry in morseArabicWords.entries) {
-        final word = entry.key;
-        final pattern = entry.value;
-
-        // Build expected pattern by composing letter patterns with charGaps.
-        final expected = <MorseSymbol>[];
-        for (var i = 0; i < word.length; i++) {
-          final letterPattern = alphabet[word[i]];
-          expect(
-            letterPattern,
-            isNotNull,
-            reason: 'Unknown letter ${word[i]} in $word',
-          );
-          expected.addAll(letterPattern!);
-          if (i < word.length - 1) {
-            expected.add(MorseSymbol.charGap);
-          }
-        }
-        expect(
-          pattern,
-          expected,
-          reason: '$word pattern does not match composed letter patterns',
-        );
-      }
+    test('هذا pattern is ه + ذ + ا', () {
+      expect(morseArabicWords['هذا'], [
+        MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dash,
+        MorseSymbol.dot, MorseSymbol.dot, // ه: ··−··
+        MorseSymbol.charGap,
+        MorseSymbol.dash, MorseSymbol.dash,
+        MorseSymbol.dot, MorseSymbol.dot, // ذ: −−··
+        MorseSymbol.charGap,
+        MorseSymbol.dot, MorseSymbol.dash, // ا: ·−
+      ]);
     });
   });
 }

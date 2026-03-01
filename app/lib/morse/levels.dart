@@ -22,7 +22,7 @@ final List<Level> levels = [
     patterns: morseAlphabet,
     language: MorseLanguage.english,
   ),
-  const Level(
+  Level(
     name: 'words',
     characters: morseWordsList,
     patterns: morseWords,
@@ -34,7 +34,7 @@ final List<Level> levels = [
     patterns: morseArabicAlphabet,
     language: MorseLanguage.arabic,
   ),
-  const Level(
+  Level(
     name: 'arabic-words',
     characters: morseArabicWordsList,
     patterns: morseArabicWords,

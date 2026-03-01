@@ -2,6 +2,7 @@ import 'package:feel_you/morse/morse_alphabet.dart';
 import 'package:feel_you/morse/morse_digits.dart';
 import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/morse/morse_utils.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -171,6 +172,79 @@ void main() {
         patternsEqual([MorseSymbol.dot], [MorseSymbol.dot, MorseSymbol.dot]),
         isFalse,
       );
+    });
+  });
+
+  group('composeWordPattern', () {
+    test('two-letter word: IT', () {
+      final pattern = composeWordPattern('IT', morseAlphabet);
+      expect(pattern, [
+        MorseSymbol.dot, MorseSymbol.dot, // I
+        MorseSymbol.charGap,
+        MorseSymbol.dash, // T
+      ]);
+    });
+
+    test('three-letter word: THE', () {
+      final pattern = composeWordPattern('THE', morseAlphabet);
+      expect(pattern, [
+        MorseSymbol.dash, // T
+        MorseSymbol.charGap,
+        MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dot, // H
+        MorseSymbol.charGap,
+        MorseSymbol.dot, // E
+      ]);
+    });
+
+    test('single-letter word produces no charGap', () {
+      final pattern = composeWordPattern('A', morseAlphabet);
+      expect(pattern, [MorseSymbol.dot, MorseSymbol.dash]);
+      expect(pattern.contains(MorseSymbol.charGap), isFalse);
+    });
+
+    test('uses the provided alphabet map', () {
+      final customAlphabet = <String, List<MorseSymbol>>{
+        'X': [MorseSymbol.dot],
+        'Y': [MorseSymbol.dash],
+      };
+      final pattern = composeWordPattern('XY', customAlphabet);
+      expect(pattern, [MorseSymbol.dot, MorseSymbol.charGap, MorseSymbol.dash]);
+    });
+
+    test('throws ArgumentError for unknown character', () {
+      expect(
+        () => composeWordPattern('A1', morseAlphabet),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+
+    test('throws ArgumentError for empty word', () {
+      expect(
+        () => composeWordPattern('', morseAlphabet),
+        throwsA(isA<ArgumentError>()),
+      );
+    });
+  });
+
+  group('buildWordPatterns', () {
+    test('builds patterns for a word list', () {
+      final result = buildWordPatterns(['IT', 'IS'], morseAlphabet);
+      expect(result.length, 2);
+      expect(result.containsKey('IT'), isTrue);
+      expect(result.containsKey('IS'), isTrue);
+      expect(
+        listEquals(result['IT'], composeWordPattern('IT', morseAlphabet)),
+        isTrue,
+      );
+      expect(
+        listEquals(result['IS'], composeWordPattern('IS', morseAlphabet)),
+        isTrue,
+      );
+    });
+
+    test('empty word list returns empty map', () {
+      final result = buildWordPatterns([], morseAlphabet);
+      expect(result, isEmpty);
     });
   });
 }

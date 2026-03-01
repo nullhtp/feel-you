@@ -74,3 +74,43 @@ bool isValidPattern(List<MorseSymbol> symbols) {
 /// Returns `true` if two Morse patterns are equal.
 bool patternsEqual(List<MorseSymbol> a, List<MorseSymbol> b) =>
     listEquals(a, b);
+
+/// Composes a flat Morse pattern for [word] by looking up each character in
+/// [alphabet] and joining the letter patterns with [MorseSymbol.charGap].
+///
+/// Throws [ArgumentError] if [word] is empty or contains a character not
+/// found in [alphabet].
+List<MorseSymbol> composeWordPattern(
+  String word,
+  Map<String, List<MorseSymbol>> alphabet,
+) {
+  if (word.isEmpty) {
+    throw ArgumentError.value(word, 'word', 'must not be empty');
+  }
+  final result = <MorseSymbol>[];
+  for (var i = 0; i < word.length; i++) {
+    final letter = word[i];
+    final letterPattern = alphabet[letter];
+    if (letterPattern == null) {
+      throw ArgumentError.value(
+        letter,
+        'word[$i]',
+        'character not found in alphabet',
+      );
+    }
+    result.addAll(letterPattern);
+    if (i < word.length - 1) {
+      result.add(MorseSymbol.charGap);
+    }
+  }
+  return result;
+}
+
+/// Builds a word-to-pattern map by calling [composeWordPattern] for each
+/// word in [words] using the given [alphabet].
+Map<String, List<MorseSymbol>> buildWordPatterns(
+  List<String> words,
+  Map<String, List<MorseSymbol>> alphabet,
+) {
+  return {for (final word in words) word: composeWordPattern(word, alphabet)};
+}

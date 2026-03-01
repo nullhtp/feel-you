@@ -1,13 +1,4 @@
-### Requirement: MorseSymbol charGap value
-The `MorseSymbol` enum SHALL include a `charGap` value in addition to `dot` and `dash`. The `charGap` value represents the inter-character silence within a multi-character word pattern.
-
-#### Scenario: MorseSymbol has three values
-- **WHEN** the `MorseSymbol` enum is inspected
-- **THEN** it SHALL contain exactly three values: `dot`, `dash`, and `charGap`
-
-#### Scenario: charGap is distinct from dot and dash
-- **WHEN** comparing `MorseSymbol.charGap` to `MorseSymbol.dot` and `MorseSymbol.dash`
-- **THEN** all three values SHALL be distinct
+## MODIFIED Requirements
 
 ### Requirement: Word Morse patterns data file
 The system SHALL define a `morseWords` map of type `Map<String, List<MorseSymbol>>` mapping uppercase word strings to their flat Morse patterns. The map SHALL be computed at runtime by calling `buildWordPatterns(morseWordsList, morseAlphabet)` from `morse_utils.dart`, using the letter patterns defined in `morse_alphabet.dart`. Each word's pattern SHALL concatenate the Morse patterns of its component letters, separated by `MorseSymbol.charGap` values between each letter. The `morseWords` map SHALL NOT contain hardcoded pattern values.
