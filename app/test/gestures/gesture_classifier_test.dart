@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_event.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -46,48 +46,48 @@ void main() {
     test('tap on left half produces dot', () async {
       tap(100, startX: leftX);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
     });
 
     test('tap on right half produces dash', () async {
       tap(100, startX: rightX);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dash)]);
+      expect(events, [const MorseInput(MorseSignal.dash)]);
     });
 
     test('tap at exact midpoint produces dash (inclusive to right)', () async {
       tap(100, startX: midpointX);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dash)]);
+      expect(events, [const MorseInput(MorseSignal.dash)]);
     });
 
     test('tap near left edge produces dot', () async {
       tap(100, startX: 10);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
     });
 
     test('tap near right edge produces dash', () async {
       tap(100, startX: 790);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dash)]);
+      expect(events, [const MorseInput(MorseSignal.dash)]);
     });
 
     test('tap duration does not affect classification', () async {
       // Short tap on left = dot
       tap(50, startX: leftX);
       await pump();
-      expect(events.last, const MorseInput(MorseSymbol.dot));
+      expect(events.last, const MorseInput(MorseSignal.dot));
 
       // Long tap on left = still dot
       tap(400, startX: leftX);
       await pump();
-      expect(events.last, const MorseInput(MorseSymbol.dot));
+      expect(events.last, const MorseInput(MorseSignal.dot));
 
       // Short tap on right = dash
       tap(50, startX: rightX);
       await pump();
-      expect(events.last, const MorseInput(MorseSymbol.dash));
+      expect(events.last, const MorseInput(MorseSignal.dash));
     });
 
     test('different screen width changes midpoint', () async {
@@ -101,12 +101,12 @@ void main() {
       // Midpoint is now 500. Position 450 is left half (dot).
       tap(100, startX: 450);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
 
       // Position 550 is right half (dash).
       tap(100, startX: 550);
       await pump();
-      expect(events.last, const MorseInput(MorseSymbol.dash));
+      expect(events.last, const MorseInput(MorseSignal.dash));
     });
   });
 
@@ -114,25 +114,25 @@ void main() {
     test('tap at 800ms on left half produces dot', () async {
       tap(800, startX: leftX);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
     });
 
     test('tap at 800ms on right half produces dash', () async {
       tap(800, startX: rightX);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dash)]);
+      expect(events, [const MorseInput(MorseSignal.dash)]);
     });
 
     test('tap at 1500ms on left half produces dot', () async {
       tap(1500, startX: leftX);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
     });
 
     test('tap at 1500ms on right half produces dash', () async {
       tap(1500, startX: rightX);
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dash)]);
+      expect(events, [const MorseInput(MorseSignal.dash)]);
     });
   });
 
@@ -164,7 +164,7 @@ void main() {
       tap(1900, startX: leftX);
       // Allow time for any timer to fire that shouldn't.
       await Future<void>.delayed(const Duration(milliseconds: 200));
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
     });
   });
 
@@ -172,14 +172,14 @@ void main() {
     test('silence after input triggers InputComplete', () async {
       tap(100, startX: leftX); // dot
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
 
       // Wait for silence timeout.
       await Future<void>.delayed(const Duration(milliseconds: 1100));
 
       expect(events, [
-        const MorseInput(MorseSymbol.dot),
-        const InputComplete([MorseSymbol.dot]),
+        const MorseInput(MorseSignal.dot),
+        InputComplete([Signal(MorseSignal.dot)]),
       ]);
     });
 
@@ -192,9 +192,9 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 1100));
 
       expect(events, [
-        const MorseInput(MorseSymbol.dot),
-        const MorseInput(MorseSymbol.dash),
-        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+        const MorseInput(MorseSignal.dot),
+        const MorseInput(MorseSignal.dash),
+        InputComplete([Signal(MorseSignal.dot), Signal(MorseSignal.dash)]),
       ]);
     });
 
@@ -212,7 +212,7 @@ void main() {
       // Now wait for full timeout to elapse.
       await Future<void>.delayed(const Duration(milliseconds: 400));
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+        InputComplete([Signal(MorseSignal.dot), Signal(MorseSignal.dash)]),
       ]);
     });
 
@@ -236,10 +236,10 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 1100));
 
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([
-          MorseSymbol.dot,
-          MorseSymbol.charGap,
-          MorseSymbol.dash,
+        InputComplete([
+          Signal(MorseSignal.dot),
+          const CharGap(),
+          Signal(MorseSignal.dash),
         ]),
       ]);
     });
@@ -274,7 +274,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 400));
       // Trailing charGap should be stripped by the silence timer.
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([MorseSymbol.dot]),
+        InputComplete([Signal(MorseSignal.dot)]),
       ]);
     });
   });
@@ -290,7 +290,7 @@ void main() {
       await pump();
 
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+        InputComplete([Signal(MorseSignal.dot), Signal(MorseSignal.dash)]),
       ]);
     });
 
@@ -327,11 +327,11 @@ void main() {
       await pump();
 
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.charGap,
-          MorseSymbol.dash,
+        InputComplete([
+          Signal(MorseSignal.dot),
+          Signal(MorseSignal.dot),
+          const CharGap(),
+          Signal(MorseSignal.dash),
         ]),
       ]);
     });
@@ -361,7 +361,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 1100));
 
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([MorseSymbol.dot]),
+        InputComplete([Signal(MorseSignal.dot)]),
       ]);
     });
 
@@ -376,7 +376,7 @@ void main() {
 
       // Should be [dot, dash] with NO charGap (auto-insertion removed).
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([MorseSymbol.dot, MorseSymbol.dash]),
+        InputComplete([Signal(MorseSignal.dot), Signal(MorseSignal.dash)]),
       ]);
     });
 
@@ -389,7 +389,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 1100));
 
       expect(events.whereType<InputComplete>().toList(), [
-        const InputComplete([MorseSymbol.dot]),
+        InputComplete([Signal(MorseSignal.dot)]),
       ]);
     });
   });
@@ -422,7 +422,7 @@ void main() {
       tap(50, startX: 0, endX: 30);
       await pump();
       // Should be classified by position (left half = dot), not a swipe.
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
     });
 
     test('swipe is not also classified as morse input', () async {
@@ -445,7 +445,7 @@ void main() {
     test('swipe clears accumulated input', () async {
       tap(100, startX: leftX); // dot
       await pump();
-      expect(events.last, const MorseInput(MorseSymbol.dot));
+      expect(events.last, const MorseInput(MorseSignal.dot));
 
       // Swipe right before silence timeout.
       tap(100, startX: 0, endX: 100);
@@ -460,7 +460,7 @@ void main() {
     test('reset clears accumulated input', () async {
       tap(100, startX: leftX); // dot
       await pump();
-      expect(events.last, const MorseInput(MorseSymbol.dot));
+      expect(events.last, const MorseInput(MorseSignal.dot));
 
       // Long hold to trigger reset.
       const start = Duration(milliseconds: 5000);
@@ -492,8 +492,8 @@ void main() {
 
       tap(100, startX: leftX); // dot
       await pump();
-      expect(events, [const MorseInput(MorseSymbol.dot)]);
-      expect(events2, [const MorseInput(MorseSymbol.dot)]);
+      expect(events, [const MorseInput(MorseSignal.dot)]);
+      expect(events2, [const MorseInput(MorseSignal.dot)]);
 
       await sub2.cancel();
     });
@@ -503,8 +503,8 @@ void main() {
       tap(100, startX: rightX); // dash
       await pump();
       expect(events, [
-        const MorseInput(MorseSymbol.dot),
-        const MorseInput(MorseSymbol.dash),
+        const MorseInput(MorseSignal.dot),
+        const MorseInput(MorseSignal.dash),
       ]);
     });
   });
@@ -616,13 +616,17 @@ void main() {
     test('updates on dot input', () async {
       tap(100, startX: leftX);
       await pump();
-      expect(classifier.inputBufferNotifier.value, [MorseSymbol.dot]);
+      expect(classifier.inputBufferNotifier.value, [
+        const Signal(MorseSignal.dot),
+      ]);
     });
 
     test('updates on dash input', () async {
       tap(100, startX: rightX);
       await pump();
-      expect(classifier.inputBufferNotifier.value, [MorseSymbol.dash]);
+      expect(classifier.inputBufferNotifier.value, [
+        const Signal(MorseSignal.dash),
+      ]);
     });
 
     test('accumulates multiple symbols', () async {
@@ -631,9 +635,9 @@ void main() {
       tap(100, startX: leftX); // dot
       await pump();
       expect(classifier.inputBufferNotifier.value, [
-        MorseSymbol.dot,
-        MorseSymbol.dash,
-        MorseSymbol.dot,
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dash),
+        const Signal(MorseSignal.dot),
       ]);
     });
 
@@ -642,8 +646,8 @@ void main() {
       await pump();
       classifier.insertCharGap();
       expect(classifier.inputBufferNotifier.value, [
-        MorseSymbol.dot,
-        MorseSymbol.charGap,
+        const Signal(MorseSignal.dot),
+        const CharGap(),
       ]);
     });
 
@@ -686,7 +690,10 @@ void main() {
       tap(100, startX: leftX);
       await pump();
       final buffer = classifier.inputBufferNotifier.value;
-      expect(() => buffer.add(MorseSymbol.dot), throwsUnsupportedError);
+      expect(
+        () => buffer.add(const Signal(MorseSignal.dot)),
+        throwsUnsupportedError,
+      );
     });
   });
 }

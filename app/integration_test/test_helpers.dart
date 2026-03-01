@@ -4,7 +4,7 @@ import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/gestures/gesture_timing_config.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_providers.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
@@ -20,6 +20,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// The type of vibration call made to [RecordingVibrationService].
 enum VibrationCallType {
   playMorsePattern,
+  playMorseTokenPattern,
   playSuccess,
   playError,
   playTapFeedback,
@@ -28,16 +29,20 @@ enum VibrationCallType {
 
 /// A single recorded call to [RecordingVibrationService].
 class VibrationCall {
-  const VibrationCall(this.type, [this.symbols]);
+  const VibrationCall(this.type, {this.signals, this.tokens});
 
   final VibrationCallType type;
 
   /// Non-null only for [VibrationCallType.playMorsePattern].
-  final List<MorseSymbol>? symbols;
+  final List<MorseSignal>? signals;
+
+  /// Non-null only for [VibrationCallType.playMorseTokenPattern].
+  final List<MorseToken>? tokens;
 
   @override
   String toString() {
-    if (symbols != null) return 'VibrationCall($type, $symbols)';
+    if (signals != null) return 'VibrationCall($type, $signals)';
+    if (tokens != null) return 'VibrationCall($type, $tokens)';
     return 'VibrationCall($type)';
   }
 }
@@ -51,23 +56,36 @@ class RecordingVibrationService implements VibrationService {
   /// Returns all recorded call types in order.
   List<VibrationCallType> get callTypes => calls.map((c) => c.type).toList();
 
-  /// Returns the symbols from all [playMorsePattern] calls.
-  List<List<MorseSymbol>> get patterns => calls
+  /// Returns the signals from all [playMorsePattern] calls.
+  List<List<MorseSignal>> get patterns => calls
       .where((c) => c.type == VibrationCallType.playMorsePattern)
-      .map((c) => c.symbols!)
+      .map((c) => c.signals!)
       .toList();
 
   /// Whether any [playMorsePattern] call matches [expected] (element-wise).
-  bool hasPattern(List<MorseSymbol> expected) =>
+  bool hasPattern(List<MorseSignal> expected) =>
       patterns.any((p) => listEquals(p, expected));
 
   /// Clears all recorded calls.
   void reset() => calls.clear();
 
   @override
-  Future<void> playMorsePattern(List<MorseSymbol> symbols) async {
+  Future<void> playMorsePattern(List<MorseSignal> signals) async {
     calls.add(
-      VibrationCall(VibrationCallType.playMorsePattern, List.of(symbols)),
+      VibrationCall(
+        VibrationCallType.playMorsePattern,
+        signals: List.of(signals),
+      ),
+    );
+  }
+
+  @override
+  Future<void> playMorseTokenPattern(List<MorseToken> tokens) async {
+    calls.add(
+      VibrationCall(
+        VibrationCallType.playMorseTokenPattern,
+        tokens: List.of(tokens),
+      ),
     );
   }
 

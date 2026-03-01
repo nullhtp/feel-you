@@ -55,7 +55,7 @@ class GestureClassifier {
   final GestureTimingConfig config;
 
   final _controller = StreamController<GestureEvent>.broadcast();
-  final List<MorseSymbol> _inputBuffer = [];
+  final List<MorseToken> _inputBuffer = [];
   Timer? _silenceTimer;
   Timer? _resetTimer;
 
@@ -63,7 +63,7 @@ class GestureClassifier {
   ///
   /// Emits an unmodifiable copy of the current buffer contents.
   /// Used by the companion overlay to display accumulated user input.
-  final ValueNotifier<List<MorseSymbol>> inputBufferNotifier = ValueNotifier(
+  final ValueNotifier<List<MorseToken>> inputBufferNotifier = ValueNotifier(
     const [],
   );
 
@@ -155,10 +155,10 @@ class GestureClassifier {
     // Position-based dot/dash classification.
     // Left half (x < midpoint) = dot, right half (x >= midpoint) = dash.
     // Any non-swipe tap shorter than resetMinDuration is classified.
-    final symbol = startX < screenWidth / 2
-        ? MorseSymbol.dot
-        : MorseSymbol.dash;
-    _addSymbol(symbol);
+    final signal = startX < screenWidth / 2
+        ? MorseSignal.dot
+        : MorseSignal.dash;
+    _addSignal(signal);
   }
 
   bool _isSwipe(int durationMs, double dx) {
@@ -175,10 +175,10 @@ class GestureClassifier {
     inputBufferNotifier.value = List.unmodifiable(_inputBuffer);
   }
 
-  void _addSymbol(MorseSymbol symbol) {
-    _inputBuffer.add(symbol);
+  void _addSignal(MorseSignal signal) {
+    _inputBuffer.add(Signal(signal));
     _notifyBufferChanged();
-    _emit(MorseInput(symbol));
+    _emit(MorseInput(signal));
     _startSilenceTimer();
   }
 
@@ -190,7 +190,7 @@ class GestureClassifier {
       if (_inputBuffer.isNotEmpty) {
         // Remove trailing charGap if present (explicitly inserted but no
         // subsequent input arrived before timeout).
-        if (_inputBuffer.last == MorseSymbol.charGap) {
+        if (_inputBuffer.last is CharGap) {
           _inputBuffer.removeLast();
         }
         if (_inputBuffer.isNotEmpty) {
@@ -221,13 +221,13 @@ class GestureClassifier {
     _resetTimer?.cancel();
   }
 
-  /// Inserts a [MorseSymbol.charGap] into the input buffer.
+  /// Inserts a [CharGap] token into the input buffer.
   ///
   /// Does nothing if the buffer is empty (cannot start with a charGap).
   /// Restarts the silence timer after inserting.
   void insertCharGap() {
     if (_inputBuffer.isEmpty) return;
-    _inputBuffer.add(MorseSymbol.charGap);
+    _inputBuffer.add(const CharGap());
     _notifyBufferChanged();
     _startSilenceTimer();
   }

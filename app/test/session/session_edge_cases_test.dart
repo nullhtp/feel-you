@@ -1,5 +1,4 @@
-import 'package:feel_you/morse/levels.dart';
-import 'package:feel_you/morse/morse_language.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -215,6 +214,7 @@ void main() {
     });
 
     test('all levels have valid character count', () {
+      final levels = morseRegistry.levelsForLanguage(MorseLanguage.english);
       for (var i = 0; i < levels.length; i++) {
         expect(
           levels[i].characters.length,

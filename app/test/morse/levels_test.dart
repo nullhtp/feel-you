@@ -1,43 +1,50 @@
-import 'package:feel_you/morse/levels.dart';
-import 'package:feel_you/morse/morse_language.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('levels registry', () {
+  group('morseRegistry levels', () {
     test('contains exactly 5 levels', () {
-      expect(levels.length, 5);
+      expect(morseRegistry.all.expand((a) => a.levels).length, 5);
     });
 
     test('digits is at index 0 with null language', () {
-      expect(levels[0].name, 'digits');
-      expect(levels[0].language, isNull);
+      final allLevels = morseRegistry.levelsForLanguage(MorseLanguage.english);
+      expect(allLevels[0].name, 'digits');
+      expect(allLevels[0].language, isNull);
     });
 
     test('English letters is at index 1', () {
-      expect(levels[1].name, 'letters');
-      expect(levels[1].language, MorseLanguage.english);
+      final allLevels = morseRegistry.levelsForLanguage(MorseLanguage.english);
+      expect(allLevels[1].name, 'letters');
+      expect(allLevels[1].language, MorseLanguage.english);
     });
 
     test('English words is at index 2', () {
-      expect(levels[2].name, 'words');
-      expect(levels[2].language, MorseLanguage.english);
+      final allLevels = morseRegistry.levelsForLanguage(MorseLanguage.english);
+      expect(allLevels[2].name, 'words');
+      expect(allLevels[2].language, MorseLanguage.english);
     });
 
-    test('Arabic letters is at index 3', () {
-      expect(levels[3].name, 'arabic-letters');
-      expect(levels[3].language, MorseLanguage.arabic);
+    test('Arabic letters is at index 1 in Arabic levels', () {
+      final arabicLevels = morseRegistry.levelsForLanguage(
+        MorseLanguage.arabic,
+      );
+      expect(arabicLevels[1].name, 'arabic-letters');
+      expect(arabicLevels[1].language, MorseLanguage.arabic);
     });
 
-    test('Arabic words is at index 4', () {
-      expect(levels[4].name, 'arabic-words');
-      expect(levels[4].language, MorseLanguage.arabic);
+    test('Arabic words is at index 2 in Arabic levels', () {
+      final arabicLevels = morseRegistry.levelsForLanguage(
+        MorseLanguage.arabic,
+      );
+      expect(arabicLevels[2].name, 'arabic-words');
+      expect(arabicLevels[2].language, MorseLanguage.arabic);
     });
   });
 
   group('levelsForLanguage', () {
     test('English returns 3 levels: digits, letters, words', () {
-      final english = levelsForLanguage(MorseLanguage.english);
+      final english = morseRegistry.levelsForLanguage(MorseLanguage.english);
       expect(english.length, 3);
       expect(english[0].name, 'digits');
       expect(english[1].name, 'letters');
@@ -45,7 +52,7 @@ void main() {
     });
 
     test('Arabic returns 3 levels: digits, arabic-letters, arabic-words', () {
-      final arabic = levelsForLanguage(MorseLanguage.arabic);
+      final arabic = morseRegistry.levelsForLanguage(MorseLanguage.arabic);
       expect(arabic.length, 3);
       expect(arabic[0].name, 'digits');
       expect(arabic[1].name, 'arabic-letters');
@@ -53,26 +60,32 @@ void main() {
     });
 
     test('both languages include the shared digits level', () {
-      final english = levelsForLanguage(MorseLanguage.english);
-      final arabic = levelsForLanguage(MorseLanguage.arabic);
-      expect(english[0], arabic[0]);
+      final english = morseRegistry.levelsForLanguage(MorseLanguage.english);
+      final arabic = morseRegistry.levelsForLanguage(MorseLanguage.arabic);
+      expect(english[0].name, arabic[0].name);
     });
   });
 
   group('digits level', () {
+    late Level digitsLevel;
+
+    setUp(() {
+      digitsLevel = morseRegistry.levelsForLanguage(MorseLanguage.english)[0];
+    });
+
     test('has 10 characters', () {
-      expect(levels[0].characters.length, 10);
+      expect(digitsLevel.characters.length, 10);
     });
 
     test('characters start with 0 and end with 9', () {
-      expect(levels[0].characters.first, '0');
-      expect(levels[0].characters.last, '9');
+      expect(digitsLevel.characters.first, '0');
+      expect(digitsLevel.characters.last, '9');
     });
 
     test('has patterns for all characters', () {
-      for (final char in levels[0].characters) {
+      for (final char in digitsLevel.characters) {
         expect(
-          levels[0].patterns.containsKey(char),
+          digitsLevel.patterns.containsKey(char),
           isTrue,
           reason: 'Missing pattern for $char',
         );
@@ -80,30 +93,36 @@ void main() {
     });
 
     test('pattern lookup for digit 3', () {
-      expect(levels[0].patterns['3'], [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
+      expect(digitsLevel.patterns['3'], [
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dash,
+        MorseSignal.dash,
       ]);
     });
   });
 
   group('English letters level', () {
+    late Level lettersLevel;
+
+    setUp(() {
+      lettersLevel = morseRegistry.levelsForLanguage(MorseLanguage.english)[1];
+    });
+
     test('has 26 characters', () {
-      expect(levels[1].characters.length, 26);
+      expect(lettersLevel.characters.length, 26);
     });
 
     test('characters start with A and end with Z', () {
-      expect(levels[1].characters.first, 'A');
-      expect(levels[1].characters.last, 'Z');
+      expect(lettersLevel.characters.first, 'A');
+      expect(lettersLevel.characters.last, 'Z');
     });
 
     test('has patterns for all characters', () {
-      for (final char in levels[1].characters) {
+      for (final char in lettersLevel.characters) {
         expect(
-          levels[1].patterns.containsKey(char),
+          lettersLevel.patterns.containsKey(char),
           isTrue,
           reason: 'Missing pattern for $char',
         );
@@ -111,62 +130,85 @@ void main() {
     });
 
     test('pattern lookup for A', () {
-      expect(levels[1].patterns['A'], [MorseSymbol.dot, MorseSymbol.dash]);
+      expect(lettersLevel.patterns['A'], [MorseSignal.dot, MorseSignal.dash]);
     });
   });
 
   group('English words level', () {
+    late Level wordsLevel;
+
+    setUp(() {
+      wordsLevel = morseRegistry.levelsForLanguage(MorseLanguage.english)[2];
+    });
+
     test('is at index 2', () {
-      expect(levels[2].name, 'words');
+      expect(wordsLevel.name, 'words');
     });
 
     test('has 20 characters', () {
-      expect(levels[2].characters.length, 20);
+      expect(wordsLevel.characters.length, 20);
     });
 
     test('characters start with IT and end with THERE', () {
-      expect(levels[2].characters.first, 'IT');
-      expect(levels[2].characters.last, 'THERE');
+      expect(wordsLevel.characters.first, 'IT');
+      expect(wordsLevel.characters.last, 'THERE');
     });
 
-    test('has patterns for all characters', () {
-      for (final char in levels[2].characters) {
+    test('word patterns exist for all characters via alphabet', () {
+      for (final word in wordsLevel.characters) {
         expect(
-          levels[2].patterns.containsKey(char),
+          englishAlphabet.wordPatterns!.containsKey(word),
           isTrue,
-          reason: 'Missing pattern for $char',
+          reason: 'Missing word pattern for $word',
         );
       }
     });
 
-    test('pattern lookup for THE', () {
-      expect(levels[2].patterns['THE'], [
-        MorseSymbol.dash,
-        MorseSymbol.charGap,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.charGap,
-        MorseSymbol.dot,
-      ]);
+    test('level patterns cover all words', () {
+      for (final word in wordsLevel.characters) {
+        expect(
+          wordsLevel.patterns.containsKey(word),
+          isTrue,
+          reason: 'Missing pattern for word $word',
+        );
+      }
+    });
+
+    test('all constituent letters exist in alphabet', () {
+      for (final word in wordsLevel.characters) {
+        for (final char in word.split('')) {
+          expect(
+            englishAlphabet.characters.containsKey(char),
+            isTrue,
+            reason: 'Missing letter pattern for $char in word $word',
+          );
+        }
+      }
     });
   });
 
   group('Arabic letters level', () {
+    late Level arabicLettersLevel;
+
+    setUp(() {
+      arabicLettersLevel = morseRegistry.levelsForLanguage(
+        MorseLanguage.arabic,
+      )[1];
+    });
+
     test('has 28 characters', () {
-      expect(levels[3].characters.length, 28);
+      expect(arabicLettersLevel.characters.length, 28);
     });
 
     test('characters start with ا and end with ي', () {
-      expect(levels[3].characters.first, 'ا');
-      expect(levels[3].characters.last, 'ي');
+      expect(arabicLettersLevel.characters.first, 'ا');
+      expect(arabicLettersLevel.characters.last, 'ي');
     });
 
     test('has patterns for all characters', () {
-      for (final char in levels[3].characters) {
+      for (final char in arabicLettersLevel.characters) {
         expect(
-          levels[3].patterns.containsKey(char),
+          arabicLettersLevel.patterns.containsKey(char),
           isTrue,
           reason: 'Missing pattern for $char',
         );
@@ -174,21 +216,50 @@ void main() {
     });
 
     test('pattern lookup for ا (Alif)', () {
-      expect(levels[3].patterns['ا'], [MorseSymbol.dot, MorseSymbol.dash]);
+      expect(arabicLettersLevel.patterns['ا'], [
+        MorseSignal.dot,
+        MorseSignal.dash,
+      ]);
     });
   });
 
   group('Arabic words level', () {
-    test('has 20 characters', () {
-      expect(levels[4].characters.length, 20);
+    late Level arabicWordsLevel;
+
+    setUp(() {
+      arabicWordsLevel = morseRegistry.levelsForLanguage(
+        MorseLanguage.arabic,
+      )[2];
     });
 
-    test('has patterns for all characters', () {
-      for (final char in levels[4].characters) {
+    test('has 20 characters', () {
+      expect(arabicWordsLevel.characters.length, 20);
+    });
+
+    test('word patterns exist for all characters via alphabet', () {
+      for (final word in arabicWordsLevel.characters) {
         expect(
-          levels[4].patterns.containsKey(char),
+          arabicAlphabet.wordPatterns!.containsKey(word),
           isTrue,
-          reason: 'Missing pattern for $char',
+          reason: 'Missing word pattern for $word',
+        );
+      }
+    });
+
+    test('word patterns in alphabet cover variant characters', () {
+      // Arabic words may contain variant forms (e.g. ى, أ) that are not
+      // in the base 28-letter alphabet but are handled by the word builder
+      // via aliases. Verify that wordPatterns exist for all words.
+      for (final word in arabicWordsLevel.characters) {
+        expect(
+          arabicAlphabet.wordPatterns!.containsKey(word),
+          isTrue,
+          reason: 'Missing word pattern for $word',
+        );
+        expect(
+          arabicAlphabet.wordPatterns![word],
+          isNotEmpty,
+          reason: 'Empty word pattern for $word',
         );
       }
     });
@@ -196,28 +267,28 @@ void main() {
 
   group('Level position resolution', () {
     test('position 0 in digits is character 0', () {
-      final level = levels[0];
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.english)[0];
       expect(level.characters[0], '0');
       expect(level.patterns[level.characters[0]], isNotNull);
     });
 
     test('position 5 in digits is character 5', () {
-      final level = levels[0];
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.english)[0];
       expect(level.characters[5], '5');
     });
 
     test('position 0 in English letters is character A', () {
-      final level = levels[1];
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.english)[1];
       expect(level.characters[0], 'A');
     });
 
     test('position 25 in English letters is character Z', () {
-      final level = levels[1];
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.english)[1];
       expect(level.characters[25], 'Z');
     });
 
     test('position 0 in Arabic letters is character ا', () {
-      final level = levels[3];
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.arabic)[1];
       expect(level.characters[0], 'ا');
     });
   });

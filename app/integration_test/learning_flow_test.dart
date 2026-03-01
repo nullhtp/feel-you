@@ -1,4 +1,4 @@
-import 'package:feel_you/morse/morse_utils.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_providers.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,7 +26,7 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 30));
 
     // 0 = dash x5
-    final zeroPattern = encodeLetter('0')!;
+    final zeroPattern = encodeLetter('0', MorseLanguage.english)!;
     expect(h.vibration.patterns, isNotEmpty);
     expect(h.vibration.patterns.first, zeroPattern);
   });
@@ -139,7 +139,10 @@ void main() {
           .where((c) => c.type == VibrationCallType.playMorsePattern)
           .toList();
       expect(replayPatterns, isNotEmpty);
-      expect(replayPatterns.first.symbols, encodeLetter('A'));
+      expect(
+        replayPatterns.first.signals,
+        encodeLetter('A', MorseLanguage.english),
+      );
 
       // Should have resumed to playing.
       expect(
@@ -174,7 +177,7 @@ void main() {
     );
 
     // Should be playing B's pattern.
-    final bPattern = encodeLetter('B')!;
+    final bPattern = encodeLetter('B', MorseLanguage.english)!;
     expect(h.vibration.hasPattern(bPattern), isTrue);
   });
 

@@ -1,4 +1,4 @@
-import 'package:feel_you/morse/morse_utils.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_providers.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,7 +28,7 @@ void main() {
     expect(h.container.read(sessionNotifierProvider).positionIndex, 0);
 
     // Should be playing digit 0's pattern (5 dashes).
-    final zeroPattern = encodeLetter('0')!;
+    final zeroPattern = encodeLetter('0', MorseLanguage.english)!;
     expect(h.vibration.hasPattern(zeroPattern), isTrue);
   });
 
@@ -51,7 +51,7 @@ void main() {
     );
 
     // Should be playing A's pattern.
-    final aPattern = encodeLetter('A')!;
+    final aPattern = encodeLetter('A', MorseLanguage.english)!;
     expect(h.vibration.hasPattern(aPattern), isTrue);
   });
 
@@ -84,7 +84,7 @@ void main() {
       );
 
       // Should be playing digit 0's pattern.
-      final zeroPattern = encodeLetter('0')!;
+      final zeroPattern = encodeLetter('0', MorseLanguage.english)!;
       expect(h.vibration.hasPattern(zeroPattern), isTrue);
     },
   );

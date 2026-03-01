@@ -10,32 +10,38 @@ sealed class GestureEvent extends Equatable {
   const GestureEvent();
 }
 
-/// A single Morse symbol input (dot or dash).
+/// A single Morse signal input (dot or dash).
 @immutable
 class MorseInput extends GestureEvent {
-  const MorseInput(this.symbol);
+  const MorseInput(this.signal);
 
-  final MorseSymbol symbol;
-
-  @override
-  List<Object?> get props => [symbol];
+  final MorseSignal signal;
 
   @override
-  String toString() => 'MorseInput($symbol)';
+  List<Object?> get props => [signal];
+
+  @override
+  String toString() => 'MorseInput($signal)';
 }
 
-/// The user finished entering a Morse character (silence timeout elapsed).
+/// The user finished entering a Morse character or word
+/// (silence timeout elapsed).
 @immutable
 class InputComplete extends GestureEvent {
-  const InputComplete(this.symbols);
+  const InputComplete(this.tokens);
 
-  final List<MorseSymbol> symbols;
+  /// The complete input as a list of [MorseToken].
+  ///
+  /// For single-character input, this contains only [Signal] tokens.
+  /// For word-level input (with charGap separators), this contains
+  /// [Signal] and [CharGap] tokens.
+  final List<MorseToken> tokens;
 
   @override
-  List<Object?> get props => [symbols];
+  List<Object?> get props => [tokens];
 
   @override
-  String toString() => 'InputComplete($symbols)';
+  String toString() => 'InputComplete($tokens)';
 }
 
 /// Swipe right — navigate to the next letter.

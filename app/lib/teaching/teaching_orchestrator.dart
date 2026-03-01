@@ -138,11 +138,22 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       // Look up the current character's Morse pattern from the level.
       final character = sessionNotifier.state.currentCharacter;
       final level = sessionNotifier.state.currentLevel;
-      final pattern = level.patterns[character];
-      if (pattern == null) break; // Should never happen for valid state.
+      final isWordsLevel = sessionNotifier.state.levelIndex == 2;
 
-      // Play the pattern.
-      await vibrationService.playMorsePattern(pattern);
+      // For word levels, use the token pattern (with CharGap pauses)
+      // from the alphabet; for single-character levels, use signals.
+      if (isWordsLevel) {
+        final alphabet = morseRegistry.forLanguage(
+          sessionNotifier.state.language,
+        );
+        final tokenPattern = alphabet?.wordPatterns?[character];
+        if (tokenPattern == null) break;
+        await vibrationService.playMorseTokenPattern(tokenPattern);
+      } else {
+        final pattern = level.patterns[character];
+        if (pattern == null) break;
+        await vibrationService.playMorsePattern(pattern);
+      }
 
       // Check if interrupted during playback or superseded by a new loop.
       if (!_shouldRun || _isInterrupted || gen != _loopGeneration) break;
@@ -212,11 +223,26 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     if (phase != SessionPhase.listening) return;
 
     final character = sessionNotifier.state.currentCharacter;
-    final level = sessionNotifier.state.currentLevel;
-    final expected = level.patterns[character];
+    final isWordsLevel = sessionNotifier.state.levelIndex == 2;
 
-    final isCorrect =
-        expected != null && patternsEqual(event.symbols, expected);
+    final bool isCorrect;
+    if (isWordsLevel) {
+      // Word level: compare full token sequence including CharGap positions.
+      final language = sessionNotifier.state.language;
+      final alphabet = morseRegistry.forLanguage(language);
+      final wordPattern = alphabet?.wordPatterns?[character];
+      isCorrect =
+          wordPattern != null && tokenPatternsEqual(event.tokens, wordPattern);
+    } else {
+      // Single-character level: extract signals and compare.
+      final level = sessionNotifier.state.currentLevel;
+      final expected = level.patterns[character];
+      final inputSignals = event.tokens
+          .whereType<Signal>()
+          .map((s) => s.signal)
+          .toList();
+      isCorrect = expected != null && patternsEqual(inputSignals, expected);
+    }
 
     if (isCorrect) {
       _handleFeedback(vibrationService.playSuccess);

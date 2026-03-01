@@ -1,82 +1,85 @@
-import 'package:feel_you/morse/morse_alphabet.dart';
-import 'package:feel_you/morse/morse_digits.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
-import 'package:feel_you/morse/morse_utils.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('encodeLetter', () {
     test('encodes uppercase letter', () {
-      expect(encodeLetter('S'), [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
+      expect(encodeLetter('S', MorseLanguage.english), [
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
       ]);
     });
 
     test('encodes lowercase letter', () {
-      expect(encodeLetter('s'), [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
+      expect(encodeLetter('s', MorseLanguage.english), [
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
       ]);
     });
 
     test('encodes digit character', () {
-      expect(encodeLetter('5'), [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
+      expect(encodeLetter('5', MorseLanguage.english), [
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
       ]);
     });
 
     test('returns null for empty string', () {
-      expect(encodeLetter(''), isNull);
+      expect(encodeLetter('', MorseLanguage.english), isNull);
     });
 
     test('returns null for special character', () {
-      expect(encodeLetter('!'), isNull);
+      expect(encodeLetter('!', MorseLanguage.english), isNull);
     });
 
     test('returns null for multi-character string', () {
       // Only single-character lookup — multi-char strings that start with
       // a valid letter will return that letter's pattern via toUpperCase(),
       // but only the first char matters for the map lookup.
-      expect(encodeLetter('AB'), isNull);
+      expect(encodeLetter('AB', MorseLanguage.english), isNull);
     });
   });
 
   group('decodePattern', () {
     test('decodes valid pattern to letter', () {
-      expect(decodePattern([MorseSymbol.dot, MorseSymbol.dash]), 'A');
+      expect(
+        decodePattern([
+          MorseSignal.dot,
+          MorseSignal.dash,
+        ], MorseLanguage.english),
+        'A',
+      );
     });
 
     test('decodes digit pattern', () {
       expect(
         decodePattern([
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-        ]),
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
+        ], MorseLanguage.english),
         '5',
       );
     });
 
     test('returns null for empty list', () {
-      expect(decodePattern([]), isNull);
+      expect(decodePattern([], MorseLanguage.english), isNull);
     });
 
     test('decodes single dot to E', () {
-      expect(decodePattern([MorseSymbol.dot]), 'E');
+      expect(decodePattern([MorseSignal.dot], MorseLanguage.english), 'E');
     });
 
     test('decodes single dash to T', () {
-      expect(decodePattern([MorseSymbol.dash]), 'T');
+      expect(decodePattern([MorseSignal.dash], MorseLanguage.english), 'T');
     });
   });
 
@@ -84,11 +87,11 @@ void main() {
     test('returns true for valid pattern (C)', () {
       expect(
         isValidPattern([
-          MorseSymbol.dash,
-          MorseSymbol.dot,
-          MorseSymbol.dash,
-          MorseSymbol.dot,
-        ]),
+          MorseSignal.dash,
+          MorseSignal.dot,
+          MorseSignal.dash,
+          MorseSignal.dot,
+        ], MorseLanguage.english),
         isTrue,
       );
     });
@@ -96,12 +99,12 @@ void main() {
     test('returns true for digit pattern (0 = five dashes)', () {
       expect(
         isValidPattern([
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-        ]),
+          MorseSignal.dash,
+          MorseSignal.dash,
+          MorseSignal.dash,
+          MorseSignal.dash,
+          MorseSignal.dash,
+        ], MorseLanguage.english),
         isTrue,
       );
     });
@@ -110,37 +113,37 @@ void main() {
       // six dots is not a valid pattern for any character
       expect(
         isValidPattern([
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-        ]),
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
+        ], MorseLanguage.english),
         isFalse,
       );
     });
 
     test('returns false for empty pattern', () {
-      expect(isValidPattern([]), isFalse);
+      expect(isValidPattern([], MorseLanguage.english), isFalse);
     });
   });
 
   group('round-trip encode/decode', () {
     test('encode then decode returns original letter for all A-Z', () {
-      for (final letter in morseLetters) {
-        final pattern = encodeLetter(letter);
+      for (final letter in englishAlphabet.characterOrder) {
+        final pattern = encodeLetter(letter, MorseLanguage.english);
         expect(pattern, isNotNull, reason: 'Failed to encode $letter');
-        final decoded = decodePattern(pattern!);
+        final decoded = decodePattern(pattern!, MorseLanguage.english);
         expect(decoded, letter, reason: 'Round-trip failed for $letter');
       }
     });
 
     test('encode then decode returns original digit for all 0-9', () {
-      for (final digit in morseDigitsList) {
-        final pattern = encodeLetter(digit);
+      for (final digit in digitAlphabet.characterOrder) {
+        final pattern = encodeLetter(digit, MorseLanguage.english);
         expect(pattern, isNotNull, reason: 'Failed to encode $digit');
-        final decoded = decodePattern(pattern!);
+        final decoded = decodePattern(pattern!, MorseLanguage.english);
         expect(decoded, digit, reason: 'Round-trip failed for $digit');
       }
     });
@@ -150,8 +153,8 @@ void main() {
     test('returns true for identical patterns', () {
       expect(
         patternsEqual(
-          [MorseSymbol.dot, MorseSymbol.dash],
-          [MorseSymbol.dot, MorseSymbol.dash],
+          [MorseSignal.dot, MorseSignal.dash],
+          [MorseSignal.dot, MorseSignal.dash],
         ),
         isTrue,
       );
@@ -160,8 +163,8 @@ void main() {
     test('returns false for different patterns', () {
       expect(
         patternsEqual(
-          [MorseSymbol.dot, MorseSymbol.dash],
-          [MorseSymbol.dash, MorseSymbol.dot],
+          [MorseSignal.dot, MorseSignal.dash],
+          [MorseSignal.dash, MorseSignal.dot],
         ),
         isFalse,
       );
@@ -169,7 +172,7 @@ void main() {
 
     test('returns false for different lengths', () {
       expect(
-        patternsEqual([MorseSymbol.dot], [MorseSymbol.dot, MorseSymbol.dot]),
+        patternsEqual([MorseSignal.dot], [MorseSignal.dot, MorseSignal.dot]),
         isFalse,
       );
     });
@@ -177,50 +180,60 @@ void main() {
 
   group('composeWordPattern', () {
     test('two-letter word: IT', () {
-      final pattern = composeWordPattern('IT', morseAlphabet);
+      final pattern = composeWordPattern('IT', englishAlphabet.characters);
       expect(pattern, [
-        MorseSymbol.dot, MorseSymbol.dot, // I
-        MorseSymbol.charGap,
-        MorseSymbol.dash, // T
+        const Signal(MorseSignal.dot), const Signal(MorseSignal.dot), // I
+        const CharGap(),
+        const Signal(MorseSignal.dash), // T
       ]);
     });
 
     test('three-letter word: THE', () {
-      final pattern = composeWordPattern('THE', morseAlphabet);
+      final pattern = composeWordPattern('THE', englishAlphabet.characters);
       expect(pattern, [
-        MorseSymbol.dash, // T
-        MorseSymbol.charGap,
-        MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dot, // H
-        MorseSymbol.charGap,
-        MorseSymbol.dot, // E
+        const Signal(MorseSignal.dash), // T
+        const CharGap(),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot), // H
+        const CharGap(),
+        const Signal(MorseSignal.dot), // E
       ]);
     });
 
     test('single-letter word produces no charGap', () {
-      final pattern = composeWordPattern('A', morseAlphabet);
-      expect(pattern, [MorseSymbol.dot, MorseSymbol.dash]);
-      expect(pattern.contains(MorseSymbol.charGap), isFalse);
+      final pattern = composeWordPattern('A', englishAlphabet.characters);
+      expect(pattern, [
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dash),
+      ]);
+      expect(pattern.whereType<CharGap>().isEmpty, isTrue);
     });
 
     test('uses the provided alphabet map', () {
-      final customAlphabet = <String, List<MorseSymbol>>{
-        'X': [MorseSymbol.dot],
-        'Y': [MorseSymbol.dash],
+      final customAlphabet = <String, List<MorseSignal>>{
+        'X': [MorseSignal.dot],
+        'Y': [MorseSignal.dash],
       };
       final pattern = composeWordPattern('XY', customAlphabet);
-      expect(pattern, [MorseSymbol.dot, MorseSymbol.charGap, MorseSymbol.dash]);
+      expect(pattern, [
+        const Signal(MorseSignal.dot),
+        const CharGap(),
+        const Signal(MorseSignal.dash),
+      ]);
     });
 
     test('throws ArgumentError for unknown character', () {
       expect(
-        () => composeWordPattern('A1', morseAlphabet),
+        () => composeWordPattern('A1', englishAlphabet.characters),
         throwsA(isA<ArgumentError>()),
       );
     });
 
     test('throws ArgumentError for empty word', () {
       expect(
-        () => composeWordPattern('', morseAlphabet),
+        () => composeWordPattern('', englishAlphabet.characters),
         throwsA(isA<ArgumentError>()),
       );
     });
@@ -228,22 +241,31 @@ void main() {
 
   group('buildWordPatterns', () {
     test('builds patterns for a word list', () {
-      final result = buildWordPatterns(['IT', 'IS'], morseAlphabet);
+      final result = buildWordPatterns([
+        'IT',
+        'IS',
+      ], englishAlphabet.characters);
       expect(result.length, 2);
       expect(result.containsKey('IT'), isTrue);
       expect(result.containsKey('IS'), isTrue);
       expect(
-        listEquals(result['IT'], composeWordPattern('IT', morseAlphabet)),
+        listEquals(
+          result['IT'],
+          composeWordPattern('IT', englishAlphabet.characters),
+        ),
         isTrue,
       );
       expect(
-        listEquals(result['IS'], composeWordPattern('IS', morseAlphabet)),
+        listEquals(
+          result['IS'],
+          composeWordPattern('IS', englishAlphabet.characters),
+        ),
         isTrue,
       );
     });
 
     test('empty word list returns empty map', () {
-      final result = buildWordPatterns([], morseAlphabet);
+      final result = buildWordPatterns([], englishAlphabet.characters);
       expect(result, isEmpty);
     });
   });

@@ -1,19 +1,18 @@
-import 'package:feel_you/morse/morse_symbol.dart';
-import 'package:feel_you/morse/morse_words.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('morseWordsList', () {
+  group('englishAlphabet.wordList', () {
     test('contains exactly 20 words', () {
-      expect(morseWordsList.length, 20);
+      expect(englishAlphabet.wordList!.length, 20);
     });
 
     test('first 5 words are 2-letter words', () {
       for (var i = 0; i < 5; i++) {
         expect(
-          morseWordsList[i].length,
+          englishAlphabet.wordList![i].length,
           2,
-          reason: '${morseWordsList[i]} should be 2 letters',
+          reason: '${englishAlphabet.wordList![i]} should be 2 letters',
         );
       }
     });
@@ -21,9 +20,9 @@ void main() {
     test('words 6-10 are 3-letter words', () {
       for (var i = 5; i < 10; i++) {
         expect(
-          morseWordsList[i].length,
+          englishAlphabet.wordList![i].length,
           3,
-          reason: '${morseWordsList[i]} should be 3 letters',
+          reason: '${englishAlphabet.wordList![i]} should be 3 letters',
         );
       }
     });
@@ -31,9 +30,9 @@ void main() {
     test('words 11-15 are 4-letter words', () {
       for (var i = 10; i < 15; i++) {
         expect(
-          morseWordsList[i].length,
+          englishAlphabet.wordList![i].length,
           4,
-          reason: '${morseWordsList[i]} should be 4 letters',
+          reason: '${englishAlphabet.wordList![i]} should be 4 letters',
         );
       }
     });
@@ -41,21 +40,21 @@ void main() {
     test('words 16-20 are 5-letter words', () {
       for (var i = 15; i < 20; i++) {
         expect(
-          morseWordsList[i].length,
+          englishAlphabet.wordList![i].length,
           5,
-          reason: '${morseWordsList[i]} should be 5 letters',
+          reason: '${englishAlphabet.wordList![i]} should be 5 letters',
         );
       }
     });
 
     test('all words are uppercase', () {
-      for (final word in morseWordsList) {
+      for (final word in englishAlphabet.wordList!) {
         expect(word, word.toUpperCase(), reason: '$word should be uppercase');
       }
     });
 
     test('exact word list content', () {
-      expect(morseWordsList, [
+      expect(englishAlphabet.wordList, [
         'IT',
         'IS',
         'TO',
@@ -80,11 +79,11 @@ void main() {
     });
   });
 
-  group('morseWords map', () {
+  group('englishAlphabet.wordPatterns map', () {
     test('every word in list has a pattern entry', () {
-      for (final word in morseWordsList) {
+      for (final word in englishAlphabet.wordList!) {
         expect(
-          morseWords.containsKey(word),
+          englishAlphabet.wordPatterns!.containsKey(word),
           isTrue,
           reason: 'Missing pattern for $word',
         );
@@ -92,34 +91,35 @@ void main() {
     });
 
     test('no extra entries beyond the word list', () {
-      expect(morseWords.length, morseWordsList.length);
+      expect(
+        englishAlphabet.wordPatterns!.length,
+        englishAlphabet.wordList!.length,
+      );
     });
 
-    test('patterns do not start with charGap', () {
-      for (final entry in morseWords.entries) {
+    test('patterns do not start with CharGap', () {
+      for (final entry in englishAlphabet.wordPatterns!.entries) {
         expect(
           entry.value.first,
-          isNot(MorseSymbol.charGap),
-          reason: '${entry.key} pattern starts with charGap',
+          isNot(isA<CharGap>()),
+          reason: '${entry.key} pattern starts with CharGap',
         );
       }
     });
 
-    test('patterns do not end with charGap', () {
-      for (final entry in morseWords.entries) {
+    test('patterns do not end with CharGap', () {
+      for (final entry in englishAlphabet.wordPatterns!.entries) {
         expect(
           entry.value.last,
-          isNot(MorseSymbol.charGap),
-          reason: '${entry.key} pattern ends with charGap',
+          isNot(isA<CharGap>()),
+          reason: '${entry.key} pattern ends with CharGap',
         );
       }
     });
 
-    test('charGap count equals letter count minus 1', () {
-      for (final entry in morseWords.entries) {
-        final charGapCount = entry.value
-            .where((s) => s == MorseSymbol.charGap)
-            .length;
+    test('CharGap count equals letter count minus 1', () {
+      for (final entry in englishAlphabet.wordPatterns!.entries) {
+        final charGapCount = entry.value.whereType<CharGap>().length;
         expect(
           charGapCount,
           entry.key.length - 1,
@@ -132,39 +132,44 @@ void main() {
   });
 
   group('word pattern correctness', () {
-    test('IT pattern is I(dot dot) + charGap + T(dash)', () {
-      expect(morseWords['IT'], [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.charGap,
-        MorseSymbol.dash,
+    test('IT pattern is I(dot dot) + CharGap + T(dash)', () {
+      expect(englishAlphabet.wordPatterns!['IT'], [
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const CharGap(),
+        const Signal(MorseSignal.dash),
       ]);
     });
 
-    test('THE pattern is T(dash) + charGap + H(dot x4) + charGap + E(dot)', () {
-      expect(morseWords['THE'], [
-        MorseSymbol.dash,
-        MorseSymbol.charGap,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.charGap,
-        MorseSymbol.dot,
+    test('THE pattern is T(dash) + CharGap + H(dot x4) + CharGap + E(dot)', () {
+      expect(englishAlphabet.wordPatterns!['THE'], [
+        const Signal(MorseSignal.dash),
+        const CharGap(),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const CharGap(),
+        const Signal(MorseSignal.dot),
       ]);
     });
 
     test('THERE pattern is T + H + E + R + E', () {
-      expect(morseWords['THERE'], [
-        MorseSymbol.dash, // T
-        MorseSymbol.charGap,
-        MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dot, MorseSymbol.dot, // H
-        MorseSymbol.charGap,
-        MorseSymbol.dot, // E
-        MorseSymbol.charGap,
-        MorseSymbol.dot, MorseSymbol.dash, MorseSymbol.dot, // R
-        MorseSymbol.charGap,
-        MorseSymbol.dot, // E
+      expect(englishAlphabet.wordPatterns!['THERE'], [
+        const Signal(MorseSignal.dash), // T
+        const CharGap(),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot), // H
+        const CharGap(),
+        const Signal(MorseSignal.dot), // E
+        const CharGap(),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dash),
+        const Signal(MorseSignal.dot), // R
+        const CharGap(),
+        const Signal(MorseSignal.dot), // E
       ]);
     });
   });

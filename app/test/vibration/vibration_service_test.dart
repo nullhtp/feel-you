@@ -1,4 +1,4 @@
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test_doubles/mock_vibration_service.dart';
@@ -20,10 +20,10 @@ void main() {
 
     test('cancel can be called after playMorsePattern', () async {
       final service = MockVibrationService();
-      await service.playMorsePattern([MorseSymbol.dot, MorseSymbol.dash]);
+      await service.playMorsePattern([MorseSignal.dot, MorseSignal.dash]);
       await service.cancel();
       expect(service.callLog, [
-        'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash]',
+        'playMorsePattern:[MorseSignal.dot, MorseSignal.dash]',
         'cancel',
       ]);
     });

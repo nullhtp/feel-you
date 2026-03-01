@@ -1,7 +1,6 @@
 import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/morse/morse.dart';
-import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';

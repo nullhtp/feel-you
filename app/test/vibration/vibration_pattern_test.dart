@@ -1,4 +1,4 @@
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/vibration/morse_timing_config.dart';
 import 'package:feel_you/vibration/morse_vibration_pattern.dart';
 import 'package:feel_you/vibration/signal_pattern.dart';
@@ -9,28 +9,32 @@ void main() {
 
   group('buildMorseVibrationPattern', () {
     test('single dot produces [0, 100]', () {
-      final pattern = buildMorseVibrationPattern([MorseSymbol.dot], config);
+      final pattern = buildMorseVibrationPattern([
+        const Signal(MorseSignal.dot),
+      ], config);
       expect(pattern, [0, 100]);
     });
 
     test('single dash produces [0, 300]', () {
-      final pattern = buildMorseVibrationPattern([MorseSymbol.dash], config);
+      final pattern = buildMorseVibrationPattern([
+        const Signal(MorseSignal.dash),
+      ], config);
       expect(pattern, [0, 300]);
     });
 
     test('dot-dash produces [0, 100, 100, 300]', () {
       final pattern = buildMorseVibrationPattern([
-        MorseSymbol.dot,
-        MorseSymbol.dash,
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dash),
       ], config);
       expect(pattern, [0, 100, 100, 300]);
     });
 
     test('three dots (S) produces correct pattern', () {
       final pattern = buildMorseVibrationPattern([
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
       ], config);
       expect(pattern, [0, 100, 100, 100, 100, 100]);
     });
@@ -47,57 +51,57 @@ void main() {
         interSymbolGap: 200,
       );
       final pattern = buildMorseVibrationPattern([
-        MorseSymbol.dot,
-        MorseSymbol.dash,
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dash),
       ], custom);
       expect(pattern, [0, 150, 200, 450]);
     });
 
-    test('charGap produces inter-character silence', () {
-      // "IT" = dot dot charGap dash
+    test('CharGap produces inter-character silence', () {
+      // "IT" = dot dot CharGap dash
       final pattern = buildMorseVibrationPattern([
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.charGap,
-        MorseSymbol.dash,
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const CharGap(),
+        const Signal(MorseSignal.dash),
       ], config);
       // dot(100) gap(100) dot(100) charGap(300) dash(300)
       expect(pattern, [0, 100, 100, 100, 300, 300]);
     });
 
-    test('charGap replaces inter-symbol gap at boundary', () {
-      // Single char then charGap then single char: dot charGap dot
+    test('CharGap replaces inter-symbol gap at boundary', () {
+      // Single char then CharGap then single char: dot CharGap dot
       final pattern = buildMorseVibrationPattern([
-        MorseSymbol.dot,
-        MorseSymbol.charGap,
-        MorseSymbol.dot,
+        const Signal(MorseSignal.dot),
+        const CharGap(),
+        const Signal(MorseSignal.dot),
       ], config);
       // dot(100) charGap(300) dot(100)
       expect(pattern, [0, 100, 300, 100]);
     });
 
-    test('charGap with custom interCharGap config', () {
+    test('CharGap with custom interCharGap config', () {
       const custom = MorseTimingConfig(interCharGap: 500);
       final pattern = buildMorseVibrationPattern([
-        MorseSymbol.dot,
-        MorseSymbol.charGap,
-        MorseSymbol.dash,
+        const Signal(MorseSignal.dot),
+        const CharGap(),
+        const Signal(MorseSignal.dash),
       ], custom);
       // dot(100) charGap(500) dash(300)
       expect(pattern, [0, 100, 500, 300]);
     });
 
-    test('multiple charGaps in a word pattern', () {
-      // "THE" = dash charGap dot dot dot dot charGap dot
+    test('multiple CharGaps in a word pattern', () {
+      // "THE" = dash CharGap dot dot dot dot CharGap dot
       final pattern = buildMorseVibrationPattern([
-        MorseSymbol.dash,
-        MorseSymbol.charGap,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.charGap,
-        MorseSymbol.dot,
+        const Signal(MorseSignal.dash),
+        const CharGap(),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot),
+        const CharGap(),
+        const Signal(MorseSignal.dot),
       ], config);
       // dash(300) charGap(300) dot(100) gap(100) dot(100) gap(100)
       // dot(100) gap(100) dot(100) charGap(300) dot(100)

@@ -25,8 +25,18 @@ class CompanionOverlay extends ConsumerWidget {
 
     final character = session.currentCharacter;
     final level = session.currentLevel;
-    final pattern = level.patterns[character] ?? [];
     final isWordsLevel = session.levelIndex == 2;
+
+    // For word levels, use the token pattern (with CharGap) from the
+    // alphabet so the display shows letter boundaries.
+    final List<MorseToken> tokenPattern;
+    if (isWordsLevel) {
+      final alphabet = morseRegistry.forLanguage(session.language);
+      tokenPattern = alphabet?.wordPatterns?[character] ?? [];
+    } else {
+      final signals = level.patterns[character] ?? [];
+      tokenPattern = signals.map((s) => Signal(s)).toList();
+    }
 
     return IgnorePointer(
       child: SizedBox.expand(
@@ -129,7 +139,7 @@ class CompanionOverlay extends ConsumerWidget {
                     const SizedBox(height: 8),
                     // --- Morse pattern display ---
                     Text(
-                      _formatMorsePattern(pattern),
+                      _formatTokenPattern(tokenPattern),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -192,13 +202,13 @@ class CompanionOverlay extends ConsumerWidget {
               left: 0,
               right: 0,
               bottom: size.height - bottomZoneTop + 8,
-              child: ValueListenableBuilder<List<MorseSymbol>>(
+              child: ValueListenableBuilder<List<MorseToken>>(
                 valueListenable: ref.watch(inputBufferProvider),
                 builder: (context, buffer, _) {
                   if (buffer.isEmpty) return const SizedBox.shrink();
                   return Center(
                     child: Text(
-                      _formatInputBuffer(buffer),
+                      _formatTokenPattern(buffer),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -225,35 +235,16 @@ class CompanionOverlay extends ConsumerWidget {
     return 40;
   }
 
-  /// Formats a Morse pattern as readable notation.
-  /// Dots → "·", dashes → "—", charGaps → "/", separated by spaces.
-  static String _formatMorsePattern(List<MorseSymbol> pattern) {
-    return pattern
-        .map((s) {
-          switch (s) {
-            case MorseSymbol.dot:
-              return '\u00B7';
-            case MorseSymbol.dash:
-              return '\u2014';
-            case MorseSymbol.charGap:
-              return '/';
-          }
-        })
-        .join(' ');
-  }
-
-  /// Formats the user's input buffer for display.
-  static String _formatInputBuffer(List<MorseSymbol> buffer) {
-    return buffer
-        .map((s) {
-          switch (s) {
-            case MorseSymbol.dot:
-              return '\u00B7';
-            case MorseSymbol.dash:
-              return '\u2014';
-            case MorseSymbol.charGap:
-              return '/';
-          }
+  /// Formats a token pattern as readable notation.
+  /// Dots -> "·", dashes -> "—", CharGap -> "/".
+  static String _formatTokenPattern(List<MorseToken> tokens) {
+    return tokens
+        .map((t) {
+          return switch (t) {
+            Signal(signal: MorseSignal.dot) => '\u00B7',
+            Signal(signal: MorseSignal.dash) => '\u2014',
+            CharGap() => '/',
+          };
         })
         .join(' ');
   }

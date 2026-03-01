@@ -36,7 +36,7 @@ class SessionState extends Equatable {
   final SessionPhase phase;
 
   /// The levels available for the selected [language].
-  List<Level> get _levels => levelsForLanguage(language);
+  List<Level> get _levels => morseRegistry.levelsForLanguage(language);
 
   /// The current [Level] object.
   Level get currentLevel => _levels[levelIndex];

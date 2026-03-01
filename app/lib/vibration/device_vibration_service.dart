@@ -16,8 +16,20 @@ class DeviceVibrationService implements VibrationService {
   final MorseTimingConfig config;
 
   @override
-  Future<void> playMorsePattern(List<MorseSymbol> symbols) async {
-    final pattern = buildMorseVibrationPattern(symbols, config);
+  Future<void> playMorsePattern(List<MorseSignal> signals) async {
+    final pattern = buildMorseVibrationPatternFromSignals(signals, config);
+    if (pattern.isEmpty) return;
+    await Vibration.vibrate(pattern: pattern);
+    var total = 0;
+    for (final ms in pattern) {
+      total += ms;
+    }
+    await Future<void>.delayed(Duration(milliseconds: total));
+  }
+
+  @override
+  Future<void> playMorseTokenPattern(List<MorseToken> tokens) async {
+    final pattern = buildMorseVibrationPattern(tokens, config);
     if (pattern.isEmpty) return;
     await Vibration.vibrate(pattern: pattern);
     var total = 0;

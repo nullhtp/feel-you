@@ -1,6 +1,5 @@
 import 'package:feel_you/gestures/gesture_event.dart';
-import 'package:feel_you/morse/morse_language.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
@@ -121,8 +120,8 @@ void main() {
           t.vibration.callLog.where(
             (c) =>
                 c ==
-                'playMorsePattern:[MorseSymbol.dash, MorseSymbol.dash, '
-                    'MorseSymbol.dash, MorseSymbol.dash, MorseSymbol.dash]',
+                'playMorsePattern:[MorseSignal.dash, MorseSignal.dash, '
+                    'MorseSignal.dash, MorseSignal.dash, MorseSignal.dash]',
           ),
           isNotEmpty,
         );
@@ -143,8 +142,8 @@ void main() {
           .where(
             (c) =>
                 c ==
-                'playMorsePattern:[MorseSymbol.dash, MorseSymbol.dash, '
-                    'MorseSymbol.dash, MorseSymbol.dash, MorseSymbol.dash]',
+                'playMorsePattern:[MorseSignal.dash, MorseSignal.dash, '
+                    'MorseSignal.dash, MorseSignal.dash, MorseSignal.dash]',
           )
           .length;
       expect(playCount, greaterThan(1));
@@ -192,7 +191,7 @@ void main() {
         await Future<void>.delayed(const Duration(milliseconds: 20));
 
         // Simulate a tap.
-        t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+        t.gestures.addEvent(const MorseInput(MorseSignal.dot));
         await Future<void>.delayed(Duration.zero);
 
         expect(t.session.state.phase, SessionPhase.listening);
@@ -208,14 +207,14 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // First tap — transitions to listening.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dot));
       await Future<void>.delayed(Duration.zero);
       final cancelCountAfterFirst = t.vibration.callLog
           .where((c) => c == 'cancel')
           .length;
 
       // Second tap during listening — should be no-op.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dash));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dash));
       await Future<void>.delayed(Duration.zero);
       final cancelCountAfterSecond = t.vibration.callLog
           .where((c) => c == 'cancel')
@@ -240,7 +239,7 @@ void main() {
           .where((c) => c == 'cancel')
           .length;
 
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dot));
       await Future<void>.delayed(Duration.zero);
 
       // No new cancel calls from the MorseInput handler.
@@ -264,18 +263,18 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // Interrupt with a tap.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dash));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dash));
       await Future<void>.delayed(Duration.zero);
       expect(t.session.state.phase, SessionPhase.listening);
 
       // Submit correct answer for 0 (dash x5).
       t.gestures.addEvent(
         const InputComplete([
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
         ]),
       );
       // Wait for feedback signal + 500ms post-feedback pause + loop start.
@@ -294,11 +293,11 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // Interrupt.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dot));
       await Future<void>.delayed(Duration.zero);
 
       // Submit wrong answer for 0.
-      t.gestures.addEvent(const InputComplete([MorseSymbol.dot]));
+      t.gestures.addEvent(const InputComplete([Signal(MorseSignal.dot)]));
       // Wait for error signal + 500ms post-feedback pause + loop start.
       await Future<void>.delayed(const Duration(milliseconds: 600));
 
@@ -315,7 +314,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // Interrupt.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dot));
       await Future<void>.delayed(Duration.zero);
 
       // Submit empty input.
@@ -338,11 +337,11 @@ void main() {
       final callsBefore = t.vibration.callLog.length;
       t.gestures.addEvent(
         const InputComplete([
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
         ]),
       );
       await Future<void>.delayed(Duration.zero);
@@ -366,11 +365,11 @@ void main() {
       final callsBefore = t.vibration.callLog.length;
       t.gestures.addEvent(
         const InputComplete([
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
+          Signal(MorseSignal.dash),
         ]),
       );
       await Future<void>.delayed(Duration.zero);
@@ -407,8 +406,8 @@ void main() {
         expect(
           t.vibration.callLog,
           contains(
-            'playMorsePattern:[MorseSymbol.dot, MorseSymbol.dash, '
-            'MorseSymbol.dash, MorseSymbol.dash, MorseSymbol.dash]',
+            'playMorsePattern:[MorseSignal.dot, MorseSignal.dash, '
+            'MorseSignal.dash, MorseSignal.dash, MorseSignal.dash]',
           ),
         );
 
@@ -481,7 +480,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // Interrupt to get to listening.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dot));
       await Future<void>.delayed(Duration.zero);
       expect(t.session.state.phase, SessionPhase.listening);
 
@@ -651,7 +650,7 @@ void main() {
         expect(t.session.state.phase, SessionPhase.playing);
 
         // Simulate first morse input to get some input in buffer.
-        t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+        t.gestures.addEvent(const MorseInput(MorseSignal.dot));
         await Future<void>.delayed(Duration.zero);
         expect(t.session.state.phase, SessionPhase.listening);
 
@@ -705,7 +704,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // Simulate input to get to listening phase.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dot));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dot));
       await Future<void>.delayed(Duration.zero);
       expect(t.session.state.phase, SessionPhase.listening);
 
@@ -730,7 +729,7 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 20));
 
       // Simulate input.
-      t.gestures.addEvent(const MorseInput(MorseSymbol.dash));
+      t.gestures.addEvent(const MorseInput(MorseSignal.dash));
       await Future<void>.delayed(Duration.zero);
       expect(t.session.state.phase, SessionPhase.listening);
 

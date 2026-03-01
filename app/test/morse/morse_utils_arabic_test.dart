@@ -1,39 +1,39 @@
-import 'package:feel_you/morse/morse_arabic.dart';
-import 'package:feel_you/morse/morse_language.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
-import 'package:feel_you/morse/morse_utils.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('encodeLetter (Arabic)', () {
     test('encodes Arabic letter س (Sin)', () {
-      expect(encodeLetter('س'), [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
+      expect(encodeLetter('س', MorseLanguage.arabic), [
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
       ]);
     });
 
     test('encodes Arabic letter ا (Alif)', () {
-      expect(encodeLetter('ا'), [MorseSymbol.dot, MorseSymbol.dash]);
+      expect(encodeLetter('ا', MorseLanguage.arabic), [
+        MorseSignal.dot,
+        MorseSignal.dash,
+      ]);
     });
 
     test('encodes Arabic letter ق (Qaf)', () {
-      expect(encodeLetter('ق'), [
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dot,
-        MorseSymbol.dash,
+      expect(encodeLetter('ق', MorseLanguage.arabic), [
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dot,
+        MorseSignal.dash,
       ]);
     });
   });
 
-  group('decodePatternForLanguage', () {
+  group('decodePattern (language-specific)', () {
     test('dot-dash decodes to A in English', () {
       expect(
-        decodePatternForLanguage([
-          MorseSymbol.dot,
-          MorseSymbol.dash,
+        decodePattern([
+          MorseSignal.dot,
+          MorseSignal.dash,
         ], MorseLanguage.english),
         'A',
       );
@@ -41,9 +41,9 @@ void main() {
 
     test('dot-dash decodes to ا in Arabic', () {
       expect(
-        decodePatternForLanguage([
-          MorseSymbol.dot,
-          MorseSymbol.dash,
+        decodePattern([
+          MorseSignal.dot,
+          MorseSignal.dash,
         ], MorseLanguage.arabic),
         'ا',
       );
@@ -51,10 +51,10 @@ void main() {
 
     test('three dots decodes to S in English', () {
       expect(
-        decodePatternForLanguage([
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
+        decodePattern([
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
         ], MorseLanguage.english),
         'S',
       );
@@ -62,29 +62,29 @@ void main() {
 
     test('three dots decodes to س in Arabic', () {
       expect(
-        decodePatternForLanguage([
-          MorseSymbol.dot,
-          MorseSymbol.dot,
-          MorseSymbol.dot,
+        decodePattern([
+          MorseSignal.dot,
+          MorseSignal.dot,
+          MorseSignal.dot,
         ], MorseLanguage.arabic),
         'س',
       );
     });
 
     test('returns null for empty pattern', () {
-      expect(decodePatternForLanguage([], MorseLanguage.english), isNull);
+      expect(decodePattern([], MorseLanguage.english), isNull);
     });
 
     test('digit patterns work in both languages', () {
       final fiveDots = [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
       ];
-      expect(decodePatternForLanguage(fiveDots, MorseLanguage.english), '5');
-      expect(decodePatternForLanguage(fiveDots, MorseLanguage.arabic), '5');
+      expect(decodePattern(fiveDots, MorseLanguage.english), '5');
+      expect(decodePattern(fiveDots, MorseLanguage.arabic), '5');
     });
   });
 
@@ -92,11 +92,11 @@ void main() {
     test('Arabic-only pattern (4 dashes = ش Shin) is valid', () {
       expect(
         isValidPattern([
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-          MorseSymbol.dash,
-        ]),
+          MorseSignal.dash,
+          MorseSignal.dash,
+          MorseSignal.dash,
+          MorseSignal.dash,
+        ], MorseLanguage.arabic),
         isTrue,
       );
     });
@@ -104,13 +104,10 @@ void main() {
 
   group('round-trip encode/decode for Arabic', () {
     test('encode then decode returns original for all Arabic letters', () {
-      for (final letter in morseArabicLetters) {
-        final pattern = encodeLetter(letter);
+      for (final letter in arabicAlphabet.characterOrder) {
+        final pattern = encodeLetter(letter, MorseLanguage.arabic);
         expect(pattern, isNotNull, reason: 'Failed to encode $letter');
-        final decoded = decodePatternForLanguage(
-          pattern!,
-          MorseLanguage.arabic,
-        );
+        final decoded = decodePattern(pattern!, MorseLanguage.arabic);
         expect(decoded, letter, reason: 'Round-trip failed for $letter');
       }
     });

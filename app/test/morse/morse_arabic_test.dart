@@ -1,15 +1,14 @@
-import 'package:feel_you/morse/morse_arabic.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('morseArabicAlphabet', () {
+  group('arabicAlphabet.characters', () {
     test('contains all 28 Arabic letters', () {
-      expect(morseArabicAlphabet.length, 28);
+      expect(arabicAlphabet.characters.length, 28);
     });
 
     test('every pattern is non-empty', () {
-      for (final entry in morseArabicAlphabet.entries) {
+      for (final entry in arabicAlphabet.characters.entries) {
         expect(
           entry.value,
           isNotEmpty,
@@ -19,58 +18,61 @@ void main() {
     });
 
     test('ا (Alif) is dot-dash', () {
-      expect(morseArabicAlphabet['ا'], [MorseSymbol.dot, MorseSymbol.dash]);
+      expect(arabicAlphabet.characters['ا'], [
+        MorseSignal.dot,
+        MorseSignal.dash,
+      ]);
     });
 
     test('ت (Ta) is single dash', () {
-      expect(morseArabicAlphabet['ت'], [MorseSymbol.dash]);
+      expect(arabicAlphabet.characters['ت'], [MorseSignal.dash]);
     });
 
     test('س (Sin) is three dots', () {
-      expect(morseArabicAlphabet['س'], [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
+      expect(arabicAlphabet.characters['س'], [
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
       ]);
     });
 
     test('ق (Qaf) is dash-dash-dot-dash', () {
-      expect(morseArabicAlphabet['ق'], [
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dot,
-        MorseSymbol.dash,
+      expect(arabicAlphabet.characters['ق'], [
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dot,
+        MorseSignal.dash,
       ]);
     });
 
     test('ش (Shin) is four dashes', () {
-      expect(morseArabicAlphabet['ش'], [
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
+      expect(arabicAlphabet.characters['ش'], [
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
       ]);
     });
   });
 
-  group('morseArabicLetters', () {
+  group('arabicAlphabet.characterOrder', () {
     test('contains 28 letters', () {
-      expect(morseArabicLetters.length, 28);
+      expect(arabicAlphabet.characterOrder.length, 28);
     });
 
     test('starts with ا (Alif) and ends with ي (Ya)', () {
-      expect(morseArabicLetters.first, 'ا');
-      expect(morseArabicLetters.last, 'ي');
+      expect(arabicAlphabet.characterOrder.first, 'ا');
+      expect(arabicAlphabet.characterOrder.last, 'ي');
     });
 
     test('index 0 is ا (Alif)', () {
-      expect(morseArabicLetters[0], 'ا');
+      expect(arabicAlphabet.characterOrder[0], 'ا');
     });
 
     test('every letter in list has a pattern', () {
-      for (final letter in morseArabicLetters) {
+      for (final letter in arabicAlphabet.characterOrder) {
         expect(
-          morseArabicAlphabet.containsKey(letter),
+          arabicAlphabet.characters.containsKey(letter),
           isTrue,
           reason: 'Missing pattern for $letter',
         );

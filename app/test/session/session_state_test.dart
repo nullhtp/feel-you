@@ -1,5 +1,4 @@
-import 'package:feel_you/morse/levels.dart';
-import 'package:feel_you/morse/morse_language.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_state.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -64,7 +63,10 @@ void main() {
     group('currentLevel', () {
       test('returns digits level for levelIndex 0', () {
         const state = SessionState(language: MorseLanguage.english);
-        expect(state.currentLevel, levelsForLanguage(MorseLanguage.english)[0]);
+        expect(
+          state.currentLevel,
+          morseRegistry.levelsForLanguage(MorseLanguage.english)[0],
+        );
         expect(state.currentLevel.name, 'digits');
       });
 
@@ -73,7 +75,10 @@ void main() {
           language: MorseLanguage.english,
           levelIndex: 1,
         );
-        expect(state.currentLevel, levelsForLanguage(MorseLanguage.english)[1]);
+        expect(
+          state.currentLevel,
+          morseRegistry.levelsForLanguage(MorseLanguage.english)[1],
+        );
         expect(state.currentLevel.name, 'letters');
       });
     });

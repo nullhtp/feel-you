@@ -1,5 +1,4 @@
-import 'package:feel_you/morse/morse_alphabet.dart';
-import 'package:feel_you/morse/morse_utils.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_providers.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -50,7 +49,7 @@ void main() {
     );
 
     // Should be playing D's pattern.
-    final dPattern = encodeLetter('D')!;
+    final dPattern = encodeLetter('D', MorseLanguage.english)!;
     expect(h.vibration.hasPattern(dPattern), isTrue);
   });
 
@@ -229,7 +228,7 @@ void main() {
     );
 
     // Should still be playing A's pattern.
-    final aPattern = encodeLetter('A')!;
+    final aPattern = encodeLetter('A', MorseLanguage.english)!;
     expect(h.vibration.hasPattern(aPattern), isTrue);
   });
 
@@ -240,7 +239,10 @@ void main() {
     // Switch to letters level and advance to Z (index 25).
     final session = h.container.read(sessionNotifierProvider.notifier);
     session.nextLevel();
-    for (var i = 0; i < morseLetters.length - 1; i++) {
+    final lettersLevel = morseRegistry.levelsForLanguage(
+      MorseLanguage.english,
+    )[1];
+    for (var i = 0; i < lettersLevel.characters.length - 1; i++) {
       session.nextPosition();
     }
     expect(h.currentLetter, 'Z');
@@ -262,7 +264,7 @@ void main() {
     );
 
     // Should still be playing Z's pattern.
-    final zPattern = encodeLetter('Z')!;
+    final zPattern = encodeLetter('Z', MorseLanguage.english)!;
     expect(h.vibration.hasPattern(zPattern), isTrue);
   });
 }

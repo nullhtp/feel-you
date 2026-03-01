@@ -23,7 +23,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
   /// Resets the phase to [SessionPhase.playing].
   /// No-op if already at the last position.
   void nextPosition() {
-    final filteredLevels = levelsForLanguage(state.language);
+    final filteredLevels = morseRegistry.levelsForLanguage(state.language);
     final maxIndex = filteredLevels[state.levelIndex].characters.length - 1;
     if (state.positionIndex >= maxIndex) return;
     state = state.copyWith(
@@ -56,7 +56,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
   /// Resets the phase to [SessionPhase.playing].
   /// No-op if already at the last level.
   void nextLevel() {
-    final filteredLevels = levelsForLanguage(state.language);
+    final filteredLevels = morseRegistry.levelsForLanguage(state.language);
     if (state.levelIndex >= filteredLevels.length - 1) return;
     state = state.copyWith(
       levelIndex: state.levelIndex + 1,

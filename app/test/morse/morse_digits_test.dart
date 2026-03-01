@@ -1,19 +1,17 @@
-import 'package:feel_you/morse/morse_alphabet.dart';
-import 'package:feel_you/morse/morse_digits.dart';
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  group('morseDigits', () {
+  group('digitAlphabet.characters', () {
     test('contains all 10 digits', () {
-      expect(morseDigits.length, 10);
+      expect(digitAlphabet.characters.length, 10);
     });
 
     test('has entries for every digit 0-9', () {
       for (var i = 0; i <= 9; i++) {
         final digit = '$i';
         expect(
-          morseDigits.containsKey(digit),
+          digitAlphabet.characters.containsKey(digit),
           isTrue,
           reason: 'Missing digit $digit',
         );
@@ -21,7 +19,7 @@ void main() {
     });
 
     test('every pattern is non-empty', () {
-      for (final entry in morseDigits.entries) {
+      for (final entry in digitAlphabet.characters.entries) {
         expect(
           entry.value,
           isNotEmpty,
@@ -31,7 +29,7 @@ void main() {
     });
 
     test('every digit pattern has exactly 5 symbols', () {
-      for (final entry in morseDigits.entries) {
+      for (final entry in digitAlphabet.characters.entries) {
         expect(
           entry.value.length,
           5,
@@ -41,57 +39,57 @@ void main() {
     });
 
     test('0 is five dashes', () {
-      expect(morseDigits['0'], [
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
+      expect(digitAlphabet.characters['0'], [
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
       ]);
     });
 
     test('1 is dot then four dashes', () {
-      expect(morseDigits['1'], [
-        MorseSymbol.dot,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
+      expect(digitAlphabet.characters['1'], [
+        MorseSignal.dot,
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
       ]);
     });
 
     test('5 is five dots', () {
-      expect(morseDigits['5'], [
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
-        MorseSymbol.dot,
+      expect(digitAlphabet.characters['5'], [
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dot,
       ]);
     });
 
     test('9 is four dashes then dot', () {
-      expect(morseDigits['9'], [
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dash,
-        MorseSymbol.dot,
+      expect(digitAlphabet.characters['9'], [
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dot,
       ]);
     });
 
     test('all patterns are unique', () {
-      final patterns = morseDigits.values.map(
+      final patterns = digitAlphabet.characters.values.map(
         (p) => p.map((s) => s.name).join(),
       );
       expect(patterns.toSet().length, 10);
     });
 
     test('no digit pattern matches any letter pattern', () {
-      final letterPatterns = morseAlphabet.values
+      final letterPatterns = englishAlphabet.characters.values
           .map((p) => p.map((s) => s.name).join())
           .toSet();
-      for (final entry in morseDigits.entries) {
+      for (final entry in digitAlphabet.characters.entries) {
         final digitPattern = entry.value.map((s) => s.name).join();
         expect(
           letterPatterns.contains(digitPattern),
@@ -102,19 +100,19 @@ void main() {
     });
   });
 
-  group('morseDigitsList', () {
+  group('digitAlphabet.characterOrder', () {
     test('contains 10 digits', () {
-      expect(morseDigitsList.length, 10);
+      expect(digitAlphabet.characterOrder.length, 10);
     });
 
     test('starts with 0 and ends with 9', () {
-      expect(morseDigitsList.first, '0');
-      expect(morseDigitsList.last, '9');
+      expect(digitAlphabet.characterOrder.first, '0');
+      expect(digitAlphabet.characterOrder.last, '9');
     });
 
     test('is in numerical order', () {
-      for (var i = 0; i < morseDigitsList.length; i++) {
-        expect(morseDigitsList[i], '$i');
+      for (var i = 0; i < digitAlphabet.characterOrder.length; i++) {
+        expect(digitAlphabet.characterOrder[i], '$i');
       }
     });
   });

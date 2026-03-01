@@ -1,5 +1,4 @@
-import 'package:feel_you/morse/levels.dart';
-import 'package:feel_you/morse/morse_language.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_state.dart';
@@ -403,7 +402,9 @@ void main() {
     // -----------------------------------------------------------------------
     group('position navigation within different levels', () {
       test('digits level has 10 characters (0-9)', () {
-        final englishLevels = levelsForLanguage(MorseLanguage.english);
+        final englishLevels = morseRegistry.levelsForLanguage(
+          MorseLanguage.english,
+        );
         expect(englishLevels[0].characters.length, 10);
         // Navigate through all 10 digits
         for (var i = 0; i < 9; i++) {
@@ -414,7 +415,9 @@ void main() {
       });
 
       test('letters level has 26 characters (A-Z)', () {
-        final englishLevels = levelsForLanguage(MorseLanguage.english);
+        final englishLevels = morseRegistry.levelsForLanguage(
+          MorseLanguage.english,
+        );
         expect(englishLevels[1].characters.length, 26);
         notifier.nextLevel(); // switch to letters
         // Navigate through all 26 letters

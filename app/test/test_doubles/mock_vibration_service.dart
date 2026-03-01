@@ -1,4 +1,4 @@
-import 'package:feel_you/morse/morse_symbol.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/vibration/vibration_service.dart';
 
 /// A mock [VibrationService] that records all method calls.
@@ -11,19 +11,32 @@ class MockVibrationService implements VibrationService {
   /// Returns all recorded call types as strings in order.
   List<String> get callLog => calls.map((c) => c.toString()).toList();
 
-  /// Returns the symbols from all [playMorsePattern] calls.
-  List<List<MorseSymbol>> get patterns => calls
+  /// Returns the signals from all [playMorsePattern] calls.
+  List<List<MorseSignal>> get patterns => calls
       .where((c) => c.type == VibrationCallType.playMorsePattern)
-      .map((c) => c.symbols!)
+      .map((c) => c.signals!)
       .toList();
 
   /// Clears all recorded calls.
   void reset() => calls.clear();
 
   @override
-  Future<void> playMorsePattern(List<MorseSymbol> symbols) async {
+  Future<void> playMorsePattern(List<MorseSignal> signals) async {
     calls.add(
-      VibrationCall(VibrationCallType.playMorsePattern, List.of(symbols)),
+      VibrationCall(
+        VibrationCallType.playMorsePattern,
+        signals: List.of(signals),
+      ),
+    );
+  }
+
+  @override
+  Future<void> playMorseTokenPattern(List<MorseToken> tokens) async {
+    calls.add(
+      VibrationCall(
+        VibrationCallType.playMorseTokenPattern,
+        tokens: List.of(tokens),
+      ),
     );
   }
 
@@ -51,6 +64,7 @@ class MockVibrationService implements VibrationService {
 /// The type of vibration call made to [MockVibrationService].
 enum VibrationCallType {
   playMorsePattern,
+  playMorseTokenPattern,
   playSuccess,
   playError,
   playTapFeedback,
@@ -59,18 +73,23 @@ enum VibrationCallType {
 
 /// A single recorded call to [MockVibrationService].
 class VibrationCall {
-  const VibrationCall(this.type, [this.symbols]);
+  const VibrationCall(this.type, {this.signals, this.tokens});
 
   final VibrationCallType type;
 
   /// Non-null only for [VibrationCallType.playMorsePattern].
-  final List<MorseSymbol>? symbols;
+  final List<MorseSignal>? signals;
+
+  /// Non-null only for [VibrationCallType.playMorseTokenPattern].
+  final List<MorseToken>? tokens;
 
   @override
   String toString() {
     switch (type) {
       case VibrationCallType.playMorsePattern:
-        return 'playMorsePattern:$symbols';
+        return 'playMorsePattern:$signals';
+      case VibrationCallType.playMorseTokenPattern:
+        return 'playMorseTokenPattern:$tokens';
       case VibrationCallType.playSuccess:
         return 'playSuccess';
       case VibrationCallType.playError:

@@ -41,10 +41,10 @@ final gestureClassifierProvider = Provider<GestureClassifier>((ref) {
 
 /// Provides the [GestureClassifier]'s input buffer as a [ValueNotifier].
 ///
-/// Watch this provider to reactively display the accumulated Morse symbols
+/// Watch this provider to reactively display the accumulated Morse tokens
 /// the user has tapped so far. The value is an unmodifiable list that
-/// updates on every buffer change (symbol added, charGap inserted, cleared).
-final inputBufferProvider = Provider<ValueNotifier<List<MorseSymbol>>>((ref) {
+/// updates on every buffer change (signal added, charGap inserted, cleared).
+final inputBufferProvider = Provider<ValueNotifier<List<MorseToken>>>((ref) {
   return ref.watch(gestureClassifierProvider).inputBufferNotifier;
 });
 

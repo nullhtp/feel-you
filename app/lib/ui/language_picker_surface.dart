@@ -5,18 +5,17 @@ import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Vibration identifier patterns for each language.
+/// Vibration identifier patterns for each language, looked up from the
+/// registry instead of being hardcoded.
 ///
 /// English: Morse "E" = [dot]
 /// Arabic: Morse "ع" (Ain) = [dot, dash, dot, dash]
-const Map<MorseLanguage, List<MorseSymbol>> _languageIdentifiers = {
-  MorseLanguage.english: [MorseSymbol.dot],
-  MorseLanguage.arabic: [
-    MorseSymbol.dot,
-    MorseSymbol.dash,
-    MorseSymbol.dot,
-    MorseSymbol.dash,
-  ],
+final Map<MorseLanguage, List<MorseSignal>> _languageIdentifiers = {
+  MorseLanguage.english:
+      encodeLetter('E', MorseLanguage.english) ?? [MorseSignal.dot],
+  MorseLanguage.arabic:
+      encodeLetter('ع', MorseLanguage.arabic) ??
+      [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot, MorseSignal.dash],
 };
 
 /// Display labels for each language.
