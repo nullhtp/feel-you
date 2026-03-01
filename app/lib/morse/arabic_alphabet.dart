@@ -82,16 +82,17 @@ final Map<String, List<MorseSignal>> _arabicWithAliases = {
   'ى': _arabicCharacters['ا']!, // Alif Maqsura
 };
 
-/// All 20 Arabic words in learning order.
+/// All 20 Arabic words in learning order:
+/// chosen for practical daily communication needs of deaf-blind users.
 const List<String> _arabicWordList = [
   // 2-letter
-  'في', 'من', 'لا', 'ما', 'هو',
+  'كل', 'لا', 'نم', 'هل', 'حر',
   // 3-letter
-  'هذا', 'على', 'أنا', 'كان', 'بعد',
+  'نعم', 'ألم', 'برد', 'شكر', 'قلب',
   // 4-letter
-  'الذي', 'التي', 'يمكن', 'كبير', 'منها',
+  'سعيد', 'شراب', 'وقوف', 'مريض', 'جالس',
   // 5-letter
-  'عليها', 'عندما', 'بينما', 'البيت', 'عليهم',
+  'مساعد', 'عطشان', 'جوعان', 'تعبان', 'سلامك',
 ];
 
 /// The Arabic Morse alphabet.

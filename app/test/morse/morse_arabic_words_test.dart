@@ -101,41 +101,53 @@ void main() {
   });
 
   group('Arabic word pattern correctness', () {
-    test('في pattern is ف(dot dot dash dot) + CharGap + ي(dot dot)', () {
-      expect(arabicAlphabet.wordPatterns!['في'], [
+    test('كل pattern is ك(dash dot dash) + CharGap + ل(dot dash dot dot)', () {
+      expect(arabicAlphabet.wordPatterns!['كل'], [
+        const Signal(MorseSignal.dash),
         const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dash), // ك
+        const CharGap(),
         const Signal(MorseSignal.dot),
         const Signal(MorseSignal.dash),
         const Signal(MorseSignal.dot),
-        const CharGap(),
-        const Signal(MorseSignal.dot),
-        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot), // ل
       ]);
     });
 
-    test('من pattern is م(dash dash) + CharGap + ن(dash dot)', () {
-      expect(arabicAlphabet.wordPatterns!['من'], [
-        const Signal(MorseSignal.dash),
-        const Signal(MorseSignal.dash),
-        const CharGap(),
-        const Signal(MorseSignal.dash),
-        const Signal(MorseSignal.dot),
-      ]);
-    });
+    test(
+      'نعم pattern is ن(dash dot) + CharGap + ع(dot dash dot dash) + CharGap + م(dash dash)',
+      () {
+        expect(arabicAlphabet.wordPatterns!['نعم'], [
+          const Signal(MorseSignal.dash),
+          const Signal(MorseSignal.dot), // ن
+          const CharGap(),
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dash),
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dash), // ع
+          const CharGap(),
+          const Signal(MorseSignal.dash),
+          const Signal(MorseSignal.dash), // م
+        ]);
+      },
+    );
 
-    test('هذا pattern is ه + ذ + ا', () {
-      expect(arabicAlphabet.wordPatterns!['هذا'], [
-        const Signal(MorseSignal.dot),
-        const Signal(MorseSignal.dot),
-        const Signal(MorseSignal.dash),
-        const Signal(MorseSignal.dot),
-        const Signal(MorseSignal.dot), // ه: ··−··
-        const CharGap(),
-        const Signal(MorseSignal.dash), const Signal(MorseSignal.dash),
-        const Signal(MorseSignal.dot), const Signal(MorseSignal.dot), // ذ: −−··
-        const CharGap(),
-        const Signal(MorseSignal.dot), const Signal(MorseSignal.dash), // ا: ·−
-      ]);
-    });
+    test(
+      'ألم pattern is أ(dot dash) + CharGap + ل(dot dash dot dot) + CharGap + م(dash dash)',
+      () {
+        expect(arabicAlphabet.wordPatterns!['ألم'], [
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dash), // أ (alias for ا)
+          const CharGap(),
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dash),
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dot), // ل
+          const CharGap(),
+          const Signal(MorseSignal.dash),
+          const Signal(MorseSignal.dash), // م
+        ]);
+      },
+    );
   });
 }

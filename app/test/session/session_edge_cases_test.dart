@@ -73,7 +73,7 @@ void main() {
       notifier.nextLevel(); // 2 -> 2 (no-op)
       notifier.nextLevel(); // 2 -> 2 (no-op)
       expect(notifier.state.levelIndex, 2);
-      expect(notifier.state.currentCharacter, 'IT');
+      expect(notifier.state.currentCharacter, 'HI');
     });
 
     test('multiple consecutive previousLevel calls clamp at first level', () {

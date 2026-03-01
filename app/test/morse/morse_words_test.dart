@@ -55,26 +55,26 @@ void main() {
 
     test('exact word list content', () {
       expect(englishAlphabet.wordList, [
-        'IT',
-        'IS',
-        'TO',
-        'IN',
-        'AT',
-        'THE',
-        'AND',
-        'FOR',
-        'ARE',
-        'BUT',
-        'THAT',
-        'WITH',
-        'HAVE',
-        'THIS',
-        'FROM',
-        'THEIR',
-        'ABOUT',
-        'WHICH',
-        'WOULD',
-        'THERE',
+        'HI',
+        'OK',
+        'NO',
+        'GO',
+        'UP',
+        'YES',
+        'EAT',
+        'HOT',
+        'SIT',
+        'BAD',
+        'HELP',
+        'COLD',
+        'PAIN',
+        'GOOD',
+        'STOP',
+        'WATER',
+        'HAPPY',
+        'TIRED',
+        'SORRY',
+        'THANK',
       ]);
     });
   });
@@ -132,44 +132,52 @@ void main() {
   });
 
   group('word pattern correctness', () {
-    test('IT pattern is I(dot dot) + CharGap + T(dash)', () {
-      expect(englishAlphabet.wordPatterns!['IT'], [
-        const Signal(MorseSignal.dot),
-        const Signal(MorseSignal.dot),
-        const CharGap(),
-        const Signal(MorseSignal.dash),
-      ]);
-    });
-
-    test('THE pattern is T(dash) + CharGap + H(dot x4) + CharGap + E(dot)', () {
-      expect(englishAlphabet.wordPatterns!['THE'], [
-        const Signal(MorseSignal.dash),
-        const CharGap(),
-        const Signal(MorseSignal.dot),
-        const Signal(MorseSignal.dot),
-        const Signal(MorseSignal.dot),
-        const Signal(MorseSignal.dot),
-        const CharGap(),
-        const Signal(MorseSignal.dot),
-      ]);
-    });
-
-    test('THERE pattern is T + H + E + R + E', () {
-      expect(englishAlphabet.wordPatterns!['THERE'], [
-        const Signal(MorseSignal.dash), // T
-        const CharGap(),
+    test('HI pattern is H(dot x4) + CharGap + I(dot dot)', () {
+      expect(englishAlphabet.wordPatterns!['HI'], [
         const Signal(MorseSignal.dot),
         const Signal(MorseSignal.dot),
         const Signal(MorseSignal.dot),
         const Signal(MorseSignal.dot), // H
+        const CharGap(),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dot), // I
+      ]);
+    });
+
+    test(
+      'YES pattern is Y(dash dot dash dash) + CharGap + E(dot) + CharGap + S(dot x3)',
+      () {
+        expect(englishAlphabet.wordPatterns!['YES'], [
+          const Signal(MorseSignal.dash),
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dash),
+          const Signal(MorseSignal.dash), // Y
+          const CharGap(),
+          const Signal(MorseSignal.dot), // E
+          const CharGap(),
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dot), // S
+        ]);
+      },
+    );
+
+    test('WATER pattern is W + A + T + E + R', () {
+      expect(englishAlphabet.wordPatterns!['WATER'], [
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dash),
+        const Signal(MorseSignal.dash), // W
+        const CharGap(),
+        const Signal(MorseSignal.dot),
+        const Signal(MorseSignal.dash), // A
+        const CharGap(),
+        const Signal(MorseSignal.dash), // T
         const CharGap(),
         const Signal(MorseSignal.dot), // E
         const CharGap(),
         const Signal(MorseSignal.dot),
         const Signal(MorseSignal.dash),
         const Signal(MorseSignal.dot), // R
-        const CharGap(),
-        const Signal(MorseSignal.dot), // E
       ]);
     });
   });

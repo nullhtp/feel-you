@@ -68,16 +68,16 @@ const List<String> _englishOrder = [
 ];
 
 /// All 20 words in learning order: sorted by length (shortest first),
-/// then by English usage frequency (most common first) within each group.
+/// chosen for practical daily communication needs of deaf-blind users.
 const List<String> _englishWordList = [
   // 2-letter
-  'IT', 'IS', 'TO', 'IN', 'AT',
+  'HI', 'OK', 'NO', 'GO', 'UP',
   // 3-letter
-  'THE', 'AND', 'FOR', 'ARE', 'BUT',
+  'YES', 'EAT', 'HOT', 'SIT', 'BAD',
   // 4-letter
-  'THAT', 'WITH', 'HAVE', 'THIS', 'FROM',
+  'HELP', 'COLD', 'PAIN', 'GOOD', 'STOP',
   // 5-letter
-  'THEIR', 'ABOUT', 'WHICH', 'WOULD', 'THERE',
+  'WATER', 'HAPPY', 'TIRED', 'SORRY', 'THANK',
 ];
 
 /// The English Morse alphabet.

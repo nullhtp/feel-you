@@ -154,7 +154,7 @@ void main() {
         final classifier = FakeGestureClassifier();
         final vibration = MockVibrationService();
 
-        // Position 0 in words = "IT"
+        // Position 0 in words = "HI"
         await tester.pumpWidget(
           buildTestWidget(
             classifier: classifier,
@@ -170,7 +170,7 @@ void main() {
         // Don't pump to avoid orchestrator resetting phase.
 
         // Current word
-        expect(find.text('IT'), findsOneWidget);
+        expect(find.text('HI'), findsOneWidget);
 
         // Level
         expect(find.text('WORDS'), findsOneWidget);

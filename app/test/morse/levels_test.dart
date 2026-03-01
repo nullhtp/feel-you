@@ -149,9 +149,9 @@ void main() {
       expect(wordsLevel.characters.length, 20);
     });
 
-    test('characters start with IT and end with THERE', () {
-      expect(wordsLevel.characters.first, 'IT');
-      expect(wordsLevel.characters.last, 'THERE');
+    test('characters start with HI and end with THANK', () {
+      expect(wordsLevel.characters.first, 'HI');
+      expect(wordsLevel.characters.last, 'THANK');
     });
 
     test('word patterns exist for all characters via alphabet', () {
