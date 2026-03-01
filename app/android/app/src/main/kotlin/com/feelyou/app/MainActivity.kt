@@ -1,4 +1,4 @@
-package com.feelyou.feel_you
+package com.feelyou.app
 
 import io.flutter.embedding.android.FlutterActivity
 

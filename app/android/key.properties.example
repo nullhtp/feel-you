@@ -1,0 +1,15 @@
+# Android release signing configuration
+# Copy this file to key.properties and fill in your values.
+# NEVER commit key.properties to version control.
+#
+# To generate a new keystore:
+#   keytool -genkey -v -keystore ~/feel-you-release.jks -keyalg RSA \
+#     -keysize 2048 -validity 10000 -alias feel-you
+#
+# IMPORTANT: Back up your keystore securely. If you lose it, you cannot
+# push updates to the Play Store for this app.
+
+storePassword=<your-keystore-password>
+keyPassword=<your-key-password>
+keyAlias=feel-you
+storeFile=<path-to-your-keystore, e.g. /Users/you/feel-you-release.jks>

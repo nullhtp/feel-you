@@ -1,0 +1,15 @@
+flutter_launcher_icons:
+  # Place your 1024x1024 PNG icon at the path below before running:
+  #   dart run flutter_launcher_icons
+  image_path: "assets/icon/icon.png"
+
+  android: true
+  ios: true
+
+  # Remove the default alpha channel for iOS (App Store requirement)
+  remove_alpha_ios: true
+
+  # Android adaptive icon settings (optional, uncomment if you have separate
+  # foreground/background layers):
+  # adaptive_icon_foreground: "assets/icon/icon-foreground.png"
+  # adaptive_icon_background: "#000000"
