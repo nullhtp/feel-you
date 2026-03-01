@@ -1,4 +1,5 @@
 import 'package:feel_you/morse/levels.dart';
+import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,7 +8,7 @@ void main() {
   late SessionNotifier notifier;
 
   setUp(() {
-    notifier = SessionNotifier();
+    notifier = SessionNotifier(MorseLanguage.english);
   });
 
   group('vertical swipe at level boundary', () {

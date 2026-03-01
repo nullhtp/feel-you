@@ -1,4 +1,5 @@
 import 'package:feel_you/morse/levels.dart';
+import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_state.dart';
@@ -8,7 +9,7 @@ void main() {
   late SessionNotifier notifier;
 
   setUp(() {
-    notifier = SessionNotifier();
+    notifier = SessionNotifier(MorseLanguage.english);
   });
 
   group('SessionNotifier', () {
@@ -17,7 +18,10 @@ void main() {
     // -----------------------------------------------------------------------
     group('initial state', () {
       test('starts at digit 0 with playing phase', () {
-        expect(notifier.state, const SessionState());
+        expect(
+          notifier.state,
+          const SessionState(language: MorseLanguage.english),
+        );
         expect(notifier.state.currentCharacter, '0');
         expect(notifier.state.levelIndex, 0);
         expect(notifier.state.positionIndex, 0);
@@ -264,7 +268,10 @@ void main() {
 
       test('no-op effect when already at home', () {
         notifier.home();
-        expect(notifier.state, const SessionState());
+        expect(
+          notifier.state,
+          const SessionState(language: MorseLanguage.english),
+        );
       });
     });
 
@@ -396,7 +403,8 @@ void main() {
     // -----------------------------------------------------------------------
     group('position navigation within different levels', () {
       test('digits level has 10 characters (0-9)', () {
-        expect(levels[0].characters.length, 10);
+        final englishLevels = levelsForLanguage(MorseLanguage.english);
+        expect(englishLevels[0].characters.length, 10);
         // Navigate through all 10 digits
         for (var i = 0; i < 9; i++) {
           notifier.nextPosition();
@@ -406,7 +414,8 @@ void main() {
       });
 
       test('letters level has 26 characters (A-Z)', () {
-        expect(levels[1].characters.length, 26);
+        final englishLevels = levelsForLanguage(MorseLanguage.english);
+        expect(englishLevels[1].characters.length, 26);
         notifier.nextLevel(); // switch to letters
         // Navigate through all 26 letters
         for (var i = 0; i < 25; i++) {
@@ -438,6 +447,35 @@ void main() {
         notifier.previousLevel();
         expect(notifier.state.positionIndex, 0);
         expect(notifier.state.currentCharacter, '0');
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // selectLanguage
+    // -----------------------------------------------------------------------
+    group('selectLanguage', () {
+      test('selectLanguage switches to Arabic', () {
+        notifier.selectLanguage(MorseLanguage.arabic);
+        expect(notifier.state.language, MorseLanguage.arabic);
+        expect(notifier.state.levelIndex, 0);
+        expect(notifier.state.positionIndex, 0);
+        expect(notifier.state.phase, SessionPhase.playing);
+        expect(notifier.state.currentCharacter, '0');
+      });
+
+      test('Arabic level 1 is arabic-letters', () {
+        notifier.selectLanguage(MorseLanguage.arabic);
+        notifier.nextLevel();
+        expect(notifier.state.currentLevel.name, 'arabic-letters');
+        expect(notifier.state.currentCharacter, 'ا');
+      });
+
+      test('home preserves language', () {
+        notifier.selectLanguage(MorseLanguage.arabic);
+        notifier.nextLevel();
+        notifier.home();
+        expect(notifier.state.language, MorseLanguage.arabic);
+        expect(notifier.state.levelIndex, 0);
       });
     });
   });

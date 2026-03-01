@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/morse/morse_symbol.dart';
 
 /// A learnable character set with ordered characters and their Morse patterns.
@@ -7,9 +8,10 @@ class Level extends Equatable {
     required this.name,
     required this.characters,
     required this.patterns,
+    this.language,
   });
 
-  /// Identifier for the level (e.g., "digits", "letters").
+  /// Identifier for the level (e.g., "digits", "letters", "arabic-letters").
   final String name;
 
   /// Ordered list of characters in the learning sequence.
@@ -17,6 +19,9 @@ class Level extends Equatable {
 
   /// Map of each character to its Morse code pattern.
   final Map<String, List<MorseSymbol>> patterns;
+
+  /// The language this level belongs to, or `null` if universal (e.g. digits).
+  final MorseLanguage? language;
 
   @override
   List<Object?> get props => [name];

@@ -1,6 +1,7 @@
 import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/morse/morse.dart';
+import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
@@ -44,7 +45,7 @@ Widget buildTestWidget({
 
 /// A [SessionNotifier] that starts with a custom initial state.
 class _PresetSessionNotifier extends SessionNotifier {
-  _PresetSessionNotifier(SessionState initial) {
+  _PresetSessionNotifier(SessionState initial) : super(initial.language) {
     state = initial;
   }
 }
@@ -79,6 +80,7 @@ void main() {
               classifier: classifier,
               vibration: vibration,
               initialState: const SessionState(
+                language: MorseLanguage.english,
                 levelIndex: 0,
                 positionIndex: 4,
                 phase: SessionPhase.playing,
@@ -121,6 +123,7 @@ void main() {
             classifier: classifier,
             vibration: vibration,
             initialState: const SessionState(
+              language: MorseLanguage.english,
               levelIndex: 1,
               positionIndex: 2,
               phase: SessionPhase.listening,
@@ -158,6 +161,7 @@ void main() {
             classifier: classifier,
             vibration: vibration,
             initialState: const SessionState(
+              language: MorseLanguage.english,
               levelIndex: 2,
               positionIndex: 0,
               phase: SessionPhase.feedback,
@@ -195,7 +199,10 @@ void main() {
           buildTestWidget(
             classifier: classifier,
             vibration: vibration,
-            initialState: const SessionState(levelIndex: 0),
+            initialState: const SessionState(
+              language: MorseLanguage.english,
+              levelIndex: 0,
+            ),
           ),
         );
         await tester.pump();
@@ -215,7 +222,10 @@ void main() {
           buildTestWidget(
             classifier: classifier,
             vibration: vibration,
-            initialState: const SessionState(levelIndex: 1),
+            initialState: const SessionState(
+              language: MorseLanguage.english,
+              levelIndex: 1,
+            ),
           ),
         );
         await tester.pump();
@@ -235,7 +245,10 @@ void main() {
           buildTestWidget(
             classifier: classifier,
             vibration: vibration,
-            initialState: const SessionState(levelIndex: 2),
+            initialState: const SessionState(
+              language: MorseLanguage.english,
+              levelIndex: 2,
+            ),
           ),
         );
         await tester.pump();

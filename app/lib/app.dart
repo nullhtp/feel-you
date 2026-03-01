@@ -1,4 +1,4 @@
-import 'package:feel_you/ui/touch_surface.dart';
+import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:flutter/material.dart';
 
 class FeelYouApp extends StatelessWidget {
@@ -9,7 +9,7 @@ class FeelYouApp extends StatelessWidget {
     return MaterialApp(
       title: 'Feel You',
       theme: ThemeData.dark().copyWith(scaffoldBackgroundColor: Colors.black),
-      home: const TouchSurface(),
+      home: const LanguagePickerSurface(),
     );
   }
 }

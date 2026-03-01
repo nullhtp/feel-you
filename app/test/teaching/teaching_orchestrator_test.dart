@@ -1,4 +1,5 @@
 import 'package:feel_you/gestures/gesture_event.dart';
+import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/morse/morse_symbol.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
@@ -25,7 +26,7 @@ import '../test_doubles/mock_vibration_service.dart';
 createOrchestrator({Duration repeatPause = const Duration(milliseconds: 10)}) {
   final gestures = FakeGestureClassifier();
   final vibration = MockVibrationService();
-  final session = SessionNotifier();
+  final session = SessionNotifier(MorseLanguage.english);
   final orchestrator = TeachingOrchestrator(
     gestureClassifier: gestures,
     vibrationService: vibration,
@@ -561,7 +562,7 @@ void main() {
     test('events from shake detector stream are processed', () async {
       final gestures = FakeGestureClassifier();
       final vibration = MockVibrationService();
-      final session = SessionNotifier();
+      final session = SessionNotifier(MorseLanguage.english);
       final shake = FakeShakeDetector();
 
       // Move to a non-home position so Home has a visible effect.
@@ -602,7 +603,7 @@ void main() {
     test('both subscriptions cleaned up on stop and dispose', () async {
       final gestures = FakeGestureClassifier();
       final vibration = MockVibrationService();
-      final session = SessionNotifier();
+      final session = SessionNotifier(MorseLanguage.english);
       final shake = FakeShakeDetector();
 
       final orchestrator = TeachingOrchestrator(
