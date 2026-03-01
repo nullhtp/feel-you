@@ -1,7 +1,7 @@
-## ADDED Requirements
+## MODIFIED Requirements
 
 ### Requirement: Complete Arabic Morse alphabet
-The system SHALL provide a compile-time constant mapping `morseArabicAlphabet` of type `Map<String, List<MorseSymbol>>` from every Arabic letter to its standard Arabic Morse code pattern. The mapping SHALL cover all 28 Arabic letters with no omissions.
+The system SHALL define Arabic Morse code patterns within an Arabic `MorseAlphabet` instance (where `language` is `MorseLanguage.arabic`). The `characters` map SHALL be of type `Map<String, List<MorseSignal>>` containing all 28 Arabic letters mapped to their standard Arabic Morse code patterns.
 
 The standard Arabic Morse code patterns SHALL be:
 - ا (Alif): dot-dash
@@ -34,77 +34,77 @@ The standard Arabic Morse code patterns SHALL be:
 - ي (Ya): dot-dot-dash-dash
 
 #### Scenario: All 28 Arabic letters are mapped
-- **WHEN** a developer queries the `morseArabicAlphabet` map
+- **WHEN** a developer queries the Arabic alphabet's `characters` map
 - **THEN** it SHALL contain exactly 28 entries, one for each Arabic letter
 
 #### Scenario: Patterns match standard Arabic Morse code
 - **WHEN** a developer looks up the pattern for 'ا' (Alif)
-- **THEN** the result SHALL be `[dot, dash]`
+- **THEN** the result SHALL be `[MorseSignal.dot, MorseSignal.dash]`
 
 #### Scenario: Complex letter pattern is correct
 - **WHEN** a developer looks up the pattern for 'ق' (Qaf)
-- **THEN** the result SHALL be `[dash, dash, dot, dash]`
+- **THEN** the result SHALL be `[MorseSignal.dash, MorseSignal.dash, MorseSignal.dot, MorseSignal.dash]`
 
 #### Scenario: Map is compile-time constant
-- **WHEN** the `morseArabicAlphabet` map is defined
+- **WHEN** the Arabic alphabet's characters map is defined
 - **THEN** it SHALL be declared as `const` and require no runtime initialization
 
 ### Requirement: Ordered Arabic letter list
-The system SHALL provide a compile-time constant list `morseArabicLetters` of type `List<String>` containing all 28 Arabic letters in standard Arabic alphabetical order. This list defines the learning sequence for the Arabic letters level.
+The Arabic `MorseAlphabet` instance's `characterOrder` field SHALL contain all 28 Arabic letters in standard Arabic alphabetical order. This list defines the learning sequence for the Arabic letters level.
 
 #### Scenario: Arabic letters are in standard alphabetical order
-- **WHEN** a developer accesses `morseArabicLetters`
+- **WHEN** a developer accesses the Arabic alphabet's `characterOrder`
 - **THEN** the list SHALL start with 'ا' (Alif) and end with 'ي' (Ya) with all 28 letters in standard Arabic alphabetical order
 
 #### Scenario: Arabic letter list length
-- **WHEN** `morseArabicLetters.length` is checked
+- **WHEN** `characterOrder.length` is checked
 - **THEN** it SHALL be 28
 
 #### Scenario: Letter at index matches position
 - **WHEN** accessing index 0
 - **THEN** the letter SHALL be 'ا' (Alif)
 
-### Requirement: Arabic word Morse patterns data file
-The system SHALL define a `morseArabicWords` constant map of type `Map<String, List<MorseSymbol>>` mapping Arabic word strings to their flat Morse patterns. Each word's pattern SHALL concatenate the Morse patterns of its component letters, separated by `MorseSymbol.charGap` values between each letter.
+### Requirement: Arabic word Morse patterns data
+The Arabic `MorseAlphabet` instance SHALL define `wordPatterns` of type `Map<String, List<MorseToken>>` mapping Arabic word strings to their token patterns. Each word's pattern SHALL concatenate `Signal` tokens for each letter's Morse signals, separated by `CharGap()` tokens between each letter.
 
 #### Scenario: Two-letter Arabic word pattern
-- **WHEN** `morseArabicWords["في"]` is accessed
-- **THEN** it SHALL return the concatenated Morse patterns for ف and ي separated by charGap: `[dot, dot, dash, dot, charGap, dot, dot, dash, dash]`
+- **WHEN** the Arabic alphabet's `wordPatterns["في"]` is accessed
+- **THEN** it SHALL return the concatenated token pattern for ف and ي separated by CharGap
 
 #### Scenario: Three-letter Arabic word pattern
-- **WHEN** `morseArabicWords["من"]` is accessed
-- **THEN** it SHALL return the concatenated Morse patterns for م and ن separated by charGap: `[dash, dash, charGap, dash, dot]`
+- **WHEN** the Arabic alphabet's `wordPatterns["من"]` is accessed
+- **THEN** it SHALL return the concatenated token pattern for م and ن separated by CharGap
 
-#### Scenario: All patterns use charGap between letters
-- **WHEN** any word pattern in `morseArabicWords` is inspected
-- **THEN** `charGap` symbols SHALL appear between each letter's Morse symbols and SHALL NOT appear at the start or end of the pattern
+#### Scenario: All patterns use CharGap between letters
+- **WHEN** any word pattern in the Arabic alphabet's `wordPatterns` is inspected
+- **THEN** `CharGap` tokens SHALL appear between each letter's signal tokens and SHALL NOT appear at the start or end of the pattern
 
 ### Requirement: Arabic word list ordering
-The system SHALL define a `morseArabicWordsList` constant of type `List<String>` containing exactly 20 common Arabic words. Words SHALL be sorted primarily by length (shortest first) and secondarily by usage frequency (most common first within each length group).
+The Arabic `MorseAlphabet` instance's `wordList` SHALL contain exactly 20 common Arabic words sorted primarily by length (shortest first) and secondarily by usage frequency.
 
 #### Scenario: Arabic word list contains exactly 20 words
-- **WHEN** `morseArabicWordsList.length` is checked
+- **WHEN** `wordList!.length` is checked
 - **THEN** it SHALL be 20
 
 #### Scenario: Arabic word list starts with shortest words
-- **WHEN** the first entries of `morseArabicWordsList` are inspected
+- **WHEN** the first entries of `wordList` are inspected
 - **THEN** they SHALL be the shortest words, ordered by frequency
 
 #### Scenario: Every Arabic word has a pattern entry
-- **WHEN** iterating through `morseArabicWordsList`
-- **THEN** `morseArabicWords[word]` SHALL be non-null for every word
+- **WHEN** iterating through `wordList`
+- **THEN** `wordPatterns![word]` SHALL be non-null for every word
 
 ### Requirement: Arabic Morse utilities support
-The `encodeLetter` function or a language-aware variant SHALL return the correct Morse pattern for Arabic letter characters. A language-aware decode function SHALL return the correct Arabic character for Arabic Morse patterns.
+The `encodeLetter` function SHALL return the correct Morse signal pattern for Arabic letter characters when called with `MorseLanguage.arabic`. The `decodePattern` function SHALL return the correct Arabic character for Arabic Morse patterns when called with `MorseLanguage.arabic`.
 
 #### Scenario: Encode an Arabic letter
-- **WHEN** encoding the Arabic letter 'س' (Sin)
-- **THEN** the result SHALL be `[dot, dot, dot]`
+- **WHEN** `encodeLetter('س', MorseLanguage.arabic)` is called
+- **THEN** the result SHALL be `[MorseSignal.dot, MorseSignal.dot, MorseSignal.dot]`
 
 #### Scenario: Decode an Arabic Morse pattern with language context
-- **WHEN** decoding `[dot, dash]` in Arabic language context
+- **WHEN** `decodePattern([MorseSignal.dot, MorseSignal.dash], MorseLanguage.arabic)` is called
 - **THEN** the result SHALL be 'ا' (Alif)
 
 #### Scenario: Decode the same pattern in English language context
-- **WHEN** decoding `[dot, dash]` in English language context
+- **WHEN** `decodePattern([MorseSignal.dot, MorseSignal.dash], MorseLanguage.english)` is called
 - **THEN** the result SHALL be 'A'

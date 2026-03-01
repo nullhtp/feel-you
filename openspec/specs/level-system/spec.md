@@ -4,8 +4,8 @@
 The system SHALL define a `Level` class containing:
 - `name`: A string identifier for the level (e.g., "digits", "letters", "arabic-letters").
 - `characters`: An ordered `List<String>` of characters in the learning sequence.
-- `patterns`: A `Map<String, List<MorseSymbol>>` mapping each character to its Morse pattern.
-- `language`: An optional `MorseLanguage?` field. When `null`, the level is universal (included for all languages). When set, it belongs to that specific language.
+- `patterns`: A `Map<String, List<MorseSignal>>` mapping each character to its Morse signal pattern (for single-character levels) OR the level MAY reference word-level token patterns from the alphabet.
+- `language`: An optional `MorseLanguage?` field. When `null`, the level is universal. When set, it belongs to that specific language.
 
 #### Scenario: Level contains all required fields including language
 - **WHEN** a `Level` is created with name "arabic-letters", characters for Arabic alphabet, patterns for each letter, and language `MorseLanguage.arabic`
@@ -25,37 +25,56 @@ The system SHALL define a `Level` class containing:
 
 #### Scenario: Pattern lookup by character
 - **WHEN** `level.patterns["3"]` is accessed on the digits level
-- **THEN** it SHALL return the Morse pattern for digit 3: `[dot, dot, dot, dash, dash]`
+- **THEN** it SHALL return the Morse signal pattern for digit 3: `[MorseSignal.dot, MorseSignal.dot, MorseSignal.dot, MorseSignal.dash, MorseSignal.dash]`
 
-### Requirement: Ordered levels registry
-The system SHALL define a top-level `levels` list containing all available levels. The list SHALL contain: digits (universal), English letters, English words, Arabic letters, Arabic words.
+### Requirement: Level equality uses all fields
+The `Level` class SHALL use all fields (`name`, `characters`, `patterns`, `language`) for equality comparison, not just `name`.
 
-#### Scenario: Levels list contains all five levels
-- **WHEN** the `levels` list is inspected
-- **THEN** it SHALL contain 5 levels total
+#### Scenario: Levels with same name but different content are not equal
+- **WHEN** two `Level` instances have the same `name` but different `characters`
+- **THEN** they SHALL NOT be equal
 
-#### Scenario: Digits level is first
-- **WHEN** `levels[0]` is inspected
-- **THEN** its `name` SHALL be "digits" and its `language` SHALL be `null`
+#### Scenario: Identical levels are equal
+- **WHEN** two `Level` instances have the same `name`, `characters`, `patterns`, and `language`
+- **THEN** they SHALL be equal
 
-### Requirement: Language-filtered level list
-The system SHALL provide a function `levelsForLanguage(MorseLanguage language)` that returns an ordered list of levels for the given language. The returned list SHALL include all universal levels (where `language` is `null`) followed by language-specific levels.
+### Requirement: Levels defined within MorseAlphabet
+Each `MorseAlphabet` instance SHALL define its own levels as part of its data. The digits alphabet SHALL define a "digits" level. The English alphabet SHALL define "letters" and "words" levels. The Arabic alphabet SHALL define "arabic-letters" and "arabic-words" levels.
+
+#### Scenario: Digits alphabet defines one level
+- **WHEN** the digits `MorseAlphabet` instance's `levels` is inspected
+- **THEN** it SHALL contain exactly one level named "digits"
+
+#### Scenario: English alphabet defines two levels
+- **WHEN** the English `MorseAlphabet` instance's `levels` is inspected
+- **THEN** it SHALL contain two levels: "letters" and "words"
+
+#### Scenario: Arabic alphabet defines two levels
+- **WHEN** the Arabic `MorseAlphabet` instance's `levels` is inspected
+- **THEN** it SHALL contain two levels: "arabic-letters" and "arabic-words"
+
+### Requirement: Language-filtered level list from registry
+The `MorseAlphabetRegistry` SHALL provide a `levelsForLanguage(MorseLanguage language)` method that returns an ordered, unmodifiable list of levels. The list SHALL include all universal levels (from alphabets where `language` is `null`) followed by language-specific levels, preserving definition order.
 
 #### Scenario: English levels include digits, English letters, English words
-- **WHEN** `levelsForLanguage(MorseLanguage.english)` is called
+- **WHEN** `registry.levelsForLanguage(MorseLanguage.english)` is called
 - **THEN** it SHALL return a list containing the digits level, English letters level, and English words level, in that order
 
 #### Scenario: Arabic levels include digits, Arabic letters, Arabic words
-- **WHEN** `levelsForLanguage(MorseLanguage.arabic)` is called
+- **WHEN** `registry.levelsForLanguage(MorseLanguage.arabic)` is called
 - **THEN** it SHALL return a list containing the digits level, Arabic letters level, and Arabic words level, in that order
 
 #### Scenario: Filtered list length for English
-- **WHEN** `levelsForLanguage(MorseLanguage.english).length` is checked
+- **WHEN** `registry.levelsForLanguage(MorseLanguage.english).length` is checked
 - **THEN** it SHALL be 3
 
 #### Scenario: Filtered list length for Arabic
-- **WHEN** `levelsForLanguage(MorseLanguage.arabic).length` is checked
+- **WHEN** `registry.levelsForLanguage(MorseLanguage.arabic).length` is checked
 - **THEN** it SHALL be 3
+
+#### Scenario: Levels list is unmodifiable
+- **WHEN** a consumer attempts to modify the list returned by `levelsForLanguage`
+- **THEN** it SHALL throw an `UnsupportedError`
 
 ### Requirement: Words level has 20 characters
 The English words level SHALL contain 20 entries in its `characters` list and 20 corresponding pattern entries. The Arabic words level SHALL also contain 20 entries.
@@ -84,8 +103,8 @@ The system SHALL allow querying the number of characters in a level via its `cha
 - **THEN** it SHALL be 28
 
 ### Requirement: Level provides pattern for current position
-Given a position index, the system SHALL resolve the character and its Morse pattern from the level data.
+Given a position index, the system SHALL resolve the character and its Morse signal pattern from the level data.
 
 #### Scenario: Resolve character at position in Arabic letters level
 - **WHEN** position 0 is looked up in the Arabic letters level
-- **THEN** the character SHALL be "ا" (Alif) and the pattern SHALL be `[dot, dash]`
+- **THEN** the character SHALL be "ا" (Alif) and the pattern SHALL be `[MorseSignal.dot, MorseSignal.dash]`
