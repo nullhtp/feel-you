@@ -9,7 +9,11 @@ Each language option SHALL have a unique vibration identifier pattern that plays
 
 #### Scenario: Arabic language identifier
 - **WHEN** Arabic is the highlighted option
-- **THEN** the system SHALL vibrate the Morse pattern for the letter "ع" (Ain) obtained via `encodeLetter('ع', MorseLanguage.arabic)` (which is `[MorseSignal.dot, MorseSignal.dash, MorseSignal.dash]`)
+- **THEN** the system SHALL vibrate the Morse pattern for the letter "ع" (Ain) obtained via `encodeLetter('ع', MorseLanguage.arabic)` (which is `[MorseSignal.dot, MorseSignal.dash, MorseSignal.dot, MorseSignal.dash]`)
+
+#### Scenario: Russian language identifier
+- **WHEN** Russian is the highlighted option
+- **THEN** the system SHALL vibrate the Morse pattern for the letter "Р" obtained via `encodeLetter('Р', MorseLanguage.russian)` (which is `[MorseSignal.dot, MorseSignal.dash, MorseSignal.dot]`)
 
 #### Scenario: Identifier plays on highlight change
 - **WHEN** the highlighted language changes (via tap)
@@ -18,3 +22,11 @@ Each language option SHALL have a unique vibration identifier pattern that plays
 #### Scenario: No hardcoded patterns in language picker
 - **WHEN** a developer inspects the language picker code
 - **THEN** identifier patterns SHALL be obtained from the registry, not defined as inline constant lists
+
+#### Scenario: Russian language label
+- **WHEN** the language picker displays the Russian option
+- **THEN** the button label SHALL be "Русский"
+
+#### Scenario: Three language buttons displayed
+- **WHEN** the language picker is shown
+- **THEN** it SHALL display three buttons: English, Arabic, and Russian
