@@ -5,4 +5,7 @@ enum MorseLanguage {
 
   /// Arabic Morse Code — Arabic letters.
   arabic,
+
+  /// Russian Morse Code — Cyrillic letters.
+  russian,
 }

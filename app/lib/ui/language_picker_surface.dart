@@ -16,12 +16,16 @@ final Map<MorseLanguage, List<MorseSignal>> _languageIdentifiers = {
   MorseLanguage.arabic:
       encodeLetter('ع', MorseLanguage.arabic) ??
       [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot, MorseSignal.dash],
+  MorseLanguage.russian:
+      encodeLetter('Р', MorseLanguage.russian) ??
+      [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot],
 };
 
 /// Display labels for each language.
 const Map<MorseLanguage, String> _languageLabels = {
   MorseLanguage.english: 'English',
   MorseLanguage.arabic: 'العربية',
+  MorseLanguage.russian: 'Русский',
 };
 
 /// Full-screen language picker shown on app start.

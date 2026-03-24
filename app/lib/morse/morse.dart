@@ -1,6 +1,7 @@
 export 'arabic_alphabet.dart';
 export 'digit_alphabet.dart';
 export 'english_alphabet.dart';
+export 'russian_alphabet.dart';
 export 'level.dart';
 export 'morse_alphabet_data.dart';
 export 'morse_alphabet_registry.dart';

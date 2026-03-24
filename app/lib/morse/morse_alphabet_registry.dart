@@ -1,6 +1,7 @@
 import 'package:feel_you/morse/arabic_alphabet.dart';
 import 'package:feel_you/morse/digit_alphabet.dart';
 import 'package:feel_you/morse/english_alphabet.dart';
+import 'package:feel_you/morse/russian_alphabet.dart';
 import 'package:feel_you/morse/level.dart';
 import 'package:feel_you/morse/morse_alphabet_data.dart';
 import 'package:feel_you/morse/morse_language.dart';
@@ -105,4 +106,5 @@ final MorseAlphabetRegistry morseRegistry = MorseAlphabetRegistry([
   digitAlphabet,
   englishAlphabet,
   arabicAlphabet,
+  russianAlphabet,
 ]);

@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('morseRegistry levels', () {
-    test('contains exactly 5 levels', () {
-      expect(morseRegistry.all.expand((a) => a.levels).length, 5);
+    test('contains exactly 7 levels', () {
+      expect(morseRegistry.all.expand((a) => a.levels).length, 7);
     });
 
     test('digits is at index 0 with null language', () {
@@ -59,10 +59,28 @@ void main() {
       expect(arabic[2].name, 'arabic-words');
     });
 
-    test('both languages include the shared digits level', () {
+    test(
+      'Russian returns 3 levels: digits, russian-letters, russian-words',
+      () {
+        final russian = morseRegistry.levelsForLanguage(MorseLanguage.russian);
+        expect(russian.length, 3);
+        expect(russian[0].name, 'digits');
+        expect(russian[1].name, 'russian-letters');
+        expect(russian[2].name, 'russian-words');
+      },
+    );
+
+    test('Russian levels list is unmodifiable', () {
+      final russian = morseRegistry.levelsForLanguage(MorseLanguage.russian);
+      expect(() => russian.add(russian[0]), throwsUnsupportedError);
+    });
+
+    test('all languages include the shared digits level', () {
       final english = morseRegistry.levelsForLanguage(MorseLanguage.english);
       final arabic = morseRegistry.levelsForLanguage(MorseLanguage.arabic);
+      final russian = morseRegistry.levelsForLanguage(MorseLanguage.russian);
       expect(english[0].name, arabic[0].name);
+      expect(english[0].name, russian[0].name);
     });
   });
 
@@ -265,6 +283,76 @@ void main() {
     });
   });
 
+  group('Russian letters level', () {
+    late Level russianLettersLevel;
+
+    setUp(() {
+      russianLettersLevel = morseRegistry.levelsForLanguage(
+        MorseLanguage.russian,
+      )[1];
+    });
+
+    test('has 32 characters (Ё excluded)', () {
+      expect(russianLettersLevel.characters.length, 32);
+    });
+
+    test('characters start with А and end with Я', () {
+      expect(russianLettersLevel.characters.first, 'А');
+      expect(russianLettersLevel.characters.last, 'Я');
+    });
+
+    test('has patterns for all characters', () {
+      for (final char in russianLettersLevel.characters) {
+        expect(
+          russianLettersLevel.patterns.containsKey(char),
+          isTrue,
+          reason: 'Missing pattern for $char',
+        );
+      }
+    });
+
+    test('pattern lookup for А', () {
+      expect(russianLettersLevel.patterns['А'], [
+        MorseSignal.dot,
+        MorseSignal.dash,
+      ]);
+    });
+  });
+
+  group('Russian words level', () {
+    late Level russianWordsLevel;
+
+    setUp(() {
+      russianWordsLevel = morseRegistry.levelsForLanguage(
+        MorseLanguage.russian,
+      )[2];
+    });
+
+    test('has 20 characters', () {
+      expect(russianWordsLevel.characters.length, 20);
+    });
+
+    test('word patterns exist for all characters via alphabet', () {
+      for (final word in russianWordsLevel.characters) {
+        expect(
+          russianAlphabet.wordPatterns!.containsKey(word),
+          isTrue,
+          reason: 'Missing word pattern for $word',
+        );
+      }
+    });
+
+    test('word patterns in alphabet are non-empty', () {
+      for (final word in russianWordsLevel.characters) {
+        expect(
+          russianAlphabet.wordPatterns![word],
+          isNotEmpty,
+          reason: 'Empty word pattern for $word',
+        );
+      }
+    });
+  });
+
   group('Level position resolution', () {
     test('position 0 in digits is character 0', () {
       final level = morseRegistry.levelsForLanguage(MorseLanguage.english)[0];
@@ -290,6 +378,15 @@ void main() {
     test('position 0 in Arabic letters is character ا', () {
       final level = morseRegistry.levelsForLanguage(MorseLanguage.arabic)[1];
       expect(level.characters[0], 'ا');
+    });
+
+    test('position 0 in Russian letters is character А', () {
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.russian)[1];
+      expect(level.characters[0], 'А');
+      expect(level.patterns[level.characters[0]], [
+        MorseSignal.dot,
+        MorseSignal.dash,
+      ]);
     });
   });
 }
