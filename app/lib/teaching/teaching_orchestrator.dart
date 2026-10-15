@@ -138,15 +138,12 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       // Look up the current character's Morse pattern from the level.
       final character = sessionNotifier.state.currentCharacter;
       final level = sessionNotifier.state.currentLevel;
-      final isWordsLevel = sessionNotifier.state.levelIndex == 2;
+      final isWordsLevel = level.kind == LevelKind.words;
 
       // For word levels, use the token pattern (with CharGap pauses)
-      // from the alphabet; for single-character levels, use signals.
+      // from the level; for single-character levels, use signals.
       if (isWordsLevel) {
-        final alphabet = morseRegistry.forLanguage(
-          sessionNotifier.state.language,
-        );
-        final tokenPattern = alphabet?.wordPatterns?[character];
+        final tokenPattern = level.wordPatterns?[character];
         if (tokenPattern == null) break;
         await vibrationService.playMorseTokenPattern(tokenPattern);
       } else {
@@ -223,19 +220,17 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     if (phase != SessionPhase.listening) return;
 
     final character = sessionNotifier.state.currentCharacter;
-    final isWordsLevel = sessionNotifier.state.levelIndex == 2;
+    final level = sessionNotifier.state.currentLevel;
+    final isWordsLevel = level.kind == LevelKind.words;
 
     final bool isCorrect;
     if (isWordsLevel) {
       // Word level: compare full token sequence including CharGap positions.
-      final language = sessionNotifier.state.language;
-      final alphabet = morseRegistry.forLanguage(language);
-      final wordPattern = alphabet?.wordPatterns?[character];
+      final wordPattern = level.wordPatterns?[character];
       isCorrect =
           wordPattern != null && tokenPatternsEqual(event.tokens, wordPattern);
     } else {
       // Single-character level: extract signals and compare.
-      final level = sessionNotifier.state.currentLevel;
       final expected = level.patterns[character];
       final inputSignals = event.tokens
           .whereType<Signal>()
@@ -257,9 +252,10 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     // Ignore during feedback (consistent with MorseInput/InputComplete).
     if (phase == SessionPhase.feedback) return;
 
-    final levelIndex = sessionNotifier.state.levelIndex;
+    final isWordsLevel =
+        sessionNotifier.state.currentLevel.kind == LevelKind.words;
 
-    if (levelIndex == 2) {
+    if (isWordsLevel) {
       // Words level: insert charGap into the input buffer.
       // Works during playing (triggers interrupt like MorseInput) or listening.
       if (phase == SessionPhase.playing) {
@@ -273,7 +269,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       await vibrationService.playTapFeedback();
       _gestureClassifier.insertCharGap();
     } else {
-      // Digits/letters: submit input immediately.
+      // Character levels (digits/letters): submit input immediately.
       // Only act during listening (when there's input to submit).
       if (phase != SessionPhase.listening) return;
       await vibrationService.playTapFeedback();

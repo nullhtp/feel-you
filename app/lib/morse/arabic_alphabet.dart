@@ -2,6 +2,7 @@ import 'package:feel_you/morse/level.dart';
 import 'package:feel_you/morse/morse_alphabet_data.dart';
 import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/morse/morse_signal.dart';
+import 'package:feel_you/morse/morse_token.dart';
 import 'package:feel_you/morse/morse_word_builder.dart';
 
 const _d = MorseSignal.dot;
@@ -95,13 +96,20 @@ const List<String> _arabicWordList = [
   'مساعد', 'عطشان', 'جوعان', 'تعبان', 'سلامك',
 ];
 
+/// Token patterns (with [CharGap] between letters) for every word in
+/// [_arabicWordList], shared by the alphabet and its words level.
+final Map<String, List<MorseToken>> _arabicWordPatterns = buildWordPatterns(
+  _arabicWordList,
+  _arabicWithAliases,
+);
+
 /// The Arabic Morse alphabet.
 final MorseAlphabet arabicAlphabet = MorseAlphabet(
   language: MorseLanguage.arabic,
   characters: _arabicCharacters,
   characterOrder: _arabicOrder,
   wordList: _arabicWordList,
-  wordPatterns: buildWordPatterns(_arabicWordList, _arabicWithAliases),
+  wordPatterns: _arabicWordPatterns,
   levels: [
     const Level(
       name: 'arabic-letters',
@@ -111,8 +119,10 @@ final MorseAlphabet arabicAlphabet = MorseAlphabet(
     ),
     Level(
       name: 'arabic-words',
+      kind: LevelKind.words,
       characters: _arabicWordList,
       patterns: buildWordSignalPatterns(_arabicWordList, _arabicWithAliases),
+      wordPatterns: _arabicWordPatterns,
       language: MorseLanguage.arabic,
     ),
   ],

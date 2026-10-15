@@ -389,4 +389,92 @@ void main() {
       ]);
     });
   });
+
+  group('level kind', () {
+    const wordLevelNames = {'words', 'arabic-words', 'russian-words'};
+    final allLevels = morseRegistry.all.expand((a) => a.levels).toList();
+
+    test('word levels have kind words, all others characters', () {
+      for (final level in allLevels) {
+        expect(
+          level.kind,
+          wordLevelNames.contains(level.name)
+              ? LevelKind.words
+              : LevelKind.characters,
+          reason: 'Unexpected kind for ${level.name}',
+        );
+      }
+    });
+
+    test('each language has exactly one words level', () {
+      for (final language in MorseLanguage.values) {
+        final levels = morseRegistry.levelsForLanguage(language);
+        expect(
+          levels.where((l) => l.kind == LevelKind.words),
+          hasLength(1),
+          reason: 'Expected one words level for $language',
+        );
+      }
+    });
+
+    test('character levels have no word patterns', () {
+      for (final level in allLevels) {
+        if (level.kind == LevelKind.characters) {
+          expect(level.wordPatterns, isNull, reason: level.name);
+        }
+      }
+    });
+
+    test('words levels carry their alphabet word patterns for every word', () {
+      for (final alphabet in morseRegistry.all) {
+        for (final level in alphabet.levels) {
+          if (level.kind != LevelKind.words) continue;
+          expect(level.wordPatterns, alphabet.wordPatterns, reason: level.name);
+          for (final word in level.characters) {
+            expect(
+              level.wordPatterns![word],
+              isNotEmpty,
+              reason: 'Missing word pattern for $word in ${level.name}',
+            );
+          }
+        }
+      }
+    });
+
+    test('defaults to characters', () {
+      const level = Level(name: 'test', characters: [], patterns: {});
+      expect(level.kind, LevelKind.characters);
+      expect(level.wordPatterns, isNull);
+    });
+
+    test('levels differing only by kind are not equal', () {
+      const characters = Level(
+        name: 'test',
+        characters: [],
+        patterns: {},
+        wordPatterns: {},
+      );
+      const words = Level(
+        name: 'test',
+        characters: [],
+        patterns: {},
+        kind: LevelKind.words,
+        wordPatterns: {},
+      );
+      expect(characters, isNot(words));
+    });
+
+    test('a words level without word patterns fails the assertion', () {
+      Level wordsLevel(Map<String, List<MorseToken>>? wordPatterns) => Level(
+        name: 'test',
+        characters: const [],
+        patterns: const {},
+        kind: LevelKind.words,
+        wordPatterns: wordPatterns,
+      );
+
+      expect(() => wordsLevel(null), throwsA(isA<AssertionError>()));
+      expect(wordsLevel(const {}).kind, LevelKind.words);
+    });
+  });
 }

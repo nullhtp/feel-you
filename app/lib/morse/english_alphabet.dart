@@ -2,6 +2,7 @@ import 'package:feel_you/morse/level.dart';
 import 'package:feel_you/morse/morse_alphabet_data.dart';
 import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/morse/morse_signal.dart';
+import 'package:feel_you/morse/morse_token.dart';
 import 'package:feel_you/morse/morse_word_builder.dart';
 
 const _d = MorseSignal.dot;
@@ -80,13 +81,20 @@ const List<String> _englishWordList = [
   'WATER', 'HAPPY', 'TIRED', 'SORRY', 'THANK',
 ];
 
+/// Token patterns (with [CharGap] between letters) for every word in
+/// [_englishWordList], shared by the alphabet and its words level.
+final Map<String, List<MorseToken>> _englishWordPatterns = buildWordPatterns(
+  _englishWordList,
+  _englishCharacters,
+);
+
 /// The English Morse alphabet.
 final MorseAlphabet englishAlphabet = MorseAlphabet(
   language: MorseLanguage.english,
   characters: _englishCharacters,
   characterOrder: _englishOrder,
   wordList: _englishWordList,
-  wordPatterns: buildWordPatterns(_englishWordList, _englishCharacters),
+  wordPatterns: _englishWordPatterns,
   levels: [
     const Level(
       name: 'letters',
@@ -96,8 +104,10 @@ final MorseAlphabet englishAlphabet = MorseAlphabet(
     ),
     Level(
       name: 'words',
+      kind: LevelKind.words,
       characters: _englishWordList,
       patterns: buildWordSignalPatterns(_englishWordList, _englishCharacters),
+      wordPatterns: _englishWordPatterns,
       language: MorseLanguage.english,
     ),
   ],

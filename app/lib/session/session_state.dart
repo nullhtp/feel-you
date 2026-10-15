@@ -27,6 +27,9 @@ class SessionState extends Equatable {
   final MorseLanguage language;
 
   /// Zero-based index into the language-filtered levels list.
+  ///
+  /// The index only reflects registration order; use [currentLevel]'s
+  /// [Level.kind] to decide level-specific behaviour.
   final int levelIndex;
 
   /// Zero-based index into the current level's character list.

@@ -8,6 +8,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../test_doubles/fake_gesture_classifier.dart';
 import '../test_doubles/fake_shake_detector.dart';
+import '../test_doubles/fixed_levels_session.dart';
 import '../test_doubles/mock_vibration_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -16,26 +17,30 @@ import '../test_doubles/mock_vibration_service.dart';
 
 /// Creates an orchestrator with test doubles.
 /// Uses a very short repeat pause (10ms) to keep tests fast.
+/// Pass [session] to start from a custom session; defaults to English.
 ({
   TeachingOrchestrator orchestrator,
   MockVibrationService vibration,
   SessionNotifier session,
   FakeGestureClassifier gestures,
 })
-createOrchestrator({Duration repeatPause = const Duration(milliseconds: 10)}) {
+createOrchestrator({
+  Duration repeatPause = const Duration(milliseconds: 10),
+  SessionNotifier? session,
+}) {
   final gestures = FakeGestureClassifier();
   final vibration = MockVibrationService();
-  final session = SessionNotifier(MorseLanguage.english);
+  final sessionNotifier = session ?? SessionNotifier(MorseLanguage.english);
   final orchestrator = TeachingOrchestrator(
     gestureClassifier: gestures,
     vibrationService: vibration,
-    sessionNotifier: session,
+    sessionNotifier: sessionNotifier,
     config: TeachingTimingConfig(repeatPause: repeatPause),
   );
   return (
     orchestrator: orchestrator,
     vibration: vibration,
-    session: session,
+    session: sessionNotifier,
     gestures: gestures,
   );
 }
@@ -791,6 +796,196 @@ void main() {
       expect(t.session.state.phase, SessionPhase.feedback);
 
       await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Words behaviour follows Level.kind, not the level index
+  // -------------------------------------------------------------------------
+  group('words behaviour follows level kind, not level index', () {
+    // Order: words (0), letters (1), digits (2).
+    final levels = reorderedEnglishLevels();
+
+    // "HI" as a word: H (····), char gap, I (··).
+    const hiTokens = <MorseToken>[
+      Signal(MorseSignal.dot),
+      Signal(MorseSignal.dot),
+      Signal(MorseSignal.dot),
+      Signal(MorseSignal.dot),
+      CharGap(),
+      Signal(MorseSignal.dot),
+      Signal(MorseSignal.dot),
+    ];
+
+    const zeroTokens = <MorseToken>[
+      Signal(MorseSignal.dash),
+      Signal(MorseSignal.dash),
+      Signal(MorseSignal.dash),
+      Signal(MorseSignal.dash),
+      Signal(MorseSignal.dash),
+    ];
+
+    SessionNotifier sessionAtLevel(int levelIndex) =>
+        FixedLevelsSessionNotifier(
+          FixedLevelsSessionState(
+            levels: levels,
+            language: MorseLanguage.english,
+            levelIndex: levelIndex,
+          ),
+        );
+
+    Iterable<VibrationCall> tokenPlaybacks(MockVibrationService vibration) =>
+        vibration.calls.where(
+          (c) => c.type == VibrationCallType.playMorseTokenPattern,
+        );
+
+    test('words level is at index 0 and a characters level at index 2', () {
+      expect(levels.map((l) => l.name), ['words', 'letters', 'digits']);
+      expect(levels[0].kind, LevelKind.words);
+      expect(levels[2].kind, LevelKind.characters);
+    });
+
+    group('words level at index 0', () {
+      test('plays the word token pattern with char gaps', () async {
+        final t = createOrchestrator(session: sessionAtLevel(0));
+        expect(t.session.state.currentCharacter, 'HI');
+
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        expect(tokenPlaybacks(t.vibration), isNotEmpty);
+        expect(tokenPlaybacks(t.vibration).first.tokens, hiTokens);
+        expect(t.vibration.patterns, isEmpty);
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      });
+
+      test('accepts input matching the word token pattern', () async {
+        final t = createOrchestrator(session: sessionAtLevel(0));
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        t.gestures.addEvent(const MorseInput(MorseSignal.dot));
+        await Future<void>.delayed(Duration.zero);
+        expect(t.session.state.phase, SessionPhase.listening);
+
+        t.gestures.addEvent(const InputComplete(hiTokens));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(t.vibration.callLog, contains('playSuccess'));
+        expect(t.vibration.callLog, isNot(contains('playError')));
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      });
+
+      test('rejects input whose signals match but lack the char gap', () async {
+        // The flat signals equal the level's signal pattern for "HI", so a
+        // characters-style comparison would accept them. Words compare
+        // token by token, so the missing gap makes the answer wrong.
+        const gaplessHi = <MorseToken>[
+          Signal(MorseSignal.dot),
+          Signal(MorseSignal.dot),
+          Signal(MorseSignal.dot),
+          Signal(MorseSignal.dot),
+          Signal(MorseSignal.dot),
+          Signal(MorseSignal.dot),
+        ];
+        expect(
+          levels[0].patterns['HI'],
+          gaplessHi.whereType<Signal>().map((s) => s.signal).toList(),
+        );
+
+        final t = createOrchestrator(session: sessionAtLevel(0));
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        t.gestures.addEvent(const MorseInput(MorseSignal.dot));
+        await Future<void>.delayed(Duration.zero);
+
+        t.gestures.addEvent(const InputComplete(gaplessHi));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(t.vibration.callLog, contains('playError'));
+        expect(t.vibration.callLog, isNot(contains('playSuccess')));
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      });
+
+      test('bottom zone interrupts playback and inserts a char gap', () async {
+        final t = createOrchestrator(session: sessionAtLevel(0));
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+        expect(t.session.state.phase, SessionPhase.playing);
+
+        t.gestures.addEvent(const BottomZoneAction());
+        await Future<void>.delayed(Duration.zero);
+
+        expect(t.gestures.insertCharGapCallCount, 1);
+        expect(t.gestures.submitInputCallCount, 0);
+        expect(t.session.state.phase, SessionPhase.listening);
+        expect(t.vibration.callLog, contains('playTapFeedback'));
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      });
+    });
+
+    group('characters level at index 2', () {
+      test('plays the plain signal pattern', () async {
+        final t = createOrchestrator(session: sessionAtLevel(2));
+        expect(t.session.state.currentCharacter, '0');
+
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        expect(t.vibration.patterns, isNotEmpty);
+        expect(t.vibration.patterns.first, [
+          MorseSignal.dash,
+          MorseSignal.dash,
+          MorseSignal.dash,
+          MorseSignal.dash,
+          MorseSignal.dash,
+        ]);
+        expect(tokenPlaybacks(t.vibration), isEmpty);
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      });
+
+      test('accepts input matching the character signals', () async {
+        final t = createOrchestrator(session: sessionAtLevel(2));
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        t.gestures.addEvent(const MorseInput(MorseSignal.dash));
+        await Future<void>.delayed(Duration.zero);
+        expect(t.session.state.phase, SessionPhase.listening);
+
+        t.gestures.addEvent(const InputComplete(zeroTokens));
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(t.vibration.callLog, contains('playSuccess'));
+        expect(t.vibration.callLog, isNot(contains('playError')));
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      });
+
+      test('bottom zone submits input instead of inserting a gap', () async {
+        final t = createOrchestrator(session: sessionAtLevel(2));
+        t.orchestrator.start();
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+
+        t.gestures.addEvent(const MorseInput(MorseSignal.dash));
+        await Future<void>.delayed(Duration.zero);
+        expect(t.session.state.phase, SessionPhase.listening);
+
+        t.gestures.addEvent(const BottomZoneAction());
+        await Future<void>.delayed(Duration.zero);
+
+        expect(t.gestures.submitInputCallCount, 1);
+        expect(t.gestures.insertCharGapCallCount, 0);
+        expect(t.vibration.callLog, contains('playTapFeedback'));
+
+        await tearDownOrchestrator(t.orchestrator, t.gestures);
+      });
     });
   });
 }

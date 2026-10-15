@@ -25,14 +25,13 @@ class CompanionOverlay extends ConsumerWidget {
 
     final character = session.currentCharacter;
     final level = session.currentLevel;
-    final isWordsLevel = session.levelIndex == 2;
+    final isWordsLevel = level.kind == LevelKind.words;
 
     // For word levels, use the token pattern (with CharGap) from the
-    // alphabet so the display shows letter boundaries.
+    // level so the display shows letter boundaries.
     final List<MorseToken> tokenPattern;
     if (isWordsLevel) {
-      final alphabet = morseRegistry.forLanguage(session.language);
-      tokenPattern = alphabet?.wordPatterns?[character] ?? [];
+      tokenPattern = level.wordPatterns?[character] ?? [];
     } else {
       final signals = level.patterns[character] ?? [];
       tokenPattern = signals.map((s) => Signal(s)).toList();

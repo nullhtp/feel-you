@@ -2,6 +2,7 @@ import 'package:feel_you/morse/level.dart';
 import 'package:feel_you/morse/morse_alphabet_data.dart';
 import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/morse/morse_signal.dart';
+import 'package:feel_you/morse/morse_token.dart';
 import 'package:feel_you/morse/morse_word_builder.dart';
 
 const _d = MorseSignal.dot;
@@ -105,13 +106,20 @@ const List<String> _russianWordList = [
   'СПАТЬ', 'УСТАЛ', 'ЖАРКО', 'ХОЛОД', 'ПУСТЬ',
 ];
 
+/// Token patterns (with [CharGap] between letters) for every word in
+/// [_russianWordList], shared by the alphabet and its words level.
+final Map<String, List<MorseToken>> _russianWordPatterns = buildWordPatterns(
+  _russianWordList,
+  _russianWithAliases,
+);
+
 /// The Russian Morse alphabet.
 final MorseAlphabet russianAlphabet = MorseAlphabet(
   language: MorseLanguage.russian,
   characters: _russianCharacters,
   characterOrder: _russianOrder,
   wordList: _russianWordList,
-  wordPatterns: buildWordPatterns(_russianWordList, _russianWithAliases),
+  wordPatterns: _russianWordPatterns,
   levels: [
     const Level(
       name: 'russian-letters',
@@ -121,8 +129,10 @@ final MorseAlphabet russianAlphabet = MorseAlphabet(
     ),
     Level(
       name: 'russian-words',
+      kind: LevelKind.words,
       characters: _russianWordList,
       patterns: buildWordSignalPatterns(_russianWordList, _russianWithAliases),
+      wordPatterns: _russianWordPatterns,
       language: MorseLanguage.russian,
     ),
   ],

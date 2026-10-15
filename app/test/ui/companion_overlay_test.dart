@@ -13,6 +13,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../test_doubles/fake_gesture_classifier.dart';
 import '../test_doubles/fake_shake_detector.dart';
+import '../test_doubles/fixed_levels_session.dart';
 import '../test_doubles/mock_vibration_service.dart';
 
 /// Long repeat pause to prevent orchestrator from interfering.
@@ -414,6 +415,71 @@ void main() {
         expect(classifier.touchEvents[1], isA<TouchUp>());
 
         await cleanUp(tester);
+        classifier.dispose();
+      });
+    });
+
+    // -----------------------------------------------------------------------
+    // Words display follows Level.kind, not the level index
+    // -----------------------------------------------------------------------
+    group('words display follows level kind, not level index', () {
+      // Order: words (0), letters (1), digits (2).
+      final levels = reorderedEnglishLevels();
+
+      // Renders only the overlay, with the session at levelIndex.
+      Widget buildOverlay(FakeGestureClassifier classifier, int levelIndex) {
+        return ProviderScope(
+          overrides: [
+            gestureClassifierProvider.overrideWithValue(classifier),
+            sessionNotifierProvider.overrideWith(
+              (ref) => FixedLevelsSessionNotifier(
+                FixedLevelsSessionState(
+                  levels: levels,
+                  language: MorseLanguage.english,
+                  levelIndex: levelIndex,
+                ),
+              ),
+            ),
+          ],
+          child: const MaterialApp(home: CompanionOverlay()),
+        );
+      }
+
+      testWidgets('words level at index 0 shows GAP and letter boundaries', (
+        tester,
+      ) async {
+        final classifier = FakeGestureClassifier();
+
+        await tester.pumpWidget(buildOverlay(classifier, 0));
+
+        expect(find.text('WORDS'), findsOneWidget);
+        expect(find.text('HI'), findsOneWidget);
+        // H (····) / I (··)
+        expect(
+          find.text('\u00B7 \u00B7 \u00B7 \u00B7 / \u00B7 \u00B7'),
+          findsOneWidget,
+        );
+        expect(find.text('GAP'), findsOneWidget);
+        expect(find.text('SUBMIT'), findsNothing);
+
+        await tester.pumpWidget(const SizedBox());
+        classifier.dispose();
+      });
+
+      testWidgets('characters level at index 2 shows SUBMIT and signals', (
+        tester,
+      ) async {
+        final classifier = FakeGestureClassifier();
+
+        await tester.pumpWidget(buildOverlay(classifier, 2));
+
+        expect(find.text('DIGITS'), findsOneWidget);
+        expect(find.text('0'), findsOneWidget);
+        expect(find.text('\u2014 \u2014 \u2014 \u2014 \u2014'), findsOneWidget);
+        expect(find.text('SUBMIT'), findsOneWidget);
+        expect(find.text('GAP'), findsNothing);
+
+        await tester.pumpWidget(const SizedBox());
         classifier.dispose();
       });
     });
