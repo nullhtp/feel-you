@@ -92,9 +92,14 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// sequence exits.
   int _loopGeneration = 0;
 
+  /// Set by [stopFromDispose] until the stopped [state] is published: the
+  /// loop is stopped although `state.isRunning` may still be true.
+  bool _stoppedFromDispose = false;
+
   /// Whether the loop should keep running. Checked by the async loop to
   /// avoid accessing [state] after dispose.
-  bool get _shouldRun => !_disposed && mounted && state.isRunning;
+  bool get _shouldRun =>
+      !_disposed && !_stoppedFromDispose && mounted && state.isRunning;
 
   /// Whether the current iteration was interrupted.
   bool get _isInterrupted => _disposed || !mounted || state.isInterrupted;
@@ -107,7 +112,8 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   ///
   /// No-op if already running.
   void start() {
-    if (!mounted || state.isRunning) return;
+    if (!mounted || _shouldRun) return;
+    _stoppedFromDispose = false;
     _loopGeneration++;
     state = state.copyWith(isRunning: true, isInterrupted: false);
     _gestureClassifier.clearInput();
@@ -122,12 +128,44 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// called again, so nothing vibrates while the loop is stopped.
   Future<void> stop() async {
     if (!mounted || !state.isRunning) return;
+    _stoppedFromDispose = false;
     _loopGeneration++;
     state = state.copyWith(isRunning: false, isInterrupted: true);
     _cancelPause();
     _gestureClassifier.clearInput();
     _shakeDetector?.pause();
     await vibrationService.cancel();
+  }
+
+  /// Stops the loop like [stop], but is safe to call from a widget's
+  /// `dispose`.
+  ///
+  /// Riverpod forbids changing a provider while the widget tree is being
+  /// built or finalized, and `dispose` runs during finalization. Stopping in
+  /// `deactivate` instead does not help: it runs while the tree is building
+  /// (and may be followed by `activate`).
+  ///
+  /// So everything that silences the phone happens now, without touching
+  /// [state]. The generation is bumped and [_shouldRun] turns false: the
+  /// loop and any in-flight feedback or bottom-zone action end, and gesture
+  /// events still on their way are ignored. The pause and the vibration are
+  /// cancelled, pending input is discarded and shake detection is paused.
+  /// Only the stopped [state] waits, for a microtask that runs after the
+  /// frame. A [start] or [stop] before then supersedes it, so a surface
+  /// mounted in the same frame still starts the loop.
+  void stopFromDispose() {
+    if (!mounted || !_shouldRun) return;
+    _stoppedFromDispose = true;
+    _loopGeneration++;
+    _cancelPause();
+    _gestureClassifier.clearInput();
+    _shakeDetector?.pause();
+    unawaited(vibrationService.cancel());
+    scheduleMicrotask(() {
+      if (!mounted || !_stoppedFromDispose) return;
+      _stoppedFromDispose = false;
+      state = state.copyWith(isRunning: false, isInterrupted: true);
+    });
   }
 
   @override

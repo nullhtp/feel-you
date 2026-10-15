@@ -16,7 +16,8 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 /// touches pass through to the underlying [Listener].
 ///
 /// Automatically starts the teaching orchestrator on mount and stops it
-/// on dispose. Keeps the screen awake and prevents back-navigation exits.
+/// on dispose (see [TeachingOrchestrator.stopFromDispose]). Keeps the
+/// screen awake and prevents back-navigation exits.
 ///
 /// While the app is not in the foreground (inactive, hidden, paused or
 /// detached) the teaching loop is stopped and the wakelock released, so the
@@ -59,6 +60,15 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   /// Listens to the shake detector for a double shake ([ChangeLanguage]).
   late final StreamSubscription<GestureEvent> _shakeSubscription;
 
+  /// Whether this surface has navigated away and is only waiting for its
+  /// route transition to end.
+  ///
+  /// The double shake ([_onShakeEvent]) is the only way this surface leaves
+  /// on its own. It is also removed when `LaunchScreen` swaps it for the
+  /// `NoVibrationScreen`, but there `LaunchScreen` stops the loop itself in
+  /// the same frame, before the rebuild that removes this surface.
+  bool _leaving = false;
+
   @override
   void initState() {
     super.initState();
@@ -81,7 +91,8 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
     _lifecycleListener.dispose();
     unawaited(_shakeSubscription.cancel());
     WakelockPlus.disable();
-    _orchestrator.stop();
+    // Not stop(): a provider must not change while the tree is torn down.
+    _orchestrator.stopFromDispose();
     super.dispose();
   }
 
@@ -90,11 +101,13 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   ///
   /// Like every gesture, it is ignored while the teaching loop is stopped
   /// (in the background, or before the loop first starts). The loop is
-  /// stopped right away, so nothing vibrates during the route transition;
-  /// [dispose] stops it again (a no-op) when this route is removed.
+  /// stopped right away, so nothing vibrates during the route transition,
+  /// and [_leaving] keeps a resume during the transition from restarting
+  /// it; [dispose] stops it again (a no-op) when this route is removed.
   void _onShakeEvent(GestureEvent event) {
-    if (event is! ChangeLanguage || !mounted) return;
+    if (event is! ChangeLanguage || !mounted || _leaving) return;
     if (!ref.read(teachingOrchestratorProvider).isRunning) return;
+    _leaving = true;
     unawaited(_orchestrator.stop());
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(builder: (_) => const LanguagePickerSurface()),
@@ -129,9 +142,13 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   /// Re-acquires the wakelock and restarts the teaching loop when the app
   /// returns to the foreground. The current character is replayed from the
   /// beginning.
+  ///
+  /// Does nothing once this surface is [_leaving]: restarting would vibrate
+  /// a lesson on the way to the picker.
   void _resumeTeaching() {
     if (!_suspendedInBackground) return;
     _suspendedInBackground = false;
+    if (_leaving) return;
     WakelockPlus.enable();
     _orchestrator.start();
   }

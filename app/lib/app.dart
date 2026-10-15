@@ -42,9 +42,9 @@ class LaunchScreen extends ConsumerWidget {
       capabilities,
     ) {
       // Stop the loop now, before the rebuild below removes the
-      // TouchSurface: providers can't change while the tree is building,
-      // so the loop must already be stopped when TouchSurface.dispose
-      // stops it again.
+      // TouchSurface. Its dispose would stop it too, but providers can't
+      // change while the tree is building, so it could only publish the
+      // stopped state after the frame.
       if (!capabilities.canVibrate &&
           ref.exists(teachingOrchestratorProvider)) {
         unawaited(ref.read(teachingOrchestratorProvider.notifier).stop());
