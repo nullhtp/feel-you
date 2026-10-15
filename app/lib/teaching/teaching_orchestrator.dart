@@ -327,7 +327,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   ///
   /// The sequence is abandoned if the loop is stopped, restarted or
   /// navigated while it is in flight. After a [stop] the session stays in
-  /// the feedback phase and [start] resets it to playing.
+  /// the feedback phase and [start] resets it to playing. A swipe past the
+  /// first or last item does not navigate, so it leaves the sequence alone
+  /// (see [_onNavigate]).
   Future<void> _handleFeedback(Future<void> Function() playFeedback) async {
     if (_disposed) return;
     final gen = _loopGeneration;
@@ -350,29 +352,47 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     unawaited(_runLoop());
   }
 
+  /// Moves the session with [navigationAction] and restarts the loop for the
+  /// character it lands on.
+  ///
+  /// Navigation works in any phase. Restarting cuts short whatever is
+  /// vibrating and abandons any feedback sequence or bottom-zone action in
+  /// flight.
+  ///
+  /// With [clampAtBoundary] (next/previous), a swipe past the first or last
+  /// item does not move the session. It then interrupts nothing that brings
+  /// the loop back by itself:
+  /// - while the loop is playing, the pattern keeps repeating as before;
+  /// - while feedback plays, the feedback finishes and resumes the loop as
+  ///   usual.
+  ///
+  /// Otherwise (listening, or a bottom-zone action is interrupting playback)
+  /// the swipe has already discarded the pending input in the classifier,
+  /// which would leave the user with no input and nothing vibrating. The
+  /// loop then restarts for the same character instead.
   void _onNavigate(
     void Function() navigationAction, {
     bool clampAtBoundary = false,
   }) {
-    // Navigation works in any phase.
+    // Navigating only changes the session state, so it is done first: a
+    // boundary no-op is then known before anything is interrupted.
+    final stateBefore = sessionNotifier.state;
+    navigationAction();
+    final moved = sessionNotifier.state != stateBefore;
+
+    if (clampAtBoundary && !moved) {
+      final phase = sessionNotifier.state.phase;
+      final isLoopPlaying =
+          phase == SessionPhase.playing && !state.isInterrupted;
+      if (isLoopPlaying || phase == SessionPhase.feedback) return;
+    }
+
     // Stop any ongoing activity.
     state = state.copyWith(isInterrupted: true);
     _cancelPause();
     vibrationService.cancel();
 
-    // Capture state before navigation to detect boundary no-ops.
-    final stateBefore = sessionNotifier.state;
-
-    // Perform the navigation (this resets phase to playing).
-    navigationAction();
-
-    final stateAfter = sessionNotifier.state;
-
-    // For next/previous: if already at the boundary, the navigation is a
-    // no-op. Don't restart the loop to avoid an unexpected pattern replay.
-    if (clampAtBoundary && stateBefore == stateAfter) return;
-
-    // Restart the loop for the new (or reset) character. Navigation is only
+    // Restart the loop for the new (or same) character. Navigation is only
     // handled while running (see _onGestureEvent), so it never starts a
     // stopped loop.
     _loopGeneration++;
