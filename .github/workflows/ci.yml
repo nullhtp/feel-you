@@ -14,6 +14,9 @@ concurrency:
 permissions:
   contents: read
 
+# Every job pins the same Flutter version (flutter-version below). Bump them
+# together: the platform projects in app/android and app/ios are migrated
+# for that exact version.
 jobs:
   analyze-and-test:
     name: Analyze & test
@@ -45,3 +48,58 @@ jobs:
 
       - name: Test
         run: flutter test --coverage
+
+  build-android:
+    name: Build Android (debug APK)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      # Gradle 9 and AGP 9 need JDK 17, as in the `flutter create` template.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.3" # keep in sync with the other jobs
+          cache: true
+
+      - name: Build APK
+        run: flutter build apk --debug
+
+      # A build on a new Flutter version may migrate the platform projects.
+      # Fail so that the migration gets reviewed and committed.
+      - name: Check the build left tracked files unchanged
+        run: git diff --exit-code
+
+  build-ios:
+    name: Build iOS (no codesign)
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: "3.47.3" # keep in sync with the other jobs
+          cache: true
+
+      - name: Build iOS app
+        run: flutter build ios --no-codesign --debug
+
+      # Podfile.lock is left out: it records the CocoaPods version, which
+      # differs between this runner and local machines.
+      - name: Check the build left tracked files unchanged
+        run: git diff --exit-code -- . ':(exclude)ios/Podfile.lock'
