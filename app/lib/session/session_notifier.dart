@@ -8,14 +8,27 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// The orchestrator (teaching loop) drives transitions by calling these
 /// methods. No transition validation is enforced here — the orchestrator
 /// owns the valid transition sequences.
+///
+/// Every state it creates resolves its levels from [registry]; level and
+/// position bounds are checked against the current state's
+/// [SessionState.levels].
 class SessionNotifier extends StateNotifier<SessionState> {
   /// Creates a notifier with an initial state for [language].
-  SessionNotifier(MorseLanguage language)
-    : super(SessionState(language: language));
+  ///
+  /// [registry] supplies the alphabets and levels; defaults to the global
+  /// [morseRegistry].
+  SessionNotifier(MorseLanguage language, {MorseAlphabetRegistry? registry})
+    : this._(language, registry ?? morseRegistry);
+
+  SessionNotifier._(MorseLanguage language, this.registry)
+    : super(SessionState(language: language, registry: registry));
+
+  /// The registry every state created by this notifier resolves levels from.
+  final MorseAlphabetRegistry registry;
 
   /// Selects a new [language], resetting to level 0, position 0, playing.
   void selectLanguage(MorseLanguage language) {
-    state = SessionState(language: language);
+    state = SessionState(language: language, registry: registry);
   }
 
   /// Advances to the next position within the current level.
@@ -23,8 +36,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
   /// Resets the phase to [SessionPhase.playing].
   /// No-op if already at the last position.
   void nextPosition() {
-    final filteredLevels = morseRegistry.levelsForLanguage(state.language);
-    final maxIndex = filteredLevels[state.levelIndex].characters.length - 1;
+    final maxIndex = state.currentLevel.characters.length - 1;
     if (state.positionIndex >= maxIndex) return;
     state = state.copyWith(
       positionIndex: state.positionIndex + 1,
@@ -56,8 +68,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
   /// Resets the phase to [SessionPhase.playing].
   /// No-op if already at the last level.
   void nextLevel() {
-    final filteredLevels = morseRegistry.levelsForLanguage(state.language);
-    if (state.levelIndex >= filteredLevels.length - 1) return;
+    if (state.levelIndex >= state.levels.length - 1) return;
     state = state.copyWith(
       levelIndex: state.levelIndex + 1,
       positionIndex: 0,
@@ -81,7 +92,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
   /// Resets to the very beginning: level 0, position 0, playing.
   /// The selected language is preserved.
   void home() {
-    state = SessionState(language: state.language);
+    state = SessionState(language: state.language, registry: registry);
   }
 
   /// Updates the session phase without changing the current position or level.

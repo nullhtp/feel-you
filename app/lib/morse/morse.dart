@@ -8,6 +8,7 @@ export 'morse_alphabet_registry.dart';
 export 'morse_encoder.dart';
 export 'morse_language.dart';
 export 'morse_pattern.dart';
+export 'morse_providers.dart';
 export 'morse_signal.dart';
 export 'morse_token.dart';
 export 'morse_word_builder.dart';

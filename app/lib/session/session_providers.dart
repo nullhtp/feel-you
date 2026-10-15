@@ -1,4 +1,5 @@
 import 'package:feel_you/morse/morse_language.dart';
+import 'package:feel_you/morse/morse_providers.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_state.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,9 +12,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// The initial language defaults to [MorseLanguage.english]. The language
 /// picker calls [SessionNotifier.selectLanguage] to set the user's choice.
+/// Levels are resolved from [morseRegistryProvider].
 ///
-/// Override in tests to inject a custom notifier or initial state.
+/// Override in tests to inject a custom notifier or initial state, or
+/// override [morseRegistryProvider] to substitute the registry.
 final sessionNotifierProvider =
     StateNotifierProvider<SessionNotifier, SessionState>(
-      (ref) => SessionNotifier(MorseLanguage.english),
+      (ref) => SessionNotifier(
+        MorseLanguage.english,
+        registry: ref.watch(morseRegistryProvider),
+      ),
     );
