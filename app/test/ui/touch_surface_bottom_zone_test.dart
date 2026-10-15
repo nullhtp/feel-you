@@ -20,6 +20,11 @@ const _timing = GestureTimingConfig();
 /// Safely past the classifier's silence timeout.
 final _pastSilence = Duration(milliseconds: _timing.silenceTimeout + 100);
 
+/// A post-feedback pause longer than the silence timeout, so input tapped
+/// during feedback is completed by the silence timeout before the loop
+/// resumes (resuming discards it as well).
+final _longFeedbackPause = Duration(milliseconds: _timing.silenceTimeout * 3);
+
 /// The English levels, in order: digits, letters, words.
 const _lettersLevel = 1;
 const _wordsLevel = 2;
@@ -44,6 +49,9 @@ Future<List<GestureEvent>> pumpSurface(
   WidgetTester tester, {
   required MockVibrationService vibration,
   int levelIndex = _lettersLevel,
+  TeachingTimingConfig timing = const TeachingTimingConfig(
+    repeatPause: _testRepeatPause,
+  ),
 }) async {
   await tester.pumpWidget(
     ProviderScope(
@@ -51,9 +59,7 @@ Future<List<GestureEvent>> pumpSurface(
         screenWidthProvider.overrideWithValue(800),
         vibrationServiceProvider.overrideWithValue(vibration),
         shakeDetectorProvider.overrideWithValue(FakeShakeDetector()),
-        teachingTimingConfigProvider.overrideWithValue(
-          const TeachingTimingConfig(repeatPause: _testRepeatPause),
-        ),
+        teachingTimingConfigProvider.overrideWithValue(timing),
         sessionNotifierProvider.overrideWith(
           (ref) => _PresetSessionNotifier(
             SessionState(
@@ -230,10 +236,21 @@ void main() {
 
   // Issue #19: a bottom-strip tap the orchestrator ignores left input that
   // was buffered before it without a silence timer.
+  //
+  // Resuming the loop after feedback discards such input too (#21), so the
+  // feedback pause is longer than the silence timeout here: the silence
+  // timeout has to clear the dot while the feedback is still on.
   testWidgets('a dot tapped during feedback, then an ignored bottom-strip '
       'tap, is cleared by the silence timeout', (tester) async {
     final vibration = MockVibrationService();
-    final events = await pumpSurface(tester, vibration: vibration);
+    final events = await pumpSurface(
+      tester,
+      vibration: vibration,
+      timing: TeachingTimingConfig(
+        repeatPause: _testRepeatPause,
+        postFeedbackPause: _longFeedbackPause,
+      ),
+    );
 
     // Answer "A" (dot dash) correctly; the success feedback starts.
     await tester.tapAt(_dotPoint);
@@ -263,8 +280,12 @@ void main() {
       const InputComplete([Signal(MorseSignal.dot)]),
     ]);
     expect(_inputBuffer(tester), isEmpty);
-    expect(_session(tester).phase, SessionPhase.playing);
+    expect(_session(tester).phase, SessionPhase.feedback);
     expect(vibration.callLog, isNot(contains('playError')));
+
+    // The loop resumes once the feedback pause is over.
+    await tester.pump(_longFeedbackPause);
+    expect(_session(tester).phase, SessionPhase.playing);
 
     // The next correct answer is judged correct: no stale dot in front.
     vibration.reset();

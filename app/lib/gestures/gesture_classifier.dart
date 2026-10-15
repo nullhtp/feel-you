@@ -402,7 +402,9 @@ class GestureClassifier {
   ///
   /// Called by the teaching orchestrator when the loop stops (e.g. the app
   /// leaves the foreground), so a half-entered pattern is neither judged in
-  /// the background nor after the app resumes.
+  /// the background nor after the app resumes. Also called when the loop
+  /// starts, navigates or resumes after feedback, so input entered before
+  /// (or ignored during feedback) never leaks into the next answer.
   void clearInput() => _clearBuffer();
 
   void _emit(GestureEvent event) {

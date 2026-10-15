@@ -325,6 +325,10 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
   /// Plays feedback (success or error), pauses briefly, then resumes the loop.
   ///
+  /// Resuming discards any input the classifier buffered during feedback:
+  /// those taps were ignored, so they must not become the start of the next
+  /// answer.
+  ///
   /// The sequence is abandoned if the loop is stopped, restarted or
   /// navigated while it is in flight. After a [stop] the session stays in
   /// the feedback phase and [start] resets it to playing. A swipe past the
@@ -349,6 +353,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     // Resume the loop (fire-and-forget — the loop manages its own lifecycle).
     _loopGeneration++;
     state = state.copyWith(isInterrupted: false);
+    _gestureClassifier.clearInput();
     unawaited(_runLoop());
   }
 
@@ -357,7 +362,10 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   ///
   /// Navigation works in any phase. Restarting cuts short whatever is
   /// vibrating and abandons any feedback sequence or bottom-zone action in
-  /// flight.
+  /// flight. It also discards any input the classifier has buffered, so it
+  /// cannot become the start of the next answer. The classifier clears its
+  /// buffer itself for its own swipes and long holds, but not for a shake
+  /// ([Home]), which comes from the [ShakeDetector].
   ///
   /// With [clampAtBoundary] (next/previous), a swipe past the first or last
   /// item does not move the session. It then interrupts nothing that brings
@@ -387,10 +395,12 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       if (isLoopPlaying || phase == SessionPhase.feedback) return;
     }
 
-    // Stop any ongoing activity.
+    // Stop any ongoing activity and discard the input (and its pending
+    // silence timer) entered before the navigation.
     state = state.copyWith(isInterrupted: true);
     _cancelPause();
     vibrationService.cancel();
+    _gestureClassifier.clearInput();
 
     // Restart the loop for the new (or same) character. Navigation is only
     // handled while running (see _onGestureEvent), so it never starts a
