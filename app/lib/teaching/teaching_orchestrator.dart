@@ -49,6 +49,11 @@ class TeachingOrchestratorState extends Equatable {
 /// drives the vibration engine, and manages session phase transitions.
 ///
 /// Does not auto-start on creation — call [start] to begin the loop.
+///
+/// Gesture events (including shakes) are only handled while the loop is
+/// running. Before [start], after [stop] (e.g. while the app is in the
+/// background) and after [dispose] they are ignored, so nothing can restart
+/// the loop or play feedback while the loop is stopped.
 class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   TeachingOrchestrator({
     required GestureClassifier gestureClassifier,
@@ -57,12 +62,14 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     this.config = const TeachingTimingConfig(),
     ShakeDetector? shakeDetector,
   }) : _gestureClassifier = gestureClassifier,
+       _shakeDetector = shakeDetector,
        super(const TeachingOrchestratorState()) {
     _gestureSubscription = gestureClassifier.events.listen(_onGestureEvent);
     _shakeSubscription = shakeDetector?.events.listen(_onGestureEvent);
   }
 
   final GestureClassifier _gestureClassifier;
+  final ShakeDetector? _shakeDetector;
   final VibrationService vibrationService;
   final SessionNotifier sessionNotifier;
   final TeachingTimingConfig config;
@@ -80,8 +87,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   bool _disposed = false;
 
   /// Generation counter to invalidate stale loops. Each call to [_runLoop]
-  /// captures the current generation; if it changes (due to navigation or
-  /// stop), the old loop exits.
+  /// and [_handleFeedback] captures the current generation; if it changes
+  /// (due to start, stop or navigation), the stale loop or feedback
+  /// sequence exits.
   int _loopGeneration = 0;
 
   /// Whether the loop should keep running. Checked by the async loop to
@@ -93,20 +101,32 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
   /// Starts the play-wait-repeat loop for the current character.
   ///
+  /// Resumes shake detection and discards any input the classifier buffered
+  /// while the loop was stopped: those taps were ignored, so they must not
+  /// become the start of the next pattern.
+  ///
   /// No-op if already running.
   void start() {
     if (!mounted || state.isRunning) return;
     _loopGeneration++;
     state = state.copyWith(isRunning: true, isInterrupted: false);
+    _gestureClassifier.clearInput();
+    _shakeDetector?.resume();
     unawaited(_runLoop());
   }
 
   /// Stops the play-wait-repeat loop and cancels any ongoing vibration.
+  ///
+  /// Also discards any half-entered pattern (without evaluating it) and
+  /// pauses shake detection. Gesture events are ignored until [start] is
+  /// called again, so nothing vibrates while the loop is stopped.
   Future<void> stop() async {
     if (!mounted || !state.isRunning) return;
     _loopGeneration++;
     state = state.copyWith(isRunning: false, isInterrupted: true);
     _cancelPause();
+    _gestureClassifier.clearInput();
+    _shakeDetector?.pause();
     await vibrationService.cancel();
   }
 
@@ -177,7 +197,11 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   // ---------------------------------------------------------------------------
 
   void _onGestureEvent(GestureEvent event) {
-    if (_disposed || !mounted) return;
+    // Ignore every event while the loop is stopped (before [start], after
+    // [stop] and after [dispose]). Otherwise a shake (Home) or swipe would
+    // restart the loop, and a late InputComplete would play success/error
+    // feedback, while the app is in the background.
+    if (!_shouldRun) return;
     switch (event) {
       case MorseInput():
         _onMorseInput();
@@ -263,34 +287,43 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
         state = state.copyWith(isInterrupted: true);
         _cancelPause();
         await vibrationService.cancel();
+        // Stopped (e.g. backgrounded) while cancelling: no tap feedback.
+        if (!_shouldRun) return;
         sessionNotifier.setPhase(SessionPhase.listening);
       }
       // Haptic confirmation *after* cancel so the two don't collide.
       await vibrationService.playTapFeedback();
+      if (!_shouldRun) return;
       _gestureClassifier.insertCharGap();
     } else {
       // Character levels (digits/letters): submit input immediately.
       // Only act during listening (when there's input to submit).
       if (phase != SessionPhase.listening) return;
       await vibrationService.playTapFeedback();
+      if (!_shouldRun) return;
       _gestureClassifier.submitInput();
     }
   }
 
   /// Plays feedback (success or error), pauses briefly, then resumes the loop.
+  ///
+  /// The sequence is abandoned if the loop is stopped, restarted or
+  /// navigated while it is in flight. After a [stop] the session stays in
+  /// the feedback phase and [start] resets it to playing.
   Future<void> _handleFeedback(Future<void> Function() playFeedback) async {
     if (_disposed) return;
+    final gen = _loopGeneration;
     sessionNotifier.setPhase(SessionPhase.feedback);
     await playFeedback();
 
-    // Check if disposed or navigation happened during feedback.
-    if (_disposed || !mounted) return;
+    // Check if stopped, disposed, restarted or navigated during feedback.
+    if (!_shouldRun || gen != _loopGeneration) return;
     if (sessionNotifier.state.phase != SessionPhase.feedback) return;
 
     // Brief silence so the user can register the feedback before the
     // loop resumes with the Morse pattern.
     await Future<void>.delayed(config.postFeedbackPause);
-    if (_disposed || !mounted) return;
+    if (!_shouldRun || gen != _loopGeneration) return;
     if (sessionNotifier.state.phase != SessionPhase.feedback) return;
 
     // Resume the loop (fire-and-forget — the loop manages its own lifecycle).
@@ -321,9 +354,11 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     // no-op. Don't restart the loop to avoid an unexpected pattern replay.
     if (clampAtBoundary && stateBefore == stateAfter) return;
 
-    // Restart the loop for the new (or reset) character.
+    // Restart the loop for the new (or reset) character. Navigation is only
+    // handled while running (see _onGestureEvent), so it never starts a
+    // stopped loop.
     _loopGeneration++;
-    state = state.copyWith(isRunning: true, isInterrupted: false);
+    state = state.copyWith(isInterrupted: false);
     unawaited(_runLoop());
   }
 }

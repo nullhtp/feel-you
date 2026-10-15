@@ -21,6 +21,9 @@ class FakeGestureClassifier extends GestureClassifier {
   /// Calls to [submitInput].
   int submitInputCallCount = 0;
 
+  /// Calls to [clearInput].
+  int clearInputCallCount = 0;
+
   @override
   Stream<GestureEvent> get events => _testController.stream;
 
@@ -42,6 +45,11 @@ class FakeGestureClassifier extends GestureClassifier {
   @override
   void submitInput() {
     submitInputCallCount++;
+  }
+
+  @override
+  void clearInput() {
+    clearInputCallCount++;
   }
 
   @override

@@ -330,6 +330,17 @@ class GestureClassifier {
     _notifyBufferChanged();
   }
 
+  /// Discards the current buffer contents without emitting any event.
+  ///
+  /// Cancels the silence timer, so no [InputComplete] fires later, and
+  /// notifies [inputBufferNotifier] that the buffer is empty. Unlike
+  /// [submitInput], the discarded input is never evaluated.
+  ///
+  /// Called by the teaching orchestrator when the loop stops (e.g. the app
+  /// leaves the foreground), so a half-entered pattern is neither judged in
+  /// the background nor after the app resumes.
+  void clearInput() => _clearBuffer();
+
   /// Emits an externally-created [GestureEvent] onto the event stream.
   ///
   /// Used by [TouchSurface] to inject [BottomZoneAction] events without
