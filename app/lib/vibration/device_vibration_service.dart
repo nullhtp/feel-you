@@ -8,7 +8,9 @@ import 'package:vibration/vibration.dart';
 
 /// Concrete [VibrationService] that uses the `vibration` package.
 ///
-/// For Morse patterns, uses the standard `pattern:` API (no intensities).
+/// For Morse patterns, sends the `[wait, vibrate, ...]` pattern with matching
+/// intensities (0 for waits, 255 for vibrates; see
+/// [buildMorseVibrationIntensities]) so iOS keeps the gaps between symbols.
 /// For success/error signals, uses a single `vibrate(pattern:, intensities:)`
 /// call so the OS plays the entire ramp natively without gaps. On a device
 /// that definitely lacks amplitude control, the duration-only variants are
@@ -37,21 +39,25 @@ class DeviceVibrationService implements VibrationService {
 
   @override
   Future<void> playMorsePattern(List<MorseSignal> signals) async {
-    final pattern = buildMorseVibrationPatternFromSignals(signals, config);
-    if (pattern.isEmpty) return;
-    await Vibration.vibrate(pattern: pattern);
-    var total = 0;
-    for (final ms in pattern) {
-      total += ms;
-    }
-    await Future<void>.delayed(Duration(milliseconds: total));
+    await _playMorse(buildMorseVibrationPatternFromSignals(signals, config));
   }
 
   @override
   Future<void> playMorseTokenPattern(List<MorseToken> tokens) async {
-    final pattern = buildMorseVibrationPattern(tokens, config);
+    await _playMorse(buildMorseVibrationPattern(tokens, config));
+  }
+
+  /// Plays a Morse [pattern] in a single native call, then waits until it
+  /// has finished.
+  ///
+  /// Always sends explicit intensities (see [buildMorseVibrationIntensities]):
+  /// without them the iOS plugin vibrates through the gaps as well.
+  Future<void> _playMorse(List<int> pattern) async {
     if (pattern.isEmpty) return;
-    await Vibration.vibrate(pattern: pattern);
+    await Vibration.vibrate(
+      pattern: pattern,
+      intensities: buildMorseVibrationIntensities(pattern),
+    );
     var total = 0;
     for (final ms in pattern) {
       total += ms;

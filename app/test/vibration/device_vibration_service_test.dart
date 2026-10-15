@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -39,6 +40,92 @@ Future<void> _playFully(WidgetTester tester, Future<void> Function() play) {
 }
 
 void main() {
+  group('DeviceVibrationService Morse patterns', () {
+    /// R = dot dash dot.
+    const letterR = [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot];
+
+    testWidgets('sends a letter with silent gaps between its symbols', (
+      tester,
+    ) async {
+      final calls = _mockVibrationChannel(tester);
+      final service = DeviceVibrationService();
+
+      await _playFully(tester, () => service.playMorsePattern(letterR));
+
+      expect(calls, hasLength(1));
+      // wait(0) dot(100) gap(100) dash(300) gap(100) dot(100)
+      expect(calls.single['pattern'], [0, 100, 100, 300, 100, 100]);
+      expect(calls.single['intensities'], [0, 255, 0, 255, 0, 255]);
+    });
+
+    testWidgets('sends a word with silent symbol and character gaps', (
+      tester,
+    ) async {
+      final calls = _mockVibrationChannel(tester);
+      final service = DeviceVibrationService();
+
+      // "IT" = dot dot CharGap dash
+      await _playFully(
+        tester,
+        () => service.playMorseTokenPattern(const [
+          Signal(MorseSignal.dot),
+          Signal(MorseSignal.dot),
+          CharGap(),
+          Signal(MorseSignal.dash),
+        ]),
+      );
+
+      expect(calls, hasLength(1));
+      // wait(0) dot(100) gap(100) dot(100) charGap(300) dash(300)
+      expect(calls.single['pattern'], [0, 100, 100, 100, 300, 300]);
+      expect(calls.single['intensities'], [0, 255, 0, 255, 0, 255]);
+    });
+
+    testWidgets('sends intensities even without amplitude control', (
+      tester,
+    ) async {
+      final calls = _mockVibrationChannel(tester);
+      final service = DeviceVibrationService(
+        capabilities: () => const VibrationCapabilities(
+          hasVibrator: true,
+          hasAmplitudeControl: false,
+          hasCustomVibrationsSupport: true,
+        ),
+      );
+
+      await _playFully(tester, () => service.playMorsePattern(letterR));
+
+      expect(calls.single['pattern'], [0, 100, 100, 300, 100, 100]);
+      expect(calls.single['intensities'], [0, 255, 0, 255, 0, 255]);
+    });
+
+    testWidgets('completes only once the whole pattern has played', (
+      tester,
+    ) async {
+      _mockVibrationChannel(tester);
+      final service = DeviceVibrationService();
+      var done = false;
+
+      unawaited(service.playMorsePattern(letterR).then((_) => done = true));
+
+      // R lasts 0 + 100 + 100 + 300 + 100 + 100 = 700ms.
+      await tester.pump(const Duration(milliseconds: 699));
+      expect(done, isFalse);
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(done, isTrue);
+    });
+
+    testWidgets('does not vibrate for an empty pattern', (tester) async {
+      final calls = _mockVibrationChannel(tester);
+      final service = DeviceVibrationService();
+
+      await service.playMorsePattern(const []);
+      await service.playMorseTokenPattern(const []);
+
+      expect(calls, isEmpty);
+    });
+  });
+
   group('DeviceVibrationService signals', () {
     testWidgets('plays the intensity signals with amplitude control', (
       tester,
