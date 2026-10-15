@@ -270,7 +270,20 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     }
   }
 
+  /// Handles a bottom-zone tap: inserts a character gap on a words level, or
+  /// submits the pending input on a character level.
+  ///
+  /// Like [_handleFeedback], the action is abandoned if the loop is stopped,
+  /// restarted or navigated while one of its vibration calls is in flight,
+  /// so it never acts on a character the user has already left. Its own
+  /// interrupt of the playback does not change the generation, so it does
+  /// not abandon the action.
+  ///
+  /// An abandoned action leaves the input buffer alone. That input belongs
+  /// to the character that was left, so whatever superseded the action is
+  /// responsible for it.
   Future<void> _onBottomZoneAction() async {
+    final gen = _loopGeneration;
     final phase = sessionNotifier.state.phase;
 
     // Ignore during feedback (consistent with MorseInput/InputComplete).
@@ -287,20 +300,21 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
         state = state.copyWith(isInterrupted: true);
         _cancelPause();
         await vibrationService.cancel();
-        // Stopped (e.g. backgrounded) while cancelling: no tap feedback.
-        if (!_shouldRun) return;
+        // Stopped (e.g. backgrounded), restarted or navigated while
+        // cancelling: no tap feedback, and any new loop keeps playing.
+        if (!_shouldRun || gen != _loopGeneration) return;
         sessionNotifier.setPhase(SessionPhase.listening);
       }
       // Haptic confirmation *after* cancel so the two don't collide.
       await vibrationService.playTapFeedback();
-      if (!_shouldRun) return;
+      if (!_shouldRun || gen != _loopGeneration) return;
       _gestureClassifier.insertCharGap();
     } else {
       // Character levels (digits/letters): submit input immediately.
       // Only act during listening (when there's input to submit).
       if (phase != SessionPhase.listening) return;
       await vibrationService.playTapFeedback();
-      if (!_shouldRun) return;
+      if (!_shouldRun || gen != _loopGeneration) return;
       _gestureClassifier.submitInput();
     }
   }
