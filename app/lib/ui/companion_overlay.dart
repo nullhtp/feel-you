@@ -14,6 +14,9 @@ const _bottomZoneFraction = 0.15;
 /// Displays zone boundaries, labels, current symbol/word, Morse pattern,
 /// level, progress, input buffer, and session phase on top of the black
 /// touch surface. Wrapped in [IgnorePointer] so all touches pass through.
+///
+/// Screen readers see a single live-region node whose label is
+/// [companionOverlaySummary]; the visual fragments are excluded.
 class CompanionOverlay extends ConsumerWidget {
   const CompanionOverlay({super.key});
 
@@ -38,7 +41,7 @@ class CompanionOverlay extends ConsumerWidget {
       tokenPattern = signals.map((s) => Signal(s)).toList();
     }
 
-    return IgnorePointer(
+    final overlay = IgnorePointer(
       child: SizedBox.expand(
         child: Stack(
           children: [
@@ -227,6 +230,28 @@ class CompanionOverlay extends ConsumerWidget {
         ),
       ),
     );
+
+    // Screen readers get one live-region node with a spoken summary instead
+    // of the individual text fragments, zone labels and dividers above,
+    // which are all excluded. The summary is re-announced when it changes.
+    return ValueListenableBuilder<List<MorseToken>>(
+      valueListenable: ref.watch(inputBufferProvider),
+      builder: (context, buffer, child) => Semantics(
+        container: true,
+        liveRegion: true,
+        label: companionOverlaySummary(
+          level: level,
+          character: character,
+          pattern: tokenPattern,
+          positionIndex: session.positionIndex,
+          phase: session.phase,
+          input: buffer,
+        ),
+        excludeSemantics: true,
+        child: child,
+      ),
+      child: overlay,
+    );
   }
 
   /// Returns a font size for the current character.
@@ -251,4 +276,47 @@ class CompanionOverlay extends ConsumerWidget {
         })
         .join(' ');
   }
+}
+
+/// Builds the spoken summary of what the [CompanionOverlay] shows.
+///
+/// Uses the same values the overlay draws, in reading order: level,
+/// current character or word, its Morse pattern, position, phase and, when
+/// non-empty, the [input] entered so far. For example:
+/// `Letters level, A, dot dash, 1 of 26, listening, input dot`.
+String companionOverlaySummary({
+  required Level level,
+  required String character,
+  required List<MorseToken> pattern,
+  required int positionIndex,
+  required SessionPhase phase,
+  List<MorseToken> input = const [],
+}) {
+  // Level names are identifiers such as "arabic-letters".
+  final levelName = level.name.replaceAll('-', ' ');
+  return [
+    if (levelName.isEmpty)
+      'Level'
+    else
+      '${levelName[0].toUpperCase()}${levelName.substring(1)} level',
+    character,
+    if (pattern.isNotEmpty) _describeTokens(pattern),
+    '${positionIndex + 1} of ${level.characters.length}',
+    phase.name,
+    if (input.isNotEmpty) 'input ${_describeTokens(input)}',
+  ].join(', ');
+}
+
+/// Spells out Morse tokens as words, e.g. "dot dash gap dot", rather than
+/// the "·" / "—" / "/" symbols the overlay draws.
+String _describeTokens(List<MorseToken> tokens) {
+  return tokens
+      .map(
+        (t) => switch (t) {
+          Signal(signal: MorseSignal.dot) => 'dot',
+          Signal(signal: MorseSignal.dash) => 'dash',
+          CharGap() => 'gap',
+        },
+      )
+      .join(' ');
 }

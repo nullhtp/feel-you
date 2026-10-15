@@ -4,6 +4,7 @@ import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Vibration identifier patterns for each language, looked up from the
@@ -28,6 +29,18 @@ const Map<MorseLanguage, String> _languageLabels = {
   MorseLanguage.arabic: 'العربية',
   MorseLanguage.russian: 'Русский',
 };
+
+/// Locale of each display label, so screen readers speak it in that
+/// language.
+const Map<MorseLanguage, Locale> _languageLocales = {
+  MorseLanguage.english: Locale('en'),
+  MorseLanguage.arabic: Locale('ar'),
+  MorseLanguage.russian: Locale('ru'),
+};
+
+/// English name of [language] for the screen-reader hint, e.g. "Arabic".
+String _englishName(MorseLanguage language) =>
+    '${language.name[0].toUpperCase()}${language.name.substring(1)}';
 
 /// Full-screen language picker shown on app start.
 ///
@@ -76,18 +89,43 @@ class LanguagePickerSurface extends ConsumerWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: MorseLanguage.values.map((language) {
+              final label = _languageLabels[language] ?? language.name;
+              final locale = _languageLocales[language];
               return Expanded(
-                child: GestureDetector(
+                // One button node per language for screen readers. The label
+                // carries the language's locale so it is spoken with the
+                // right voice; the hint stays English (and the ambient text
+                // direction LTR) as the app has no localisation. The inner
+                // Text and the GestureDetector's own semantics are excluded,
+                // so the tap action is provided here instead.
+                child: Semantics(
+                  container: true,
+                  button: true,
+                  attributedLabel: AttributedString(
+                    label,
+                    attributes: [
+                      if (locale != null)
+                        LocaleStringAttribute(
+                          range: TextRange(start: 0, end: label.length),
+                          locale: locale,
+                        ),
+                    ],
+                  ),
+                  hint: 'Starts Morse lessons in ${_englishName(language)}',
                   onTap: () => _selectLanguage(context, ref, language),
-                  behavior: HitTestBehavior.opaque,
-                  child: SizedBox.expand(
-                    child: Center(
-                      child: Text(
-                        _languageLabels[language] ?? language.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 48,
-                          fontWeight: FontWeight.bold,
+                  excludeSemantics: true,
+                  child: GestureDetector(
+                    onTap: () => _selectLanguage(context, ref, language),
+                    behavior: HitTestBehavior.opaque,
+                    child: SizedBox.expand(
+                      child: Center(
+                        child: Text(
+                          label,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 48,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),

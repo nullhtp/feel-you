@@ -275,7 +275,31 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
               onPointerUp: _onPointerUp,
               onPointerCancel: _onPointerCancel,
               behavior: HitTestBehavior.opaque,
-              child: const SizedBox.expand(),
+              // Describes the input area to screen readers. It also names the
+              // route, so the surface is announced when the screen opens.
+              //
+              // Limitation: while TalkBack or VoiceOver is on, the screen
+              // reader consumes single taps and swipes for exploration, so
+              // they never reach this Listener. Flutter does not expose iOS's
+              // "allows direct interaction" trait (VoiceOver Direct Touch) and
+              // Android has no app-settable equivalent, so there is no way to
+              // opt this area out. Users can use the screen reader's
+              // pass-through gesture (double tap and hold, then gesture) or
+              // turn the screen reader off. With no semantic tap action, a
+              // screen-reader double tap is expected to fall back to a
+              // synthesised tap at the centre of the focused node (screen
+              // centre here), which the classifier reads as a dash.
+              child: Semantics(
+                container: true,
+                namesRoute: true,
+                label: 'Morse input surface',
+                hint:
+                    'Tap the left half for a dot and the right half for a '
+                    'dash. Tap the bottom strip to submit, or to add a letter '
+                    'gap on word levels. Swipe left or right to change '
+                    'character, up or down to change level.',
+                child: const SizedBox.expand(),
+              ),
             ),
             const CompanionOverlay(),
           ],
