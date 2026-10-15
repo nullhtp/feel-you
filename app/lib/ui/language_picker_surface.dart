@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_providers.dart';
+import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration.dart';
@@ -42,10 +45,11 @@ const Map<MorseLanguage, Locale> _languageLocales = {
 String _englishName(MorseLanguage language) =>
     '${language.name[0].toUpperCase()}${language.name.substring(1)}';
 
-/// Full-screen language picker shown on app start.
+/// Full-screen language picker shown on launch when no language is saved.
 ///
 /// Displays one button per language. Tapping a button vibrates its
-/// identifier pattern and navigates to the main [TouchSurface].
+/// identifier pattern, saves the language for the next launch and
+/// navigates to the main [TouchSurface].
 class LanguagePickerSurface extends ConsumerWidget {
   const LanguagePickerSurface({super.key});
 
@@ -63,6 +67,9 @@ class LanguagePickerSurface extends ConsumerWidget {
     if (pattern != null) {
       vibration.playMorsePattern(pattern);
     }
+
+    // Remember the choice, so the next launch skips the picker.
+    unawaited(ref.read(languagePreferenceStoreProvider).write(language));
 
     // Set the selected language on the session notifier.
     ref.read(sessionNotifierProvider.notifier).selectLanguage(language);

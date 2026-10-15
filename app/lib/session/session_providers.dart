@@ -2,6 +2,7 @@ import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/morse/morse_providers.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_state.dart';
+import 'package:feel_you/settings/language_preference.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Provides the [SessionNotifier] and its current [SessionState].
@@ -10,8 +11,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Use `ref.read(sessionNotifierProvider.notifier)` to call
 /// mutation methods.
 ///
-/// The initial language defaults to [MorseLanguage.english]. The language
-/// picker calls [SessionNotifier.selectLanguage] to set the user's choice.
+/// The initial language is the one saved on an earlier run
+/// ([launchLanguageProvider]), so a launch that skips the picker starts in
+/// it; [MorseLanguage.english] when none is saved. The language picker
+/// calls [SessionNotifier.selectLanguage] to set the user's choice.
 /// Levels are resolved from [morseRegistryProvider].
 ///
 /// Override in tests to inject a custom notifier or initial state, or
@@ -19,7 +22,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 final sessionNotifierProvider =
     StateNotifierProvider<SessionNotifier, SessionState>(
       (ref) => SessionNotifier(
-        MorseLanguage.english,
+        ref.watch(launchLanguageProvider) ?? MorseLanguage.english,
         registry: ref.watch(morseRegistryProvider),
       ),
     );
