@@ -5,10 +5,6 @@ import 'package:feel_you/ui/vibration_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Fraction of the screen height reserved for the bottom input zone.
-/// Matches the constant in touch_surface.dart.
-const _bottomZoneFraction = 0.15;
-
 /// Visual companion overlay for sighted observers.
 ///
 /// Displays zone boundaries, labels, current symbol/word, Morse pattern,
@@ -23,9 +19,11 @@ class CompanionOverlay extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final session = ref.watch(sessionNotifierProvider);
-    final size = MediaQuery.of(context).size;
-    final bottomZoneTop = size.height * (1 - _bottomZoneFraction);
-    final midX = size.width / 2;
+    final size = MediaQuery.sizeOf(context);
+    // The same zones the classifier uses to classify presses.
+    final zones = ZoneLayout(size, ref.watch(gestureClassifierProvider).config);
+    final bottomZoneTop = zones.bottomZoneTop;
+    final midX = zones.midX;
 
     final character = session.currentCharacter;
     final level = session.currentLevel;

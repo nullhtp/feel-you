@@ -1,4 +1,4 @@
-/// Configuration for gesture recognition timing thresholds.
+/// Configuration for gesture recognition thresholds.
 ///
 /// All duration values are in milliseconds. Distance is in logical pixels.
 /// Velocity is in logical pixels per second.
@@ -13,7 +13,11 @@ class GestureTimingConfig {
     this.silenceTimeout = 1000,
     this.minSwipeDistance = 50,
     this.minSwipeVelocity = 200,
-  });
+    this.bottomZoneFraction = 0.15,
+  }) : assert(
+         bottomZoneFraction >= 0 && bottomZoneFraction <= 1,
+         'bottomZoneFraction must be between 0 and 1',
+       );
 
   /// Minimum press duration to trigger a reset, in ms.
   final int resetMinDuration;
@@ -27,4 +31,12 @@ class GestureTimingConfig {
 
   /// Minimum horizontal velocity for a swipe, in logical pixels per second.
   final double minSwipeVelocity;
+
+  /// Fraction of the screen height taken by the bottom input zone, measured
+  /// from the bottom edge.
+  ///
+  /// A tap that starts in this strip is a bottom-zone action (submit, or a
+  /// letter gap on word levels) instead of a dot or dash. Use `ZoneLayout`
+  /// to turn it into coordinates for a given screen size.
+  final double bottomZoneFraction;
 }

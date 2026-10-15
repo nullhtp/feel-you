@@ -436,21 +436,6 @@ void main() {
     });
   });
 
-  group('emitEvent', () {
-    test('emits provided event on the stream', () async {
-      classifier.emitEvent(const BottomZoneAction());
-      await pump();
-      expect(events, [const BottomZoneAction()]);
-    });
-
-    test('emits multiple events in order', () async {
-      classifier.emitEvent(const BottomZoneAction());
-      classifier.emitEvent(const NavigateNext());
-      await pump();
-      expect(events, [const BottomZoneAction(), const NavigateNext()]);
-    });
-  });
-
   group('silence timeout fallback', () {
     test('silence timeout still works as InputComplete fallback', () async {
       tap(100, startX: leftX); // dot

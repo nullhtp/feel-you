@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:ui' show Size;
 
 import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/gestures/gesture_timing_config.dart';
+import 'package:feel_you/gestures/zone_layout.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:flutter/foundation.dart';
 
@@ -50,31 +52,52 @@ class TouchCancel extends RawTouchEvent {
 
 /// Classifies raw touch events into [GestureEvent]s.
 ///
-/// Dot/dash classification is position-based: taps on the left half of the
-/// screen (x < screenWidth / 2) produce dots; taps on the right half
-/// (x >= screenWidth / 2) produce dashes.
+/// What a press means is decided from where it started, using the
+/// [ZoneLayout] for the current screen size:
+/// - a tap that started in the bottom input zone (the lower
+///   [GestureTimingConfig.bottomZoneFraction] of the screen) emits
+///   [BottomZoneAction];
+/// - any other tap is position-based: taps on the left half of the screen
+///   (x < screenWidth / 2) produce dots; taps on the right half
+///   (x >= screenWidth / 2) produce dashes.
 ///
-/// The width is mutable via [screenWidth] so the UI can feed in the live
-/// layout width (split-screen, foldables, rotation, display-size changes)
-/// without recreating the classifier and losing its stream subscribers,
-/// input buffer and timers.
+/// A fast swipe navigates, and a hold of at least
+/// [GestureTimingConfig.resetMinDuration] emits [Reset], wherever the press
+/// started, including the bottom zone.
+///
+/// The size is mutable via [screenWidth] and [screenHeight] so the UI can
+/// feed in the live layout size (split-screen, foldables, rotation,
+/// display-size changes) without recreating the classifier and losing its
+/// stream subscribers, input buffer and timers.
 ///
 /// Emits events via a broadcast [Stream]. Manages an internal input buffer
 /// and silence timer for input completion detection.
 class GestureClassifier {
-  /// Creates a classifier with an initial [screenWidth] in logical pixels.
+  /// Creates a classifier with an initial [screenWidth] and, optionally, an
+  /// initial [screenHeight], in logical pixels.
   ///
   /// An unusable initial width (zero, negative or non-finite) is logged, and
   /// dot/dash taps are then dropped until a usable width is set rather than
   /// being misclassified.
+  ///
+  /// Until a usable height is known there is no bottom input zone, so every
+  /// tap is a dot or dash. An unusable height passed here is logged.
   GestureClassifier({
     required double screenWidth,
+    double? screenHeight,
     this.config = const GestureTimingConfig(),
-  }) : _screenWidth = screenWidth {
-    if (!_isUsableWidth(screenWidth)) {
+  }) : _screenWidth = screenWidth,
+       _screenHeight = screenHeight ?? 0 {
+    if (!_isUsableExtent(screenWidth)) {
       debugPrint(
         'GestureClassifier: initial screen width $screenWidth is unusable; '
         'dot/dash taps are dropped until a usable width is set.',
+      );
+    }
+    if (screenHeight != null && !_isUsableExtent(screenHeight)) {
+      debugPrint(
+        'GestureClassifier: initial screen height $screenHeight is unusable; '
+        'there is no bottom zone until a usable height is set.',
       );
     }
   }
@@ -90,7 +113,7 @@ class GestureClassifier {
   double get screenWidth => _screenWidth;
 
   set screenWidth(double value) {
-    if (!_isUsableWidth(value)) {
+    if (!_isUsableExtent(value)) {
       debugPrint(
         'GestureClassifier: ignoring unusable screen width $value; '
         'keeping $_screenWidth.',
@@ -100,7 +123,31 @@ class GestureClassifier {
     _screenWidth = value;
   }
 
-  static bool _isUsableWidth(double width) => width.isFinite && width > 0;
+  double _screenHeight;
+
+  /// Screen height in logical pixels, used to locate the bottom input zone.
+  ///
+  /// Set this together with [screenWidth] whenever the touch surface size
+  /// may have changed. Unusable values (zero, negative or non-finite) are
+  /// rejected with a [debugPrint] and the last usable height is kept.
+  ///
+  /// Until a usable height is set (it is 0 if none was given to the
+  /// constructor), there is no bottom input zone and every tap is a dot or
+  /// dash.
+  double get screenHeight => _screenHeight;
+
+  set screenHeight(double value) {
+    if (!_isUsableExtent(value)) {
+      debugPrint(
+        'GestureClassifier: ignoring unusable screen height $value; '
+        'keeping $_screenHeight.',
+      );
+      return;
+    }
+    _screenHeight = value;
+  }
+
+  static bool _isUsableExtent(double extent) => extent.isFinite && extent > 0;
 
   final GestureTimingConfig config;
 
@@ -204,10 +251,21 @@ class GestureClassifier {
       }
     }
 
+    final zones = ZoneLayout(Size(_screenWidth, _screenHeight), config);
+
+    // A tap that started in the bottom input zone is an action, not a dot
+    // or dash; the teaching orchestrator decides whether it submits the
+    // input or inserts a letter gap. Swipes that start there were handled
+    // above, and a long hold there ended with its Reset.
+    if (_isUsableExtent(_screenHeight) && zones.isInBottomZone(startY)) {
+      _onBottomZoneTap();
+      return;
+    }
+
     // Only reachable if no usable width was ever provided (the setter keeps
     // the last usable one). The midpoint is then unknown, and with width 0
     // every tap would silently become a dash, so drop the tap and log.
-    if (!_isUsableWidth(_screenWidth)) {
+    if (!_isUsableExtent(_screenWidth)) {
       debugPrint(
         'GestureClassifier: dropping tap at x=$startX, no usable screen '
         'width (got $_screenWidth).',
@@ -218,10 +276,24 @@ class GestureClassifier {
     // Position-based dot/dash classification.
     // Left half (x < midpoint) = dot, right half (x >= midpoint) = dash.
     // Any non-swipe tap shorter than resetMinDuration is classified.
-    final signal = startX < _screenWidth / 2
+    final signal = zones.isInLeftHalf(startX)
         ? MorseSignal.dot
         : MorseSignal.dash;
     _addSignal(signal);
+  }
+
+  /// Emits [BottomZoneAction] for a tap in the bottom input zone.
+  ///
+  /// [_onTouchDown] stopped the silence timer, so it is restarted when the
+  /// buffer is not empty, as a dot/dash release or a [TouchCancel] does.
+  /// Input already in the buffer is then still completed even if the
+  /// teaching orchestrator ignores the action (for example during
+  /// feedback). When it acts on it instead, [submitInput] cancels the timer
+  /// and [insertCharGap] restarts it, and both do nothing once the timer has
+  /// emptied the buffer, so the input is completed only once.
+  void _onBottomZoneTap() {
+    if (_inputBuffer.isNotEmpty) _startSilenceTimer();
+    _emit(const BottomZoneAction());
   }
 
   /// Drops the press in progress without classifying it.
@@ -301,14 +373,6 @@ class GestureClassifier {
     _notifyBufferChanged();
   }
 
-  /// Cancels the reset (long-hold) timer without emitting any events.
-  ///
-  /// Called by the UI layer when a bottom-zone tap consumes the pointer
-  /// release, preventing the normal [TouchUp] from reaching the classifier.
-  void cancelResetTimer() {
-    _resetTimer?.cancel();
-  }
-
   /// Inserts a [CharGap] token into the input buffer.
   ///
   /// Does nothing if the buffer is empty (cannot start with a charGap).
@@ -340,12 +404,6 @@ class GestureClassifier {
   /// leaves the foreground), so a half-entered pattern is neither judged in
   /// the background nor after the app resumes.
   void clearInput() => _clearBuffer();
-
-  /// Emits an externally-created [GestureEvent] onto the event stream.
-  ///
-  /// Used by [TouchSurface] to inject [BottomZoneAction] events without
-  /// going through the normal touch-classification pipeline.
-  void emitEvent(GestureEvent event) => _emit(event);
 
   void _emit(GestureEvent event) {
     if (!_controller.isClosed) {

@@ -8,7 +8,9 @@ import 'package:feel_you/gestures/gesture_event.dart';
 /// Exposes a [StreamController] for injecting gesture events and
 /// records raw touch events for verification.
 class FakeGestureClassifier extends GestureClassifier {
-  FakeGestureClassifier() : super(screenWidth: 800);
+  /// Creates a fake with an 800 px screen width and, optionally, a custom
+  /// [config] (e.g. to move the bottom input zone).
+  FakeGestureClassifier({super.config}) : super(screenWidth: 800);
 
   final _testController = StreamController<GestureEvent>.broadcast();
 
