@@ -47,6 +47,17 @@ Widget buildTestWidget({
 ProviderContainer containerOf(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
 
+/// Holds a finger on the picker long enough to start the highlighted
+/// language, then lifts it.
+Future<void> holdToStart(WidgetTester tester) async {
+  final gesture = await tester.startGesture(
+    tester.getCenter(find.byType(LanguagePickerSurface)),
+  );
+  await tester.pump(LanguagePickerSurface.confirmHoldDuration);
+  await gesture.up();
+  await tester.pump();
+}
+
 /// Cleanly tears down the widget tree, stopping the teaching loop if a
 /// session was started.
 Future<void> cleanUp(WidgetTester tester) async {
@@ -247,8 +258,11 @@ void main() {
       );
       await tester.pump();
 
+      // Tap highlights Russian; the hold starts it.
       await tester.tap(find.text('Русский'));
       await tester.pump();
+      expect(find.byType(TouchSurface), findsNothing);
+      await holdToStart(tester);
       await tester.pump();
 
       expect(find.byType(TouchSurface), findsOneWidget);

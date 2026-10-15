@@ -154,7 +154,14 @@ void main() {
 
       await tester.tap(_bypassButton);
       await tester.pump();
+      // Tap highlights English; holding anywhere starts it.
       await tester.tap(find.text('English'));
+      await tester.pump();
+      final hold = await tester.startGesture(
+        tester.getCenter(find.byType(LanguagePickerSurface)),
+      );
+      await tester.pump(LanguagePickerSurface.confirmHoldDuration);
+      await hold.up();
       await tester.pump();
       await tester.pump();
 

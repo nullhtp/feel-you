@@ -124,7 +124,12 @@ void main() {
       await first.launch(tester);
       await tester.pump();
 
-      await tester.tap(find.text('العربية'));
+      // Pick Arabic: swipe right from English, then hold.
+      await tester.dragFrom(const Offset(400, 300), const Offset(200, 0));
+      await tester.pump();
+      final hold = await tester.startGesture(const Offset(400, 300));
+      await tester.pump(LanguagePickerSurface.confirmHoldDuration);
+      await hold.up();
       await tester.pumpAndSettle();
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(first.session(tester).language, MorseLanguage.arabic);

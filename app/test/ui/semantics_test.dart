@@ -114,6 +114,45 @@ void main() {
       handle.dispose();
     });
 
+    testWidgets('only the highlighted language is selected', (tester) async {
+      final handle = tester.ensureSemantics();
+      final classifier = FakeGestureClassifier();
+
+      await tester.pumpWidget(
+        _buildApp(home: const LanguagePickerSurface(), classifier: classifier),
+      );
+
+      // English is highlighted when no language is saved.
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('English')),
+        isSemantics(isSelected: true),
+      );
+      for (final label in ['العربية', 'Русский']) {
+        expect(
+          tester.getSemantics(find.bySemanticsLabel(label)),
+          isSemantics(isSelected: false),
+          reason: label,
+        );
+      }
+
+      // A touch tap moves the highlight without starting a session.
+      await tester.tap(find.text('Русский'));
+      await tester.pump();
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('Русский')),
+        isSemantics(isSelected: true),
+      );
+      expect(
+        tester.getSemantics(find.bySemanticsLabel('English')),
+        isSemantics(isSelected: false),
+      );
+      expect(find.byType(TouchSurface), findsNothing);
+
+      await _cleanUp(tester);
+      classifier.dispose();
+      handle.dispose();
+    });
+
     testWidgets('each label is tagged with its language locale', (
       tester,
     ) async {
@@ -163,7 +202,11 @@ void main() {
           vibration: vibration,
         ),
       );
+      // Drop the highlighted identifier the picker plays when it appears.
+      await tester.pump();
+      vibration.reset();
 
+      // One activation starts the language: no highlight-then-hold step.
       tester.semantics.tap(find.semantics.byLabel('Русский'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
