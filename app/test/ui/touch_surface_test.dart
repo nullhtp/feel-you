@@ -179,7 +179,7 @@ void main() {
       },
     );
 
-    testWidgets('pointer cancel is forwarded as TouchUp', (tester) async {
+    testWidgets('pointer cancel is forwarded as TouchCancel', (tester) async {
       final classifier = FakeGestureClassifier();
       final vibration = MockVibrationService();
 
@@ -197,7 +197,7 @@ void main() {
       await gesture.cancel();
 
       expect(classifier.touchEvents, hasLength(2));
-      expect(classifier.touchEvents[1], isA<TouchUp>());
+      expect(classifier.touchEvents[1], isA<TouchCancel>());
 
       await cleanUp(tester);
       classifier.dispose();

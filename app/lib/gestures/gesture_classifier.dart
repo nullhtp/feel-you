@@ -35,6 +35,19 @@ class TouchUp extends RawTouchEvent {
   final double y; // y-coordinate in logical pixels
 }
 
+/// The press in progress ended without a real release.
+///
+/// Sent when the OS takes over the pointer (edge back/home gesture,
+/// notification shade, Control Center, incoming-call screen), or when the
+/// UI abandons a press, for example because the app left the foreground.
+///
+/// Unlike [TouchUp], a cancelled press is never classified: it produces no
+/// dot, dash, swipe or other [GestureEvent], so it carries no position or
+/// timestamp.
+class TouchCancel extends RawTouchEvent {
+  const TouchCancel();
+}
+
 /// Classifies raw touch events into [GestureEvent]s.
 ///
 /// Dot/dash classification is position-based: taps on the left half of the
@@ -120,6 +133,8 @@ class GestureClassifier {
         _onTouchDown(event);
       case TouchUp():
         _onTouchUp(event);
+      case TouchCancel():
+        _onTouchCancel();
     }
   }
 
@@ -207,6 +222,31 @@ class GestureClassifier {
         ? MorseSignal.dot
         : MorseSignal.dash;
     _addSignal(signal);
+  }
+
+  /// Drops the press in progress without classifying it.
+  ///
+  /// Cancels the long-hold timer, so no [Reset] fires later, and clears the
+  /// press state, so a stray [TouchUp] is ignored. Emits no event and leaves
+  /// the input buffer as it is: signals already in it came from completed
+  /// taps and still complete normally.
+  ///
+  /// [_onTouchDown] stopped the silence timer, so it is restarted when the
+  /// buffer is not empty. Otherwise that input would never be completed.
+  ///
+  /// If a [Reset] was already emitted during this press, it stands (the
+  /// buffer was cleared then) and the cancel only cleans up, as a release
+  /// would. A cancel with no press in progress does nothing.
+  void _onTouchCancel() {
+    _resetTimer?.cancel();
+    if (_pressStartTime == null) return;
+
+    _pressStartTime = null;
+    _pressStartX = null;
+    _pressStartY = null;
+    _resetEmitted = false;
+
+    if (_inputBuffer.isNotEmpty) _startSilenceTimer();
   }
 
   bool _isSwipe(int durationMs, double dx) {

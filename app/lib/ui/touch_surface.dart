@@ -125,10 +125,10 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   /// The release for that pointer may never arrive, or may arrive long after
   /// the app returns. The press is therefore abandoned rather than
   /// classified: tracking is cleared so a late up/cancel for the old pointer
-  /// is ignored, and no [TouchUp] is sent, so it does not count as a dot,
-  /// dash or swipe. The classifier's long-hold timer is cancelled so it
-  /// cannot emit a [Reset] in the background, which would restart the
-  /// teaching loop.
+  /// is ignored, and a [TouchCancel] is sent instead of a [TouchUp], so it
+  /// does not count as a dot, dash or swipe. The cancel also stops the
+  /// classifier's long-hold timer so it cannot emit a [Reset] in the
+  /// background, which would restart the teaching loop.
   void _abandonActivePress() {
     if (_primaryPointer == null) return;
     _primaryPointer = null;
@@ -136,7 +136,7 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
     _pressStartY = null;
     _pressStartTime = null;
     _resetEmittedDuringPress = false;
-    ref.read(gestureClassifierProvider).cancelResetTimer();
+    ref.read(gestureClassifierProvider).handleTouch(const TouchCancel());
   }
 
   void _onPointerDown(PointerDownEvent event) {
@@ -214,6 +214,14 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
     _resetEmittedDuringPress = false;
   }
 
+  /// Drops the primary press when the OS takes over the pointer (edge
+  /// back/home gesture, notification shade, Control Center, incoming-call
+  /// screen).
+  ///
+  /// The touch was not meant for the app, so the classifier gets a
+  /// [TouchCancel] rather than a [TouchUp]: it cleans up without producing a
+  /// dot, dash or swipe, and its pending [Reset] never fires. A cancel in
+  /// the bottom zone likewise emits no [BottomZoneAction].
   void _onPointerCancel(PointerCancelEvent event) {
     if (event.pointer != _primaryPointer) return;
     _primaryPointer = null;
@@ -222,15 +230,7 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
     _pressStartTime = null;
     _resetEmittedDuringPress = false;
 
-    // Treat cancel as a release so the classifier can clean up.
-    final classifier = ref.read(gestureClassifierProvider);
-    classifier.handleTouch(
-      TouchUp(
-        timestamp: event.timeStamp,
-        position: event.position.dx,
-        y: event.position.dy,
-      ),
-    );
+    ref.read(gestureClassifierProvider).handleTouch(const TouchCancel());
   }
 
   void _forwardTouchUp(PointerUpEvent event) {
