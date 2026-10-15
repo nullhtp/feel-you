@@ -1,7 +1,9 @@
 import 'dart:io' show Platform;
 
 import 'package:feel_you/vibration/vibration_capabilities.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, kIsWeb, visibleForTesting;
+import 'package:flutter/services.dart';
 import 'package:vibration/vibration.dart';
 
 /// Queries the device for its vibration capabilities.
@@ -21,31 +23,70 @@ abstract interface class VibrationCapabilityProbe {
   Future<bool?> hasCustomVibrationsSupport();
 }
 
-/// [VibrationCapabilityProbe] backed by the `vibration` plugin.
+/// The app's own Android channel to the system vibrator, implemented in
+/// `MainActivity.kt`.
 ///
-/// Only asks the plugin on Android and iOS. Everywhere else (unit and widget
-/// tests on a desktop host, web) every capability is reported as unknown,
-/// because the plugin would answer `false` there, which would wrongly lock
-/// the app.
+/// Answers `hasVibrator` and `hasAmplitudeControl` with a `bool`.
+const vibratorChannel = MethodChannel('feel_you/vibrator');
+
+/// [VibrationCapabilityProbe] backed by the platform.
 ///
-/// Note that the plugin reports no vibrator on emulators and simulators.
+/// - **Android**: the motor and amplitude control are asked of the system
+///   `Vibrator` through [vibratorChannel], because the plugin only checks
+///   whether the device is physical: it reports a motor on a motorless
+///   tablet and none on every emulator. Custom patterns come from the
+///   plugin, which answers `true`; Android can time any pattern on every
+///   API level.
+/// - **iOS**: everything comes from the plugin. Every supported device is an
+///   iPhone with a Taptic Engine; the simulator reports no motor, and debug
+///   builds can bypass the gate (see `vibrationGateBypassProvider`).
+/// - **Anywhere else** (unit and widget tests on a desktop host, web): every
+///   capability is unknown, because the plugin would answer `false` there,
+///   which would wrongly lock the app.
 class DeviceVibrationCapabilityProbe implements VibrationCapabilityProbe {
-  const DeviceVibrationCapabilityProbe();
+  /// Creates a probe for the platform the app runs on.
+  ///
+  /// Tests may pass [platform] to act as if running there.
+  const DeviceVibrationCapabilityProbe({
+    @visibleForTesting TargetPlatform? platform,
+  }) : _platformOverride = platform;
 
-  static bool get _isSupportedPlatform =>
-      !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+  final TargetPlatform? _platformOverride;
+
+  /// The platform to query, or `null` when the device can't be asked.
+  TargetPlatform? get _platform => _platformOverride ?? _hostPlatform;
+
+  static TargetPlatform? get _hostPlatform {
+    if (kIsWeb) return null;
+    if (Platform.isAndroid) return TargetPlatform.android;
+    if (Platform.isIOS) return TargetPlatform.iOS;
+    return null;
+  }
 
   @override
-  Future<bool?> hasVibrator() async =>
-      _isSupportedPlatform ? Vibration.hasVibrator() : null;
+  Future<bool?> hasVibrator() async => switch (_platform) {
+    TargetPlatform.android => await vibratorChannel.invokeMethod<bool>(
+      'hasVibrator',
+    ),
+    TargetPlatform.iOS => await Vibration.hasVibrator(),
+    _ => null,
+  };
 
   @override
-  Future<bool?> hasAmplitudeControl() async =>
-      _isSupportedPlatform ? Vibration.hasAmplitudeControl() : null;
+  Future<bool?> hasAmplitudeControl() async => switch (_platform) {
+    TargetPlatform.android => await vibratorChannel.invokeMethod<bool>(
+      'hasAmplitudeControl',
+    ),
+    TargetPlatform.iOS => await Vibration.hasAmplitudeControl(),
+    _ => null,
+  };
 
   @override
-  Future<bool?> hasCustomVibrationsSupport() async =>
-      _isSupportedPlatform ? Vibration.hasCustomVibrationsSupport() : null;
+  Future<bool?> hasCustomVibrationsSupport() async => switch (_platform) {
+    TargetPlatform.android ||
+    TargetPlatform.iOS => await Vibration.hasCustomVibrationsSupport(),
+    _ => null,
+  };
 }
 
 /// Queries all capabilities from [probe] concurrently.

@@ -1,9 +1,13 @@
 import 'package:feel_you/vibration/vibration.dart';
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Shown while capability detection is still running.
 const vibrationDiagnosticsCheckingLabel = 'Vibration: checking…';
+
+/// Appended to the readout while a debug build bypasses the vibration gate.
+const vibrationGateBypassedMarker = 'gate bypassed (debug)';
 
 /// Small vibration capability readout for the companion overlay.
 ///
@@ -11,19 +15,32 @@ const vibrationDiagnosticsCheckingLabel = 'Vibration: checking…';
 /// e.g. `Vibration: OK · amplitude: no · custom: yes`. Sits dimmed in the
 /// bottom-left corner of the screen and turns amber when a capability is
 /// definitely missing. Meant as a child of the overlay's [Stack].
+///
+/// Always shows what the device really reported, never the bypassed
+/// capabilities the gate acts on. While a debug build bypasses the gate
+/// (see [vibrationGateBypassProvider]), it appends
+/// [vibrationGateBypassedMarker] and stays amber.
 class VibrationDiagnostics extends ConsumerWidget {
   const VibrationDiagnostics({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // The raw detection result, not effectiveVibrationCapabilitiesProvider,
+    // which hides a missing motor while the gate is bypassed.
     final capabilities = switch (ref.watch(vibrationCapabilitiesProvider)) {
       AsyncData(:final value) => value,
       // The provider never fails, but if it did nothing would be known.
       AsyncError() => VibrationCapabilities.unknown,
       _ => null,
     };
+    // kDebugMode is a compile-time constant: release builds never bypass.
+    final bypassed = kDebugMode && ref.watch(vibrationGateBypassProvider);
     final hasProblem =
-        capabilities != null && hasMissingVibrationCapability(capabilities);
+        bypassed ||
+        (capabilities != null && hasMissingVibrationCapability(capabilities));
+    final readout = capabilities == null
+        ? vibrationDiagnosticsCheckingLabel
+        : describeVibrationCapabilities(capabilities);
 
     return SafeArea(
       child: Align(
@@ -31,9 +48,7 @@ class VibrationDiagnostics extends ConsumerWidget {
         child: Padding(
           padding: const EdgeInsets.only(left: 16, bottom: 8),
           child: Text(
-            capabilities == null
-                ? vibrationDiagnosticsCheckingLabel
-                : describeVibrationCapabilities(capabilities),
+            bypassed ? '$readout · $vibrationGateBypassedMarker' : readout,
             style: TextStyle(
               color: hasProblem
                   ? Colors.amber

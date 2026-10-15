@@ -126,6 +126,27 @@ void main() {
       );
     });
 
+    testWidgets('shows the real capabilities and a marker while the gate '
+        'is bypassed', (tester) async {
+      await pumpDiagnostics(
+        tester,
+        FakeVibrationCapabilityProbe(vibrator: false),
+      );
+      ProviderScope.containerOf(
+        tester.element(find.byType(VibrationDiagnostics)),
+      ).read(vibrationGateBypassProvider.notifier).bypass();
+      await tester.pump();
+
+      expect(
+        find.text(
+          'Vibration: NONE · amplitude: yes · custom: yes'
+          ' · $vibrationGateBypassedMarker',
+        ),
+        findsOneWidget,
+      );
+      expect(readoutColor(tester), Colors.amber);
+    });
+
     testWidgets('shows that detection is still running', (tester) async {
       await pumpDiagnostics(
         tester,

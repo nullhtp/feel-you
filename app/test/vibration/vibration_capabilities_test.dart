@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:feel_you/vibration/vibration.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -183,6 +184,84 @@ void main() {
 
       expect(sub.read().hasVibrator, isFalse);
       expect(sub.read().canVibrate, isFalse);
+    });
+  });
+
+  group('vibrationGateBypassProvider', () {
+    test('is off by default', () async {
+      final container = _containerWith(
+        FakeVibrationCapabilityProbe(vibrator: false),
+      );
+      await container.read(vibrationCapabilitiesProvider.future);
+
+      expect(container.read(vibrationGateBypassProvider), isFalse);
+      expect(
+        container.read(effectiveVibrationCapabilitiesProvider).canVibrate,
+        isFalse,
+      );
+    });
+
+    test('opens the gate in debug builds', () async {
+      // Tests always run in debug mode. Release builds compile the bypass
+      // out: it is guarded by the compile-time constant kDebugMode.
+      expect(kDebugMode, isTrue);
+      final container = _containerWith(
+        FakeVibrationCapabilityProbe(vibrator: false, amplitudeControl: false),
+      );
+      final sub = container.listen(
+        effectiveVibrationCapabilitiesProvider,
+        (_, _) {},
+      );
+      addTearDown(sub.close);
+      await container.read(vibrationCapabilitiesProvider.future);
+      expect(sub.read().canVibrate, isFalse);
+
+      container.read(vibrationGateBypassProvider.notifier).bypass();
+
+      expect(container.read(vibrationGateBypassProvider), isTrue);
+      // The motor becomes unknown; the other capabilities stay as detected.
+      expect(
+        sub.read(),
+        const VibrationCapabilities(
+          hasAmplitudeControl: false,
+          hasCustomVibrationsSupport: true,
+        ),
+      );
+      expect(sub.read().canVibrate, isTrue);
+    });
+
+    test('does not change the detected capabilities', () async {
+      final container = _containerWith(
+        FakeVibrationCapabilityProbe(vibrator: false),
+      );
+      await container.read(vibrationCapabilitiesProvider.future);
+
+      container.read(vibrationGateBypassProvider.notifier).bypass();
+
+      expect(
+        container.read(vibrationCapabilitiesProvider).requireValue.hasVibrator,
+        isFalse,
+      );
+    });
+
+    test('does not outlive its container', () async {
+      final first = _containerWith(
+        FakeVibrationCapabilityProbe(vibrator: false),
+      );
+      first.read(vibrationGateBypassProvider.notifier).bypass();
+      expect(first.read(vibrationGateBypassProvider), isTrue);
+
+      // A new app run starts with a new container.
+      final second = _containerWith(
+        FakeVibrationCapabilityProbe(vibrator: false),
+      );
+      await second.read(vibrationCapabilitiesProvider.future);
+
+      expect(second.read(vibrationGateBypassProvider), isFalse);
+      expect(
+        second.read(effectiveVibrationCapabilitiesProvider).canVibrate,
+        isFalse,
+      );
     });
   });
 
