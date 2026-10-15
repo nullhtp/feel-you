@@ -1,6 +1,7 @@
 import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
+import 'package:feel_you/ui/vibration_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -219,6 +220,9 @@ class CompanionOverlay extends ConsumerWidget {
                 },
               ),
             ),
+
+            // --- Vibration capabilities (bottom-left) ---
+            const VibrationDiagnostics(),
           ],
         ),
       ),

@@ -1,5 +1,6 @@
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_providers.dart';
+import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/material.dart';
@@ -40,6 +41,9 @@ class LanguagePickerSurface extends ConsumerWidget {
     WidgetRef ref,
     MorseLanguage language,
   ) {
+    // Ignore a tap that lands just before the switch to NoVibrationScreen.
+    if (!ref.read(effectiveVibrationCapabilitiesProvider).canVibrate) return;
+
     // Vibrate the language identifier.
     final vibration = ref.read(vibrationServiceProvider);
     final pattern = _languageIdentifiers[language];
@@ -58,6 +62,12 @@ class LanguagePickerSurface extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Vibration is the only output channel: never start a session on a
+    // device that definitely has no vibration motor.
+    if (!ref.watch(effectiveVibrationCapabilitiesProvider).canVibrate) {
+      return const NoVibrationScreen();
+    }
+
     return PopScope(
       canPop: false,
       child: Scaffold(

@@ -2,6 +2,7 @@ import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/vibration/morse_timing_config.dart';
 import 'package:feel_you/vibration/morse_vibration_pattern.dart';
 import 'package:feel_you/vibration/signal_pattern.dart';
+import 'package:feel_you/vibration/vibration_capabilities.dart';
 import 'package:feel_you/vibration/vibration_service.dart';
 import 'package:vibration/vibration.dart';
 
@@ -9,11 +10,30 @@ import 'package:vibration/vibration.dart';
 ///
 /// For Morse patterns, uses the standard `pattern:` API (no intensities).
 /// For success/error signals, uses a single `vibrate(pattern:, intensities:)`
-/// call so the OS plays the entire ramp natively without gaps.
+/// call so the OS plays the entire ramp natively without gaps. On a device
+/// that definitely lacks amplitude control, the duration-only variants are
+/// played instead (see [successSignalFor] and [errorSignalFor]).
+///
+/// Missing custom vibration support is not compensated for here: without
+/// it the platform plays a fixed system buzz for every request, which can't
+/// encode Morse timing. It is surfaced in the companion overlay instead.
 class DeviceVibrationService implements VibrationService {
-  DeviceVibrationService({this.config = const MorseTimingConfig()});
+  DeviceVibrationService({
+    this.config = const MorseTimingConfig(),
+    VibrationCapabilities Function()? capabilities,
+  }) : _capabilities = capabilities ?? _unknownCapabilities;
 
   final MorseTimingConfig config;
+
+  /// Returns the device's current vibration capabilities.
+  ///
+  /// A getter rather than a value: capabilities are detected asynchronously
+  /// at startup, and this service must not be rebuilt when they arrive.
+  /// Read on every success/error signal.
+  final VibrationCapabilities Function() _capabilities;
+
+  static VibrationCapabilities _unknownCapabilities() =>
+      VibrationCapabilities.unknown;
 
   @override
   Future<void> playMorsePattern(List<MorseSignal> signals) async {
@@ -41,12 +61,12 @@ class DeviceVibrationService implements VibrationService {
 
   @override
   Future<void> playSuccess() async {
-    await _playSignal(successSignal);
+    await _playSignal(successSignalFor(_capabilities()));
   }
 
   @override
   Future<void> playError() async {
-    await _playSignal(errorSignal);
+    await _playSignal(errorSignalFor(_capabilities()));
   }
 
   /// Plays a signal pattern in a single native call.
