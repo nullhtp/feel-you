@@ -1,7 +1,10 @@
 # Privacy Policy
 
 **Feel You**
-**Last Updated**: <!-- TODO: Add date before publishing -->
+**Effective Date**: 2026-10-15
+**Last Updated**: 2026-10-15
+
+This policy is published at https://github.com/nullhtp/feel-you/blob/master/store/privacy-policy.md
 
 ## Overview
 
@@ -9,7 +12,7 @@ Feel You is a Morse code learning app designed for deaf-blind users. This privac
 
 ## Data Collection
 
-**Feel You does not collect, store, or transmit any personal data.** The app operates entirely on your device with no network communication. There are no accounts, no analytics, no tracking, and no telemetry.
+**Feel You does not collect, store, or transmit any personal data.** The app operates entirely on your device with no network communication: the released Android app does not even request internet access. There are no accounts, no analytics, no tracking, and no telemetry.
 
 Specifically, Feel You does NOT:
 - Collect personal information of any kind
@@ -20,25 +23,32 @@ Specifically, Feel You does NOT:
 - Share any information with third parties
 - Contain advertising or ad tracking
 
-## Device Permissions
+## Device Features and Permissions
 
-Feel You requests the following device permissions, used solely for core app functionality:
+Feel You uses the following device features, solely for core app functionality:
 
 ### Vibration
-- **Purpose**: Vibration is the primary output channel of the app. It is used to communicate Morse code patterns, success/failure feedback, and navigation cues to the user.
+- **Purpose**: Vibration is the app's only output channel. It is used to play Morse code patterns, success and error feedback, and the identifier of each language in the language picker.
+- **Permission**: On Android the app declares the `VIBRATE` permission, which the system grants at install without asking. iOS needs no permission.
 - **Usage**: On-device only. No data is transmitted.
 
 ### Accelerometer (Motion Sensors)
-- **Purpose**: The accelerometer is used to detect a "shake" gesture, which serves as the "Home" navigation action in the app.
-- **Usage**: Sensor data is processed in real-time on-device only. No motion data is stored or transmitted.
+- **Purpose**: The accelerometer detects shaking the phone: one shake returns to the start of the lessons ("Home"), and a double shake returns to the language picker.
+- **Permission**: None needed on Android or iOS.
+- **Usage**: Sensor data is processed in real time, on the device, while the lesson screen is in use. No motion data is stored or transmitted.
 
-### Wake Lock (Keep Screen Awake)
-- **Purpose**: The app keeps the screen active during learning sessions so that the touch surface remains responsive. This prevents the screen from timing out while the user is interacting with the app.
+### Keep Screen Awake
+- **Purpose**: The app keeps the screen on during lessons so that the touch surface stays responsive and the screen does not time out while the user is interacting with the app. This stops when the app leaves the foreground.
+- **Permission**: None needed on Android or iOS.
 - **Usage**: On-device only. No data is transmitted.
+
+The app requests no other permissions. In particular, it does not use the camera, microphone, location, contacts, photos or files, and it never shows a permission prompt.
 
 ## Data Storage
 
-Feel You stores minimal app state (such as the current learning position) locally on your device using standard platform storage. This data never leaves your device and is deleted when you uninstall the app.
+Feel You stores a single setting on your device: the lesson language you chose (English, Arabic or Russian), so that the next launch can skip the language picker. It is kept in the platform's standard app preferences storage (SharedPreferences on Android, UserDefaults on iOS). Your learning progress is not saved.
+
+The app never sends this setting anywhere, and it is deleted when you uninstall the app. Like any app's settings, it may be included in your device's own backups (such as Android backup or iCloud backup) if you have turned them on; those backups are made by your device's operating system under your account, not by Feel You.
 
 ## Children's Privacy
 
@@ -52,8 +62,8 @@ If we make changes to this privacy policy, we will update the "Last Updated" dat
 
 If you have questions about this privacy policy, please contact us at:
 
-<!-- TODO: Add contact email -->
+null.htp@gmail.com
 
 ---
 
-*This privacy policy applies to the Feel You mobile application available on the Apple App Store and Google Play Store.*
+*This privacy policy applies to the Feel You mobile application for iOS and Android, as distributed on the Apple App Store and Google Play Store.*

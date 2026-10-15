@@ -1,4 +1,6 @@
-# Phase 1 Roadmap: Learn Vibro Morse
+# Roadmap
+
+The first part of this file is the original Phase 1 plan (*Learn Vibro Morse*), kept as history. Later changes replaced parts of it: dots and dashes are now told apart by where the tap lands (left half = dot, right half = dash), not by how long it lasts, and there are digits and words levels and three languages. See [After Phase 1](#after-phase-1-complete) for what changed, [Next](#next) for open work, and the [README](README.md) for how the app works today.
 
 ## Foundation (Complete)
 
@@ -37,7 +39,7 @@ Single full-screen widget connecting real touch events to the gesture classifier
 - [x] Full-screen `GestureDetector` capturing all taps, holds, and swipes
 - [x] Feed raw touch events (`onPanDown`/`onPanEnd`/`onPanUpdate`) into `RawTouchEvent` for the classifier
 - [x] No visual elements (blank screen — the user is deaf-blind)
-- [x] Start button: one large tap target for a sighted person to press once to begin
+- [x] Start button: one large tap target for a sighted person to press once to begin. *Not built: the change dropped it and the loop starts automatically (`openspec/changes/archive/2026-02-27-touch-ui-layer`). The app now opens on the language picker, or straight into the lessons once a language is saved.*
 - [x] Accessibility metadata / semantics
 
 ### Change 4: Integration Testing & Polish (Complete)
@@ -64,3 +66,38 @@ Change 1 (State) → Change 2 (Teaching Loop) → Change 3 (UI Layer) → Change
 | 2 | Teaching Loop | Medium | Orchestrator: play patterns, evaluate input, give feedback |
 | 3 | Touch UI Layer | Small | Full-screen gesture capture + start button |
 | 4 | Integration & Polish | Medium | Real-device tested, release-ready Phase 1 |
+
+## After Phase 1 (Complete)
+
+OpenSpec changes, archived in `openspec/changes/archive/`:
+
+- [x] Level system and the digits level, 0-9 (`2026-02-28-add-digit-level`)
+- [x] Words level: 20 common English words (`2026-02-28-add-words-level`)
+- [x] Bottom input zone: submit on digits and letters, letter gap on words (`2026-02-28-add-chargap-input-zone`)
+- [x] Landscape only, and position-based dot/dash: left half = dot, right half = dash (`2026-02-28-landscape-split-input`)
+- [x] Companion overlay for sighted helpers (`2026-02-28-visual-companion-overlay`)
+- [x] Arabic Morse and the language picker (`2026-03-01-add-arabic-morse`)
+- [x] Store publishing setup and metadata (`2026-03-01-prepare-store-publish`)
+- [x] Russian Morse (`2026-03-24-add-russian-morse`)
+- [x] Refactors (`2026-02-28-refactor-clean-solid-dry`, `2026-03-01-refactor-morse-language`, `2026-03-01-refactor-morse-word-lesson`)
+
+Later commits, without an OpenSpec change:
+
+- [x] CI: format check, analyze and tests on every push to `master` and every pull request
+- [x] iOS build restricted to iPhone
+- [x] Teaching loop stops while the app is in the background
+- [x] Vibration capability check: "No vibration motor" screen, and duration-only success/error signals for motors without amplitude control
+- [x] Screen-reader semantics for the language picker, lesson surface and overlay
+- [x] The chosen language is saved, so later launches skip the picker
+- [x] Language picker usable without sight
+- [x] Double shake returns from a session to the language picker
+
+## Next
+
+Open work that already exists. No dates have been set.
+
+- **Words level order** ([#8](https://github.com/nullhtp/feel-you/issues/8)): the words are grouped by length, not in an order a user can reconstruct, so counting doesn't tell them which word they are on. The issue lists options; none has been chosen yet. It should be settled before more word lists are added.
+- **`expanded-word-levels`**: an OpenSpec change for more word levels was started but has no proposal, design or tasks yet, only empty `specs/` folders (`expanded-word-data`, `word-morse-data`, `arabic-morse-data`, `level-system`). Empty folders aren't tracked by version control, so it is not in the repository. [#13](https://github.com/nullhtp/feel-you/issues/13) tracks writing the proposal or removing the skeleton.
+- **Open bugs**: see the [open `bug` issues](https://github.com/nullhtp/feel-you/issues?q=is%3Aissue%20is%3Aopen%20label%3Abug).
+- **Housekeeping** ([#13](https://github.com/nullhtp/feel-you/issues/13)): the empty `packages/` folder, a version number that has never been bumped and no changelog, and no iOS equivalent of `run-android.sh`.
+- **Future phases**: the README's [Future Phases](README.md#future-phases) (words and sentences, speech-to-Morse, text-to-Morse, Morse-to-text, real-time conversation) have no plan yet.

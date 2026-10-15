@@ -20,32 +20,38 @@
 
 ## Supported Languages
 
-- English
-- Arabic
+Morse alphabets the app teaches (chosen in the in-app language picker):
+
+- English (International Morse)
+- Arabic (Arabic Morse)
+- Russian (Russian Morse)
+
+The app has no UI localisation: its text for sighted helpers (overlay labels, the picker hint, the "No vibration motor" screen) is in English only, and the picker shows each language's name in its own script. Store descriptions exist in English (`description-en.md`) and Arabic (`description-ar.md`).
 
 ## Contact Information
 
 - **Developer Name**: FeelU
 - **Contact Email**: null.htp@gmail.com
 - **Website**: None
-- **Privacy Policy URL**: <!-- TODO: Host privacy-policy.md and add URL here (required by both stores) -->
+- **Privacy Policy URL**: https://github.com/nullhtp/feel-you/blob/master/store/privacy-policy.md
 
 ## Store Declarations
 
 - **Ads**: No — the app contains no advertising
 - **In-App Purchases**: No — the app is completely free with no IAP
-- **Data Collection**: No — the app does not collect, store, or transmit any user data
+- **Data Collection**: No — the app does not collect or transmit any user data. The only thing it stores is the chosen lesson language, locally on the device
 - **Internet Access**: Not required — the app works entirely offline
 - **Made for Kids**: No (but suitable for all ages)
 - **Government Apps**: No
-- **Encryption**: Uses standard platform encryption only (exempt from export compliance)
+- **Encryption**: None — the app uses no encryption of its own and makes no network connections (exempt from export compliance)
 
 ## Device Requirements
 
-- **Vibration Motor**: Required (core output mechanism)
-- **Accelerometer**: Required (shake gesture detection)
+- **Vibration Motor**: Required (core output mechanism). On a device that reports no motor the app shows a "No vibration motor" screen and cannot be used
+- **Custom vibration patterns**: Needed for Morse timing. Every Android device can play them; on iOS they need Core Haptics (not available on iPhone 7 and older). Without them every vibration is the same fixed system buzz; the app still runs and its helper overlay shows `custom: no`
+- **Accelerometer**: Required (shake = home, double shake = back to the language picker)
 - **Orientation**: Landscape only
-- **Minimum OS**: Android (Flutter default minSdk), iOS 15.0+
+- **Minimum OS**: Android: Flutter's default `minSdk` (`flutter.minSdkVersion` in `app/android/app/build.gradle.kts`); iOS 15.0+ (`IPHONEOS_DEPLOYMENT_TARGET` in `app/ios/Runner.xcodeproj`)
 - **iOS Devices**: iPhone only (no iPad, iPod touch, Apple Vision Pro or Mac)
 
 ### iOS: iPhone only
@@ -60,7 +66,7 @@ What the build enforces:
 Constraints:
 
 - **Must ship in the first release.** For updates, Apple allows capability requirements only to stay the same or be relaxed ([UIRequiredDeviceCapabilities](https://developer.apple.com/documentation/bundleresources/information-property-list/uirequireddevicecapabilities)). `telephony` can't be added after 1.0 ships, but it can always be removed later.
-- **App Review risk.** The app makes no phone calls, and Apple asks apps to declare only the capabilities they need. Explain the requirement in the App Review notes (text below). If review still rejects it, remove the key and ship with the iPhone device family alone. In that case iPad users can install the app, and the in-app vibration check (issue #4) has to tell them it can't work on their device.
+- **App Review risk.** The app makes no phone calls, and Apple asks apps to declare only the capabilities they need. Explain the requirement in the App Review notes (text below). If review still rejects it, remove the key and ship with the iPhone device family alone. In that case iPad users can install the app, and the app has to tell them it can't work on their device. The in-app vibration check (issue #4, the "No vibration motor" screen) does not do that yet: on iOS the `vibration` plugin reports a motor on every physical device, iPad included.
 
 Manual steps in App Store Connect. These can't be set in `Info.plist`. Go to the app → **Pricing and Availability** (requires the Account Holder, Admin or App Manager role):
 
