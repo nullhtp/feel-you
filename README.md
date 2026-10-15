@@ -1,5 +1,7 @@
 # Feel You
 
+[![CI](https://github.com/nullhtp/feel-you/actions/workflows/ci.yml/badge.svg)](https://github.com/nullhtp/feel-you/actions/workflows/ci.yml)
+
 A mobile app for deaf-blind people to communicate with the real world using only a phone.
 
 **Platform:** Flutter (iOS & Android)

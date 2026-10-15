@@ -267,7 +267,6 @@ void main() {
       testWidgets('shows accumulated symbols', (tester) async {
         // Use a real GestureClassifier to get real buffer behavior.
         final classifier = GestureClassifier(screenWidth: 800);
-        final fakeClassifier = FakeGestureClassifier();
         final vibration = MockVibrationService();
 
         await tester.pumpWidget(
