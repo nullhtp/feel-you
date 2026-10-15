@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/morse/morse.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -108,6 +109,104 @@ void main() {
       await pump();
       expect(events.last, const MorseInput(MorseSignal.dash));
     });
+  });
+
+  group('live screen width and unusable-width guard', () {
+    late List<String> logs;
+
+    setUp(() {
+      logs = [];
+      final originalDebugPrint = debugPrint;
+      debugPrint = (message, {wrapWidth}) => logs.add(message ?? '');
+      addTearDown(() => debugPrint = originalDebugPrint);
+    });
+
+    // Replaces the shared classifier with one created with [width].
+    Future<void> recreateWith(double width) async {
+      await subscription.cancel();
+      classifier.dispose();
+      classifier = GestureClassifier(screenWidth: width);
+      events = [];
+      subscription = classifier.events.listen(events.add);
+    }
+
+    test('width 0 does not classify every tap as a dash', () async {
+      // Old failure mode: a width read as 0 before the first frame made
+      // `startX < 0 / 2` false for every tap, so both taps became dashes.
+      await recreateWith(0);
+
+      tap(100, startX: 300);
+      tap(100, startX: 700);
+      await pump();
+
+      expect(events, isEmpty);
+      expect(classifier.inputBufferNotifier.value, isEmpty);
+      expect(logs.first, contains('initial screen width 0.0 is unusable'));
+      expect(logs.where((m) => m.contains('dropping tap')), hasLength(2));
+    });
+
+    test(
+      'a usable width set after a zero start enables classification',
+      () async {
+        await recreateWith(0);
+        classifier.screenWidth = 1000;
+
+        tap(100, startX: 300);
+        tap(100, startX: 700);
+        await pump();
+
+        expect(events, [
+          const MorseInput(MorseSignal.dot),
+          const MorseInput(MorseSignal.dash),
+        ]);
+      },
+    );
+
+    test(
+      'updating the width moves the midpoint on the same instance',
+      () async {
+        await recreateWith(1000);
+
+        // Midpoint 500: x=300 is on the left half.
+        tap(100, startX: 300);
+        await pump();
+        expect(events, [const MorseInput(MorseSignal.dot)]);
+
+        // Narrower surface (e.g. split-screen): midpoint 250, x=300 is right.
+        classifier.screenWidth = 500;
+        tap(100, startX: 300);
+        await pump();
+        expect(events, [
+          const MorseInput(MorseSignal.dot),
+          const MorseInput(MorseSignal.dash),
+        ]);
+
+        // The existing subscription and input buffer survived the change.
+        expect(classifier.inputBufferNotifier.value, [
+          const Signal(MorseSignal.dot),
+          const Signal(MorseSignal.dash),
+        ]);
+      },
+    );
+
+    for (final unusable in [0.0, -1.0, double.nan, double.infinity]) {
+      test(
+        'ignores unusable width $unusable and keeps the last usable one',
+        () async {
+          await recreateWith(1000);
+
+          classifier.screenWidth = unusable;
+
+          expect(classifier.screenWidth, 1000);
+          expect(logs.single, contains('ignoring unusable screen width'));
+
+          // Midpoint is still 500, so x=300 stays a dot.
+          tap(100, startX: 300);
+          await pump();
+          expect(events, [const MorseInput(MorseSignal.dot)]);
+        },
+      );
+    }
   });
 
   group('previously dead-zone taps now classified by position', () {

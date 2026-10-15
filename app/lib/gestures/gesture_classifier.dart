@@ -41,16 +41,53 @@ class TouchUp extends RawTouchEvent {
 /// screen (x < screenWidth / 2) produce dots; taps on the right half
 /// (x >= screenWidth / 2) produce dashes.
 ///
+/// The width is mutable via [screenWidth] so the UI can feed in the live
+/// layout width (split-screen, foldables, rotation, display-size changes)
+/// without recreating the classifier and losing its stream subscribers,
+/// input buffer and timers.
+///
 /// Emits events via a broadcast [Stream]. Manages an internal input buffer
 /// and silence timer for input completion detection.
 class GestureClassifier {
+  /// Creates a classifier with an initial [screenWidth] in logical pixels.
+  ///
+  /// An unusable initial width (zero, negative or non-finite) is logged, and
+  /// dot/dash taps are then dropped until a usable width is set rather than
+  /// being misclassified.
   GestureClassifier({
-    required this.screenWidth,
+    required double screenWidth,
     this.config = const GestureTimingConfig(),
-  });
+  }) : _screenWidth = screenWidth {
+    if (!_isUsableWidth(screenWidth)) {
+      debugPrint(
+        'GestureClassifier: initial screen width $screenWidth is unusable; '
+        'dot/dash taps are dropped until a usable width is set.',
+      );
+    }
+  }
+
+  double _screenWidth;
 
   /// Screen width in logical pixels, used to determine the dot/dash boundary.
-  final double screenWidth;
+  ///
+  /// Set this whenever the touch surface width may have changed. Unusable
+  /// values (zero, negative or non-finite) are rejected with a [debugPrint]
+  /// and the last usable width is kept, so a transient zero-size layout can
+  /// never make every tap a dash.
+  double get screenWidth => _screenWidth;
+
+  set screenWidth(double value) {
+    if (!_isUsableWidth(value)) {
+      debugPrint(
+        'GestureClassifier: ignoring unusable screen width $value; '
+        'keeping $_screenWidth.',
+      );
+      return;
+    }
+    _screenWidth = value;
+  }
+
+  static bool _isUsableWidth(double width) => width.isFinite && width > 0;
 
   final GestureTimingConfig config;
 
@@ -152,10 +189,21 @@ class GestureClassifier {
       }
     }
 
+    // Only reachable if no usable width was ever provided (the setter keeps
+    // the last usable one). The midpoint is then unknown, and with width 0
+    // every tap would silently become a dash, so drop the tap and log.
+    if (!_isUsableWidth(_screenWidth)) {
+      debugPrint(
+        'GestureClassifier: dropping tap at x=$startX, no usable screen '
+        'width (got $_screenWidth).',
+      );
+      return;
+    }
+
     // Position-based dot/dash classification.
     // Left half (x < midpoint) = dot, right half (x >= midpoint) = dash.
     // Any non-swipe tap shorter than resetMinDuration is classified.
-    final signal = startX < screenWidth / 2
+    final signal = startX < _screenWidth / 2
         ? MorseSignal.dot
         : MorseSignal.dash;
     _addSignal(signal);

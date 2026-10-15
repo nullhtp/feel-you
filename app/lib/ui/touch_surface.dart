@@ -151,14 +151,19 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
     _resetEmittedDuringPress = false;
 
     // Always forward TouchDown to the classifier (for reset timer, etc.).
-    final classifier = ref.read(gestureClassifierProvider);
-    classifier.handleTouch(
-      TouchDown(
-        timestamp: event.timeStamp,
-        position: event.position.dx,
-        y: event.position.dy,
-      ),
-    );
+    // Feed the live view width first (event.position is in view coordinates)
+    // so the dot/dash midpoint follows split-screen, foldables, rotation and
+    // display-size changes. This updates the existing classifier in place;
+    // it is never recreated.
+    ref.read(gestureClassifierProvider)
+      ..screenWidth = MediaQuery.sizeOf(context).width
+      ..handleTouch(
+        TouchDown(
+          timestamp: event.timeStamp,
+          position: event.position.dx,
+          y: event.position.dy,
+        ),
+      );
   }
 
   void _onPointerUp(PointerUpEvent event) {
