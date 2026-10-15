@@ -27,9 +27,9 @@ The iOS `Info.plist` SHALL only include landscape orientations in `UISupportedIn
 - **WHEN** a developer inspects the iOS `Info.plist` `UISupportedInterfaceOrientations` array
 - **THEN** it SHALL contain only `UIInterfaceOrientationLandscapeLeft` and `UIInterfaceOrientationLandscapeRight`
 
-#### Scenario: iPad orientations are landscape only
-- **WHEN** a developer inspects the iOS `Info.plist` `UISupportedInterfaceOrientations~ipad` array
-- **THEN** it SHALL contain only `UIInterfaceOrientationLandscapeLeft` and `UIInterfaceOrientationLandscapeRight`
+#### Scenario: No iPad-specific orientations
+- **WHEN** a developer inspects the iOS `Info.plist`
+- **THEN** it SHALL NOT contain a `UISupportedInterfaceOrientations~ipad` key, because the app targets iPhone only (`TARGETED_DEVICE_FAMILY = 1`)
 
 ### Requirement: Android orientation lock
 The Android `AndroidManifest.xml` SHALL set `android:screenOrientation="sensorLandscape"` on the main activity element.
