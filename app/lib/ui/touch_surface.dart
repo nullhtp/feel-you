@@ -20,6 +20,11 @@ const _bottomZoneFraction = 0.15;
 /// Automatically starts the teaching orchestrator on mount and stops it
 /// on dispose. Keeps the screen awake and prevents back-navigation exits.
 ///
+/// While the app is not in the foreground (inactive, hidden, paused or
+/// detached) the teaching loop is stopped and the wakelock released, so the
+/// phone never vibrates in the background. When the app is resumed, the
+/// current character is replayed from the beginning.
+///
 /// The lower 15% of the screen is a bottom input zone. Short taps there
 /// emit [BottomZoneAction] with haptic feedback; swipes and long holds
 /// are forwarded to the classifier normally.
@@ -47,10 +52,24 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   Duration? _pressStartTime;
   bool _resetEmittedDuringPress = false;
 
+  /// Listens for the app moving between foreground and background.
+  late final AppLifecycleListener _lifecycleListener;
+
+  /// Whether teaching was suspended because the app left the foreground.
+  ///
+  /// Ensures teaching is suspended only once per trip to the background
+  /// (the app passes through several non-foreground states on the way), and
+  /// that a `resumed` notification restarts the loop only if it was
+  /// actually suspended.
+  bool _suspendedInBackground = false;
+
   @override
   void initState() {
     super.initState();
     _orchestrator = ref.read(teachingOrchestratorProvider.notifier);
+    _lifecycleListener = AppLifecycleListener(
+      onStateChange: _onAppLifecycleStateChanged,
+    );
     WakelockPlus.enable();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _orchestrator.start();
@@ -59,9 +78,65 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
 
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     WakelockPlus.disable();
     _orchestrator.stop();
     super.dispose();
+  }
+
+  void _onAppLifecycleStateChanged(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _resumeTeaching();
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.hidden:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _suspendTeaching();
+    }
+  }
+
+  /// Stops the teaching loop and releases the wakelock when the app leaves
+  /// the foreground (incoming call, home button, screen lock, ...).
+  ///
+  /// [TeachingOrchestrator.stop] cancels any ongoing vibration and the
+  /// pause between repetitions, so nothing vibrates in the background.
+  void _suspendTeaching() {
+    if (_suspendedInBackground) return;
+    _suspendedInBackground = true;
+    _abandonActivePress();
+    WakelockPlus.disable();
+    _orchestrator.stop();
+  }
+
+  /// Re-acquires the wakelock and restarts the teaching loop when the app
+  /// returns to the foreground. The current character is replayed from the
+  /// beginning.
+  void _resumeTeaching() {
+    if (!_suspendedInBackground) return;
+    _suspendedInBackground = false;
+    WakelockPlus.enable();
+    _orchestrator.start();
+  }
+
+  /// Drops a press that is still in progress when the app leaves the
+  /// foreground.
+  ///
+  /// The release for that pointer may never arrive, or may arrive long after
+  /// the app returns. The press is therefore abandoned rather than
+  /// classified: tracking is cleared so a late up/cancel for the old pointer
+  /// is ignored, and no [TouchUp] is sent, so it does not count as a dot,
+  /// dash or swipe. The classifier's long-hold timer is cancelled so it
+  /// cannot emit a [Reset] in the background, which would restart the
+  /// teaching loop.
+  void _abandonActivePress() {
+    if (_primaryPointer == null) return;
+    _primaryPointer = null;
+    _pressStartX = null;
+    _pressStartY = null;
+    _pressStartTime = null;
+    _resetEmittedDuringPress = false;
+    ref.read(gestureClassifierProvider).cancelResetTimer();
   }
 
   void _onPointerDown(PointerDownEvent event) {
