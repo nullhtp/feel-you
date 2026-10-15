@@ -46,6 +46,31 @@
 - **Accelerometer**: Required (shake gesture detection)
 - **Orientation**: Landscape only
 - **Minimum OS**: Android (Flutter default minSdk), iOS 14.0+
+- **iOS Devices**: iPhone only (no iPad, iPod touch, Apple Vision Pro or Mac)
+
+### iOS: iPhone only
+
+Vibration is the app's only output channel. Of the devices that can run an iOS app, only the iPhone can vibrate. On iPad, iPod touch, Apple Vision Pro and Mac the app would install and run, but the vibration calls do nothing, so a deaf-blind user would get no output at all.
+
+What the build enforces:
+
+- `TARGETED_DEVICE_FAMILY = 1` (iPhone) in every build configuration of `app/ios/Runner.xcodeproj`. The iPad-only orientation list (`UISupportedInterfaceOrientations~ipad`) was removed from `Info.plist`.
+- `UIRequiredDeviceCapabilities` = `telephony` in `app/ios/Runner/Info.plist`. The device family alone is not enough, because the App Store still offers iPhone-only apps on iPad, where they run in compatibility mode. There is no capability value for a vibration motor. `telephony` matches the same set of devices: according to Apple's [device capability list](https://developer.apple.com/support/required-device-capabilities/), every iPhone has it, and no iPad (including Wi-Fi + Cellular models), iPod touch or Apple Vision Pro does.
+
+Constraints:
+
+- **Must ship in the first release.** For updates, Apple allows capability requirements only to stay the same or be relaxed ([UIRequiredDeviceCapabilities](https://developer.apple.com/documentation/bundleresources/information-property-list/uirequireddevicecapabilities)). `telephony` can't be added after 1.0 ships, but it can always be removed later.
+- **App Review risk.** The app makes no phone calls, and Apple asks apps to declare only the capabilities they need. Explain the requirement in the App Review notes (text below). If review still rejects it, remove the key and ship with the iPhone device family alone. In that case iPad users can install the app, and the in-app vibration check (issue #4) has to tell them it can't work on their device.
+
+Manual steps in App Store Connect. These can't be set in `Info.plist`. Go to the app → **Pricing and Availability** (requires the Account Holder, Admin or App Manager role):
+
+- [ ] **iPhone and iPad Apps on Apple Silicon Mac** → *Apple Silicon Mac Availability* → deselect **Make this app available**. Apple silicon Macs get iPhone apps by default, and the app can't vibrate on a Mac. ([Apple help](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/manage-availability-of-iphone-and-ipad-apps-on-macs-with-apple-silicon))
+- [ ] **iPhone and iPad Apps on Apple Vision Pro** → *Apple Vision Pro Availability* → deselect **Make this app available on Apple Vision Pro**. `telephony` should already exclude Vision Pro, and this makes the exclusion explicit. ([Apple help](https://developer.apple.com/help/app-store-connect/manage-your-apps-availability/manage-availability-of-iphone-and-ipad-apps-on-apple-vision-pro))
+- Make these changes before the first release. Users who already downloaded the app on a Mac or Vision Pro keep it after you opt out.
+
+Suggested App Review note:
+
+> Feel You communicates with deaf-blind users only through vibration (Morse code). iPhone is the only device in the iOS family with a vibration motor; on iPad and iPod touch the app cannot produce any output. Because UIRequiredDeviceCapabilities has no value for a vibration motor, we declare `telephony`, which matches exactly the devices that have one, so that the app is not offered on devices where it cannot work.
 
 ## Pricing
 

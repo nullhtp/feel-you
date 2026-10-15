@@ -28,12 +28,19 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
-	<key>UISupportedInterfaceOrientations</key>
+	<!--
+		Vibration is the app's only output channel. There is no capability key
+		for a vibration motor, but "telephony" matches exactly the devices that
+		have one (every iPhone; no iPad, iPod touch or Apple Vision Pro). It is
+		what keeps the App Store from offering this iPhone-only app on iPad in
+		compatibility mode. Requirements can't be added in updates, only
+		removed. See store/store-info.md, "Device Requirements".
+	-->
+	<key>UIRequiredDeviceCapabilities</key>
 	<array>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
+		<string>telephony</string>
 	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
+	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
