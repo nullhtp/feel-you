@@ -45,7 +45,7 @@
 - **Vibration Motor**: Required (core output mechanism)
 - **Accelerometer**: Required (shake gesture detection)
 - **Orientation**: Landscape only
-- **Minimum OS**: Android (Flutter default minSdk), iOS 14.0+
+- **Minimum OS**: Android (Flutter default minSdk), iOS 15.0+
 - **iOS Devices**: iPhone only (no iPad, iPod touch, Apple Vision Pro or Mac)
 
 ### iOS: iPhone only
