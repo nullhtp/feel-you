@@ -57,11 +57,11 @@ const _helperHint = 'Tap a language, then hold anywhere for 1 second to start';
 
 /// Full-screen language picker.
 ///
-/// Shown on launch when no language is saved yet. One language is
-/// highlighted at a time, starting with the saved one (English when none
-/// is saved). Every touch gesture works without sight and is answered with
-/// the identifier vibration (Morse E, ع or Р) of the language it leaves
-/// highlighted:
+/// Shown on launch when no language is saved yet, and after a double shake
+/// in a session. One language is highlighted at a time, starting with the
+/// saved one (English when none is saved). Every touch gesture works
+/// without sight and is answered with the identifier vibration (Morse E, ع
+/// or Р) of the language it leaves highlighted:
 ///
 /// - When the picker appears, the highlighted identifier plays once, so a
 ///   user who lands here knows where they are.

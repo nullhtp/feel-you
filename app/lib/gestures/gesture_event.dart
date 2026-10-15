@@ -116,6 +116,21 @@ class Home extends GestureEvent {
   String toString() => 'Home';
 }
 
+/// Double shake detected — leave the session for the language picker.
+///
+/// Emitted for the second shake of a double shake; the first one has
+/// already emitted [Home].
+@immutable
+class ChangeLanguage extends GestureEvent {
+  const ChangeLanguage();
+
+  @override
+  List<Object?> get props => [];
+
+  @override
+  String toString() => 'ChangeLanguage';
+}
+
 /// Tap in the bottom input zone.
 ///
 /// Level-agnostic marker event — the [TeachingOrchestrator] decides

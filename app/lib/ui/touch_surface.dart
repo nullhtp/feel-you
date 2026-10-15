@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/teaching/teaching.dart';
 import 'package:feel_you/ui/companion_overlay.dart';
+import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -53,6 +56,9 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   /// actually suspended.
   bool _suspendedInBackground = false;
 
+  /// Listens to the shake detector for a double shake ([ChangeLanguage]).
+  late final StreamSubscription<GestureEvent> _shakeSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -60,6 +66,10 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
     _lifecycleListener = AppLifecycleListener(
       onStateChange: _onAppLifecycleStateChanged,
     );
+    _shakeSubscription = ref
+        .read(shakeDetectorProvider)
+        .events
+        .listen(_onShakeEvent);
     WakelockPlus.enable();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _orchestrator.start();
@@ -69,9 +79,26 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   @override
   void dispose() {
     _lifecycleListener.dispose();
+    unawaited(_shakeSubscription.cancel());
     WakelockPlus.disable();
     _orchestrator.stop();
     super.dispose();
+  }
+
+  /// Leaves the session for the [LanguagePickerSurface] on a double shake
+  /// ([ChangeLanguage]).
+  ///
+  /// Like every gesture, it is ignored while the teaching loop is stopped
+  /// (in the background, or before the loop first starts). The loop is
+  /// stopped right away, so nothing vibrates during the route transition;
+  /// [dispose] stops it again (a no-op) when this route is removed.
+  void _onShakeEvent(GestureEvent event) {
+    if (event is! ChangeLanguage || !mounted) return;
+    if (!ref.read(teachingOrchestratorProvider).isRunning) return;
+    unawaited(_orchestrator.stop());
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(builder: (_) => const LanguagePickerSurface()),
+    );
   }
 
   void _onAppLifecycleStateChanged(AppLifecycleState state) {
