@@ -91,12 +91,12 @@ Later commits, without an OpenSpec change:
 - [x] The chosen language is saved, so later launches skip the picker
 - [x] Language picker usable without sight
 - [x] Double shake returns from a session to the language picker
+- [x] Words are spelled letter by letter before they are drilled, so the user knows which word they are on without counting ([#8](https://github.com/nullhtp/feel-you/issues/8), `spell-words-before-drill`)
 
 ## Next
 
 Open work that already exists. No dates have been set.
 
-- **Words level order** ([#8](https://github.com/nullhtp/feel-you/issues/8)): the words are grouped by length, not in an order a user can reconstruct, so counting doesn't tell them which word they are on. The issue lists options; none has been chosen yet. It should be settled before more word lists are added.
 - **`expanded-word-levels`**: an OpenSpec change for more word levels was started but has no proposal, design or tasks yet, only empty `specs/` folders (`expanded-word-data`, `word-morse-data`, `arabic-morse-data`, `level-system`). Empty folders aren't tracked by version control, so it is not in the repository. [#13](https://github.com/nullhtp/feel-you/issues/13) tracks writing the proposal or removing the skeleton.
 - **Open bugs**: see the [open `bug` issues](https://github.com/nullhtp/feel-you/issues?q=is%3Aissue%20is%3Aopen%20label%3Abug).
 - **Housekeeping** ([#13](https://github.com/nullhtp/feel-you/issues/13)): the empty `packages/` folder, a version number that has never been bumped and no changelog, and no iOS equivalent of `run-android.sh`.

@@ -17,7 +17,8 @@ import '../test_doubles/mock_vibration_service.dart';
 // ---------------------------------------------------------------------------
 
 /// Creates an orchestrator with test doubles.
-/// Uses a very short repeat pause (10ms) to keep tests fast.
+/// Uses a very short repeat pause and spelling letter gap (10ms) to keep
+/// tests fast.
 /// Pass [session] to start from a custom session; defaults to English.
 ({
   TeachingOrchestrator orchestrator,
@@ -27,6 +28,7 @@ import '../test_doubles/mock_vibration_service.dart';
 })
 createOrchestrator({
   Duration repeatPause = const Duration(milliseconds: 10),
+  Duration spellingLetterGap = const Duration(milliseconds: 10),
   SessionNotifier? session,
 }) {
   final gestures = FakeGestureClassifier();
@@ -36,7 +38,10 @@ createOrchestrator({
     gestureClassifier: gestures,
     vibrationService: vibration,
     sessionNotifier: sessionNotifier,
-    config: TeachingTimingConfig(repeatPause: repeatPause),
+    config: TeachingTimingConfig(
+      repeatPause: repeatPause,
+      spellingLetterGap: spellingLetterGap,
+    ),
   );
   return (
     orchestrator: orchestrator,
@@ -718,6 +723,7 @@ void main() {
         sessionNotifier: session,
         config: const TeachingTimingConfig(
           repeatPause: Duration(milliseconds: 10),
+          spellingLetterGap: Duration(milliseconds: 10),
         ),
       );
       final events = <GestureEvent>[];
@@ -910,19 +916,31 @@ void main() {
     });
 
     group('words level at index 0', () {
-      test('plays the word token pattern with char gaps', () async {
-        final t = createOrchestrator(session: sessionAtLevel(0));
-        expect(t.session.state.currentCharacter, 'HI');
+      test(
+        'spells the word, then plays its token pattern with char gaps',
+        () async {
+          final t = createOrchestrator(session: sessionAtLevel(0));
+          expect(t.session.state.currentCharacter, 'HI');
 
-        t.orchestrator.start();
-        await Future<void>.delayed(const Duration(milliseconds: 20));
+          t.orchestrator.start();
+          await Future<void>.delayed(const Duration(milliseconds: 50));
 
-        expect(tokenPlaybacks(t.vibration), isNotEmpty);
-        expect(tokenPlaybacks(t.vibration).first.tokens, hiTokens);
-        expect(t.vibration.patterns, isEmpty);
+          expect(tokenPlaybacks(t.vibration), isNotEmpty);
+          expect(tokenPlaybacks(t.vibration).first.tokens, hiTokens);
+          // Only the spelled letters are played as signal patterns.
+          expect(t.vibration.patterns, [
+            [
+              MorseSignal.dot,
+              MorseSignal.dot,
+              MorseSignal.dot,
+              MorseSignal.dot,
+            ],
+            [MorseSignal.dot, MorseSignal.dot],
+          ]);
 
-        await tearDownOrchestrator(t.orchestrator, t.gestures);
-      });
+          await tearDownOrchestrator(t.orchestrator, t.gestures);
+        },
+      );
 
       test('accepts input matching the word token pattern', () async {
         final t = createOrchestrator(session: sessionAtLevel(0));

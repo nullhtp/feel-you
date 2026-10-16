@@ -104,7 +104,8 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// Whether the current iteration was interrupted.
   bool get _isInterrupted => _disposed || !mounted || state.isInterrupted;
 
-  /// Starts the play-wait-repeat loop for the current character.
+  /// Starts the play-wait-repeat loop for the current character, spelling
+  /// it first if it is a word (see [_runLoop]).
   ///
   /// Resumes shake detection and discards any input the classifier buffered
   /// while the loop was stopped: those taps were ignored, so they must not
@@ -118,7 +119,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     state = state.copyWith(isRunning: true, isInterrupted: false);
     _gestureClassifier.clearInput();
     _shakeDetector?.resume();
-    unawaited(_runLoop());
+    unawaited(_runLoop(spellWord: true));
   }
 
   /// Stops the play-wait-repeat loop and cancels any ongoing vibration.
@@ -183,7 +184,16 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   // Play-wait-repeat loop
   // ---------------------------------------------------------------------------
 
-  Future<void> _runLoop() async {
+  /// Runs the play-wait-repeat loop for the current character.
+  ///
+  /// With [spellWord], a word is spelled first (see [_spellWord]): its first
+  /// playback is replaced by the spelling, followed by the usual pause and
+  /// then the word itself. The loop is started this way whenever it starts
+  /// on a word ([start] and navigation), but not when it resumes after
+  /// feedback: the user stays on the same word and already knows it.
+  /// [spellWord] has no effect on a characters level, where the position
+  /// already tells the user which character is playing.
+  Future<void> _runLoop({bool spellWord = false}) async {
     if (_disposed) return;
 
     // Capture the generation so this loop can detect if a newer loop
@@ -192,6 +202,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
     sessionNotifier.setPhase(SessionPhase.playing);
 
+    var spell = spellWord;
     while (_shouldRun && !_isInterrupted && gen == _loopGeneration) {
       // Look up the current character's Morse pattern from the level.
       final character = sessionNotifier.state.currentCharacter;
@@ -203,25 +214,60 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       if (isWordsLevel) {
         final tokenPattern = level.wordPatterns?[character];
         if (tokenPattern == null) break;
-        await vibrationService.playMorseTokenPattern(tokenPattern);
+        if (spell) {
+          await _spellWord(tokenPattern, gen);
+        } else {
+          await vibrationService.playMorseTokenPattern(tokenPattern);
+        }
       } else {
         final pattern = level.patterns[character];
         if (pattern == null) break;
         await vibrationService.playMorsePattern(pattern);
       }
+      spell = false;
 
       // Check if interrupted during playback or superseded by a new loop.
       if (!_shouldRun || _isInterrupted || gen != _loopGeneration) break;
 
       // Wait for the configured pause.
-      _pauseCompleter = Completer<void>();
-      final delayed = Future<void>.delayed(config.repeatPause);
-      await Future.any([delayed, _pauseCompleter!.future]);
-      _pauseCompleter = null;
+      await _pause(config.repeatPause);
 
       // Check again after the pause.
       if (!_shouldRun || _isInterrupted || gen != _loopGeneration) break;
     }
+  }
+
+  /// Spells a word: plays its letters one at a time, with
+  /// [TeachingTimingConfig.spellingLetterGap] of silence between them.
+  ///
+  /// The words of a level are not in an order the user can count, so the
+  /// position alone does not tell them which word is playing. Spelled
+  /// slowly, the word can be read with the letters they already know.
+  ///
+  /// Stops early, like the loop, if the loop of generation [gen] is
+  /// interrupted (a tap), stopped or superseded (navigation) during a letter
+  /// or a gap. Each gap is a [_pause], so [_cancelPause] ends it at once.
+  Future<void> _spellWord(List<MorseToken> wordPattern, int gen) async {
+    final letters = splitWordPattern(wordPattern);
+    for (var i = 0; i < letters.length; i++) {
+      if (i > 0) {
+        await _pause(config.spellingLetterGap);
+        if (!_shouldRun || _isInterrupted || gen != _loopGeneration) return;
+      }
+      await vibrationService.playMorsePattern(letters[i]);
+      if (!_shouldRun || _isInterrupted || gen != _loopGeneration) return;
+    }
+  }
+
+  /// Waits for [duration], or until [_cancelPause] ends the wait early.
+  ///
+  /// A loop superseded during the wait may resume after the new loop has
+  /// started its own pause, so the completer is only cleared if it is still
+  /// this pause's: the new loop's pause stays cancellable.
+  Future<void> _pause(Duration duration) async {
+    final completer = _pauseCompleter = Completer<void>();
+    await Future.any([Future<void>.delayed(duration), completer.future]);
+    if (identical(_pauseCompleter, completer)) _pauseCompleter = null;
   }
 
   void _cancelPause() {
@@ -345,6 +391,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
   /// Plays feedback (success or error), pauses briefly, then resumes the loop.
   ///
+  /// The loop resumes without spelling the word again: the user has not
+  /// moved, so they already know which word it is.
+  ///
   /// Resuming discards any input the classifier buffered during feedback:
   /// those taps were ignored, so they must not become the start of the next
   /// answer.
@@ -421,11 +470,11 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     vibrationService.cancel();
     _gestureClassifier.clearInput();
 
-    // Restart the loop for the new (or same) character. Navigation is only
-    // handled while running (see _onGestureEvent), so it never starts a
-    // stopped loop.
+    // Restart the loop for the new (or same) character, spelling it first
+    // if it is a word. Navigation is only handled while running (see
+    // _onGestureEvent), so it never starts a stopped loop.
     _loopGeneration++;
     state = state.copyWith(isInterrupted: false);
-    unawaited(_runLoop());
+    unawaited(_runLoop(spellWord: true));
   }
 }

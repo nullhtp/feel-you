@@ -19,6 +19,10 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Pause between pattern repetitions. Short to keep the tests fast.
 const _repeatPause = Duration(milliseconds: 10);
 
+/// Silence between the letters of a spelled word. Short to keep the tests
+/// fast.
+const _spellingLetterGap = Duration(milliseconds: 10);
+
 /// Pause between feedback and the loop resuming.
 const _postFeedbackPause = Duration(milliseconds: 50);
 
@@ -91,6 +95,7 @@ class _Harness {
       config: const TeachingTimingConfig(
         repeatPause: _repeatPause,
         postFeedbackPause: _postFeedbackPause,
+        spellingLetterGap: _spellingLetterGap,
       ),
     );
   }
@@ -143,10 +148,10 @@ class _Harness {
     return InputComplete([for (final s in pattern) Signal(s)]);
   }
 
-  /// The vibration call that plays the current item's pattern.
-  VibrationCallType get patternCall => _isWordsLevel
-      ? VibrationCallType.playMorseTokenPattern
-      : VibrationCallType.playMorsePattern;
+  /// The vibration call that plays first when the loop starts: the
+  /// character's pattern, or the first letter of the spelled word. Both are
+  /// signal patterns.
+  VibrationCallType get firstPlaybackCall => VibrationCallType.playMorsePattern;
 
   /// How many patterns (signal or word token patterns) were played since
   /// the vibration calls were last reset.
@@ -235,7 +240,7 @@ void main() {
       test('during playing: the pattern in progress is not cut short or '
           'replayed', () async {
         final t = boundary.harness();
-        t.vibration.holdNext = t.patternCall;
+        t.vibration.holdNext = t.firstPlaybackCall;
         t.orchestrator.start();
         await settle();
         expect(t.vibration.isHolding, isTrue);

@@ -23,7 +23,7 @@ The first step is a Morse code learning tool that works through vibration alone,
 
 The app is a patient, tireless teacher. It vibrates the Morse pattern of one item, waits, and repeats it, forever. The user taps it back when ready, and decides when to move on.
 
-**Prerequisites:** The user knows the digits and the alphabet of their language, and can count positions (A=1, B=2, C=3...). Digits come in order 0-9 and letters in alphabetical order, so counting swipes tells the user which item they are on. Words are grouped by length only, so counting tells the word's length but not which word it is (see [#8](https://github.com/nullhtp/feel-you/issues/8)).
+**Prerequisites:** The user knows the digits and the alphabet of their language, and can count positions (A=1, B=2, C=3...). Digits come in order 0-9 and letters in alphabetical order, so counting swipes tells the user which item they are on. Words are grouped by length only, so counting cannot tell which word it is: instead the app spells each word with the letters the user already knows before drilling it (see [the learning loop](#the-learning-loop)).
 
 **Almost no other help needed.** On the very first launch someone (or the user, by touch) picks the language. The choice is saved on the phone, so every later launch goes straight into the lessons.
 
@@ -50,6 +50,16 @@ A session starts at the digits level, on 0. Only the language is saved; the leve
 #### The learning loop
 
 The app plays the current item, pauses for 3 seconds and plays it again, with no limit. A word is played letter by letter, with a longer pause between its letters.
+
+Before drilling a word the app spells it: it plays the word's letters one at a time, 1 second apart, so the user can read the word with the letters they know. Then come the usual 3-second pause and the word itself, which repeats. The app spells the word whenever it starts on one: after a swipe, a level change, a hold or a shake, and when the lessons start or come back to the foreground. After the *correct* or *wrong* signal it goes straight back to the word without spelling it again; swipe away and back to hear the spelling again. A tap during the spelling stops it and the app listens, as during the word.
+
+```
+Phone:  · · · ·  ...1 s...  · ·   (spells HI: H, then I)
+        ...3 s pause...
+Phone:  · · · ·  · ·        (HI, its letters 300 ms apart)
+        ...3 s pause...
+Phone:  · · · ·  · ·        (repeats, forever)
+```
 
 The first dot or dash the user taps stops the playback and the app listens. The answer is checked when the user stops tapping for 1 second, or right away when they tap the bottom strip (digits and letters levels only). Then the app vibrates *correct* or *wrong*, pauses for half a second and goes back to repeating the **same** item. It never moves on by itself.
 
@@ -130,6 +140,7 @@ Morse timing:
 | Dash | 300 ms vibration |
 | Gap between the dots and dashes of one character | 100 ms |
 | Gap between the letters of a word | 300 ms |
+| Gap between the letters of a word when it is spelled | 1 s |
 | Pause before the item repeats | 3 s |
 
 Distinct patterns the app uses that are separate from Morse:

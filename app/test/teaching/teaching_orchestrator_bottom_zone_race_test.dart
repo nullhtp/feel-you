@@ -19,6 +19,10 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Pause between pattern repetitions. Short to keep the tests fast.
 const _repeatPause = Duration(milliseconds: 10);
 
+/// Silence between the letters of a spelled word. Short to keep the tests
+/// fast.
+const _spellingLetterGap = Duration(milliseconds: 10);
+
 /// Long enough for the loop to have started and played once.
 const _loopStarted = Duration(milliseconds: 20);
 
@@ -70,7 +74,10 @@ class _Harness {
       vibrationService: vibration,
       sessionNotifier: session,
       shakeDetector: shake,
-      config: const TeachingTimingConfig(repeatPause: _repeatPause),
+      config: const TeachingTimingConfig(
+        repeatPause: _repeatPause,
+        spellingLetterGap: _spellingLetterGap,
+      ),
     );
   }
 

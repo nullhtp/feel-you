@@ -6,6 +6,7 @@ class TeachingTimingConfig {
   const TeachingTimingConfig({
     this.repeatPause = const Duration(milliseconds: 3000),
     this.postFeedbackPause = const Duration(milliseconds: 500),
+    this.spellingLetterGap = const Duration(milliseconds: 1000),
   });
 
   /// Pause between pattern repetitions in the play-wait-repeat loop.
@@ -19,4 +20,13 @@ class TeachingTimingConfig {
   /// Gives the user time to register the feedback before the next
   /// Morse pattern begins.
   final Duration postFeedbackPause;
+
+  /// Silence between the letters when a word is spelled before it is drilled.
+  ///
+  /// When the loop starts on a word, the orchestrator first plays the word
+  /// one letter at a time with this gap, so a user who knows the letters can
+  /// tell which word it is. It must be clearly longer than the 300 ms gap
+  /// between the letters of a drilled word, and clearly shorter than
+  /// [repeatPause], so the spelled letters still belong together.
+  final Duration spellingLetterGap;
 }
