@@ -252,9 +252,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       case Reset():
         _onNavigate(sessionNotifier.reset);
       case NavigateUp():
-        _onNavigate(sessionNotifier.nextLevel);
+        _onNavigate(sessionNotifier.nextLevel, clampAtBoundary: true);
       case NavigateDown():
-        _onNavigate(sessionNotifier.previousLevel);
+        _onNavigate(sessionNotifier.previousLevel, clampAtBoundary: true);
       case Home():
         _onNavigate(sessionNotifier.home);
       case ChangeLanguage():
@@ -352,8 +352,8 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// The sequence is abandoned if the loop is stopped, restarted or
   /// navigated while it is in flight. After a [stop] the session stays in
   /// the feedback phase and [start] resets it to playing. A swipe past the
-  /// first or last item does not navigate, so it leaves the sequence alone
-  /// (see [_onNavigate]).
+  /// first or last item or level does not navigate, so it leaves the
+  /// sequence alone (see [_onNavigate]).
   Future<void> _handleFeedback(Future<void> Function() playFeedback) async {
     if (_disposed) return;
     final gen = _loopGeneration;
@@ -387,9 +387,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// buffer itself for its own swipes and long holds, but not for a shake
   /// ([Home]), which comes from the [ShakeDetector].
   ///
-  /// With [clampAtBoundary] (next/previous), a swipe past the first or last
-  /// item does not move the session. It then interrupts nothing that brings
-  /// the loop back by itself:
+  /// With [clampAtBoundary] (next/previous item or level), a swipe past the
+  /// first or last item or level does not move the session. It then
+  /// interrupts nothing that brings the loop back by itself:
   /// - while the loop is playing, the pattern keeps repeating as before;
   /// - while feedback plays, the feedback finishes and resumes the loop as
   ///   usual.

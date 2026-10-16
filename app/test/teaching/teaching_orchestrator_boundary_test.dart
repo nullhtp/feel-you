@@ -68,6 +68,12 @@ class _HeldVibration extends MockVibrationService {
   }
 
   @override
+  Future<void> playMorseTokenPattern(List<MorseToken> tokens) async {
+    await super.playMorseTokenPattern(tokens);
+    await _maybeHold(VibrationCallType.playMorseTokenPattern);
+  }
+
+  @override
   Future<void> playSuccess() async {
     await super.playSuccess();
     await _maybeHold(VibrationCallType.playSuccess);
@@ -89,7 +95,8 @@ class _Harness {
     );
   }
 
-  /// A harness on the first digit, `0`.
+  /// A harness on the first digit, `0`, which is also the first item of the
+  /// first level.
   factory _Harness.firstDigit({GestureClassifier? classifier}) =>
       _Harness(SessionNotifier(MorseLanguage.english), classifier: classifier);
 
@@ -103,6 +110,16 @@ class _Harness {
     return _Harness(session, classifier: classifier);
   }
 
+  /// A harness on the first word of the words level, the last level.
+  factory _Harness.lastLevel({GestureClassifier? classifier}) {
+    final session = SessionNotifier(MorseLanguage.english);
+    while (session.state.levelIndex < session.state.levels.length - 1) {
+      session.nextLevel();
+    }
+    expect(session.state.currentLevel.kind, LevelKind.words);
+    return _Harness(session, classifier: classifier);
+  }
+
   final SessionNotifier session;
   final GestureClassifier classifier;
   final vibration = _HeldVibration();
@@ -113,12 +130,23 @@ class _Harness {
 
   SessionPhase get phase => session.state.phase;
 
-  /// The correct answer for the current (character level) item.
+  bool get _isWordsLevel => session.state.currentLevel.kind == LevelKind.words;
+
+  /// The correct answer for the current item.
   InputComplete get correctAnswer {
     final state = session.state;
-    final pattern = state.currentLevel.patterns[state.currentCharacter]!;
+    final level = state.currentLevel;
+    if (_isWordsLevel) {
+      return InputComplete(level.wordPatterns![state.currentCharacter]!);
+    }
+    final pattern = level.patterns[state.currentCharacter]!;
     return InputComplete([for (final s in pattern) Signal(s)]);
   }
+
+  /// The vibration call that plays the current item's pattern.
+  VibrationCallType get patternCall => _isWordsLevel
+      ? VibrationCallType.playMorseTokenPattern
+      : VibrationCallType.playMorsePattern;
 
   /// How many patterns (signal or word token patterns) were played since
   /// the vibration calls were last reset.
@@ -158,7 +186,7 @@ class _Harness {
   }
 }
 
-/// A boundary item and the swipe that would move past it.
+/// A boundary item or level and the swipe that would move past it.
 typedef _Boundary = ({
   _Harness Function({GestureClassifier? classifier}) harness,
   GestureEvent swipe,
@@ -173,6 +201,14 @@ void main() {
     'NavigateNext on the last item': (
       harness: _Harness.lastDigit,
       swipe: const NavigateNext(),
+    ),
+    'NavigateDown on the first level': (
+      harness: _Harness.firstDigit,
+      swipe: const NavigateDown(),
+    ),
+    'NavigateUp on the last level': (
+      harness: _Harness.lastLevel,
+      swipe: const NavigateUp(),
     ),
   };
 
@@ -199,18 +235,18 @@ void main() {
       test('during playing: the pattern in progress is not cut short or '
           'replayed', () async {
         final t = boundary.harness();
-        t.vibration.holdNext = VibrationCallType.playMorsePattern;
+        t.vibration.holdNext = t.patternCall;
         t.orchestrator.start();
         await settle();
         expect(t.vibration.isHolding, isTrue);
-        expect(t.vibration.patterns, hasLength(1));
+        expect(t.playbacks, 1);
 
         t.gestures.addEvent(boundary.swipe);
         await settle();
 
         // Neither cancelled nor restarted from the beginning.
         expect(t.vibration.callLog, isNot(contains('cancel')));
-        expect(t.vibration.patterns, hasLength(1));
+        expect(t.playbacks, 1);
         expect(t.orchestrator.state.isInterrupted, isFalse);
 
         // Once the pattern has played, the same loop repeats it.
@@ -289,47 +325,71 @@ void main() {
   // With the real classifier
   // -------------------------------------------------------------------------
   group('with a real classifier', () {
-    test('a dot then a swipe past the first item: the loop restarts and the '
-        'discarded dot is never judged', () async {
-      final classifier = GestureClassifier(
-        screenWidth: 800,
-        config: const GestureTimingConfig(silenceTimeout: 50),
-      );
-      final events = <GestureEvent>[];
-      final subscription = classifier.events.listen(events.add);
-      final t = _Harness.firstDigit(classifier: classifier);
-      await t.start();
+    // Fast swipes, from the first touch to the release, starting after the
+    // dot has been tapped.
+    final swipes = <String, ({GestureEvent event, TouchDown down, TouchUp up})>{
+      'to the left past the first item': (
+        event: const NavigatePrevious(),
+        down: const TouchDown(
+          timestamp: Duration(milliseconds: 100),
+          position: 600,
+        ),
+        up: const TouchUp(
+          timestamp: Duration(milliseconds: 150),
+          position: 100,
+        ),
+      ),
+      'down past the first level': (
+        event: const NavigateDown(),
+        down: const TouchDown(
+          timestamp: Duration(milliseconds: 100),
+          position: 100,
+          y: 100,
+        ),
+        up: const TouchUp(
+          timestamp: Duration(milliseconds: 150),
+          position: 100,
+          y: 600,
+        ),
+      ),
+    };
 
-      // A dot on the left half.
-      classifier
-        ..handleTouch(const TouchDown(timestamp: Duration.zero, position: 1))
-        ..handleTouch(
-          const TouchUp(timestamp: Duration(milliseconds: 50), position: 1),
+    for (final MapEntry(key: name, value: swipe) in swipes.entries) {
+      test('a dot then a swipe $name: the loop restarts and the discarded '
+          'dot is never judged', () async {
+        final classifier = GestureClassifier(
+          screenWidth: 800,
+          config: const GestureTimingConfig(silenceTimeout: 50),
         );
-      await settle();
-      expect(t.phase, SessionPhase.listening);
+        final events = <GestureEvent>[];
+        final subscription = classifier.events.listen(events.add);
+        final t = _Harness.firstDigit(classifier: classifier);
+        await t.start();
 
-      // A fast swipe to the left.
-      classifier
-        ..handleTouch(
-          const TouchDown(
-            timestamp: Duration(milliseconds: 100),
-            position: 600,
-          ),
-        )
-        ..handleTouch(
-          const TouchUp(timestamp: Duration(milliseconds: 150), position: 100),
-        );
-      await settle();
-      expect(events.last, const NavigatePrevious());
-      expect(t.session.state.positionIndex, 0);
+        // A dot on the left half.
+        classifier
+          ..handleTouch(const TouchDown(timestamp: Duration.zero, position: 1))
+          ..handleTouch(
+            const TouchUp(timestamp: Duration(milliseconds: 50), position: 1),
+          );
+        await settle();
+        expect(t.phase, SessionPhase.listening);
 
-      await t.expectLoopRepeating('0');
-      expect(events.whereType<InputComplete>(), isEmpty);
-      expect(t.vibration.callLog, isNot(contains('playError')));
+        classifier
+          ..handleTouch(swipe.down)
+          ..handleTouch(swipe.up);
+        await settle();
+        expect(events.last, swipe.event);
+        expect(t.session.state.levelIndex, 0);
+        expect(t.session.state.positionIndex, 0);
 
-      await subscription.cancel();
-      await t.tearDown();
-    });
+        await t.expectLoopRepeating('0');
+        expect(events.whereType<InputComplete>(), isEmpty);
+        expect(t.vibration.callLog, isNot(contains('playError')));
+
+        await subscription.cancel();
+        await t.tearDown();
+      });
+    }
   });
 }
