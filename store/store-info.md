@@ -56,7 +56,7 @@ The app has no UI localisation: its text for sighted helpers (overlay labels, th
 
 ### iOS: iPhone only
 
-Vibration is the app's only output channel. Of the devices that can run an iOS app, only the iPhone can vibrate. On iPad, iPod touch, Apple Vision Pro and Mac the app would install and run, but the vibration calls do nothing, so a deaf-blind user would get no output at all.
+Vibration is the app's only output channel. Of the devices that can run an iOS app, only the iPhone can vibrate. On iPad, iPod touch, Apple Vision Pro and Mac the app could only show its "No vibration motor" screen, which a deaf-blind user can't see.
 
 What the build enforces:
 
@@ -66,7 +66,7 @@ What the build enforces:
 Constraints:
 
 - **Must ship in the first release.** For updates, Apple allows capability requirements only to stay the same or be relaxed ([UIRequiredDeviceCapabilities](https://developer.apple.com/documentation/bundleresources/information-property-list/uirequireddevicecapabilities)). `telephony` can't be added after 1.0 ships, but it can always be removed later.
-- **App Review risk.** The app makes no phone calls, and Apple asks apps to declare only the capabilities they need. Explain the requirement in the App Review notes (text below). If review still rejects it, remove the key and ship with the iPhone device family alone. In that case iPad users can install the app, and the app has to tell them it can't work on their device. The in-app vibration check (issue #4, the "No vibration motor" screen) does not do that yet: on iOS the `vibration` plugin reports a motor on every physical device, iPad included.
+- **App Review risk.** The app makes no phone calls, and Apple asks apps to declare only the capabilities they need. Explain the requirement in the App Review notes (text below). If review still rejects it, remove the key and ship with the iPhone device family alone. In that case iPad users can install the app, and the in-app vibration check tells them it can't work on their device: on iOS, `AppDelegate.swift` reports a motor only on an iPhone or where Core Haptics is supported, so an iPad gets the "No vibration motor" screen.
 
 Manual steps in App Store Connect. These can't be set in `Info.plist`. Go to the app → **Pricing and Availability** (requires the Account Holder, Admin or App Manager role):
 

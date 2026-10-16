@@ -23,23 +23,22 @@ abstract interface class VibrationCapabilityProbe {
   Future<bool?> hasCustomVibrationsSupport();
 }
 
-/// The app's own Android channel to the system vibrator, implemented in
-/// `MainActivity.kt`.
+/// The app's own channel to the vibration hardware, implemented in
+/// `MainActivity.kt` on Android and `AppDelegate.swift` on iOS.
 ///
 /// Answers `hasVibrator` and `hasAmplitudeControl` with a `bool`.
 const vibratorChannel = MethodChannel('feel_you/vibrator');
 
 /// [VibrationCapabilityProbe] backed by the platform.
 ///
-/// - **Android**: the motor and amplitude control are asked of the system
-///   `Vibrator` through [vibratorChannel], because the plugin only checks
+/// - **Android and iOS**: the motor and amplitude control are asked of the
+///   hardware through [vibratorChannel], because the plugin only checks
 ///   whether the device is physical: it reports a motor on a motorless
-///   tablet and none on every emulator. Custom patterns come from the
-///   plugin, which answers `true`; Android can time any pattern on every
-///   API level.
-/// - **iOS**: everything comes from the plugin. Every supported device is an
-///   iPhone with a Taptic Engine; the simulator reports no motor, and debug
-///   builds can bypass the gate (see `vibrationGateBypassProvider`).
+///   Android tablet and on every iPad, and none on any emulator or
+///   simulator. Custom patterns come from the plugin, which answers `true`
+///   on Android, where every API level can time patterns, and asks Core
+///   Haptics on iOS. The simulator still reports no motor, and debug builds
+///   can bypass the gate (see `vibrationGateBypassProvider`).
 /// - **Anywhere else** (unit and widget tests on a desktop host, web): every
 ///   capability is unknown, because the plugin would answer `false` there,
 ///   which would wrongly lock the app.
@@ -65,19 +64,15 @@ class DeviceVibrationCapabilityProbe implements VibrationCapabilityProbe {
 
   @override
   Future<bool?> hasVibrator() async => switch (_platform) {
-    TargetPlatform.android => await vibratorChannel.invokeMethod<bool>(
-      'hasVibrator',
-    ),
-    TargetPlatform.iOS => await Vibration.hasVibrator(),
+    TargetPlatform.android || TargetPlatform.iOS =>
+      await vibratorChannel.invokeMethod<bool>('hasVibrator'),
     _ => null,
   };
 
   @override
   Future<bool?> hasAmplitudeControl() async => switch (_platform) {
-    TargetPlatform.android => await vibratorChannel.invokeMethod<bool>(
-      'hasAmplitudeControl',
-    ),
-    TargetPlatform.iOS => await Vibration.hasAmplitudeControl(),
+    TargetPlatform.android || TargetPlatform.iOS =>
+      await vibratorChannel.invokeMethod<bool>('hasAmplitudeControl'),
     _ => null,
   };
 
