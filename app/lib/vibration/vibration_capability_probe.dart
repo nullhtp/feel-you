@@ -37,8 +37,9 @@ const vibratorChannel = MethodChannel('feel_you/vibrator');
 ///   Android tablet and on every iPad, and none on any emulator or
 ///   simulator. Custom patterns come from the plugin, which answers `true`
 ///   on Android, where every API level can time patterns, and asks Core
-///   Haptics on iOS. The simulator still reports no motor, and debug builds
-///   can bypass the gate (see `vibrationGateBypassProvider`).
+///   Haptics on iOS. Through the channel, Android emulators report their
+///   virtual motor; the iOS simulator reports none, and debug builds can
+///   bypass the gate there (see `vibrationGateBypassProvider`).
 /// - **Anywhere else** (unit and widget tests on a desktop host, web): every
 ///   capability is unknown, because the plugin would answer `false` there,
 ///   which would wrongly lock the app.

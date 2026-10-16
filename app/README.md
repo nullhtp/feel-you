@@ -6,7 +6,7 @@ The Flutter app for Feel You, a Morse code teacher for deaf-blind users that wor
 
 - **Flutter 3.47.3** (stable channel, Dart 3.13.3). CI pins this version in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml); use the same one locally.
 - The Android SDK and/or Xcode, as described in the [Flutter install guide](https://docs.flutter.dev/get-started/install).
-- A **real phone** to feel anything. The iOS simulator reports no vibration motor, and an Android emulator may too, so the app can open on its "No vibration motor" screen. Debug builds show a *Continue anyway (debug build)* button there to get past it.
+- A **real phone** to feel anything. The iOS simulator reports no vibration motor, so the app opens there on its "No vibration motor" screen; debug builds show a *Continue anyway (debug build)* button to get past it. An Android emulator reports a motor and opens on the picker, but you can't feel its vibrations.
 
 The app runs in landscape only. On iOS it is built for iPhone only.
 

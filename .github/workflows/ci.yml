@@ -99,7 +99,5 @@ jobs:
       - name: Build iOS app
         run: flutter build ios --no-codesign --debug
 
-      # Podfile.lock is left out: it records the CocoaPods version, which
-      # differs between this runner and local machines.
       - name: Check the build left tracked files unchanged
-        run: git diff --exit-code -- . ':(exclude)ios/Podfile.lock'
+        run: git diff --exit-code

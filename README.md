@@ -168,7 +168,7 @@ For a sighted helper, the highlighted column is drawn inverted and a line at the
 
 ### No Vibration Motor
 
-Vibration is the only output, so on a device that reports it has **no vibration motor** the app shows a "No vibration motor" screen with an explanation for a sighted helper, instead of the picker or the lessons. Release builds offer no way past it. Debug builds add a *Continue anyway (debug build)* button for developers, since the iOS simulator (and possibly an Android emulator) reports no motor. If the app cannot tell whether there is a motor, it assumes there is one.
+Vibration is the only output, so on a device that reports it has **no vibration motor** the app shows a "No vibration motor" screen with an explanation for a sighted helper, instead of the picker or the lessons. Release builds offer no way past it. Debug builds add a *Continue anyway (debug build)* button for developers, since the iOS simulator reports no motor. Android emulators report one, so they open on the picker. If the app cannot tell whether there is a motor, it assumes there is one.
 
 On an iPhone without Core Haptics (iPhone 7 and older) every vibration is the same fixed system buzz, so Morse timing is lost. The app still runs; the helper overlay shows `custom: no` in amber.
 

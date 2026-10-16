@@ -17,6 +17,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 ///
 /// English: Morse "E" = [dot]
 /// Arabic: Morse "ع" (Ain) = [dot, dash, dot, dash]
+/// Russian: Morse "Р" (Er) = [dot, dash, dot]
 final Map<MorseLanguage, List<MorseSignal>> _languageIdentifiers = {
   MorseLanguage.english:
       encodeLetter('E', MorseLanguage.english) ?? [MorseSignal.dot],

@@ -1,3 +1,11 @@
+# flutter-app-scaffold Specification
+
+## Purpose
+
+The Flutter project the app is built on: repository layout, supported platforms, state management, analysis rules and the app shell.
+
+## Requirements
+
 ### Requirement: Monorepo directory structure
 The repository SHALL have a monorepo layout with the Flutter app in `app/` and a `packages/` directory for future shared packages. The root directory SHALL contain only monorepo-level configuration files (`.gitignore`, `README.md`, `openspec/`).
 
@@ -10,15 +18,15 @@ The repository SHALL have a monorepo layout with the Flutter app in `app/` and a
 - **THEN** the directory exists with a `.gitkeep` file and no packages yet
 
 ### Requirement: Flutter app runs on iOS and Android
-The Flutter application in `app/` SHALL build and run on both iOS (minimum iOS 14) and Android (minimum API 21). No other platform targets (web, desktop, etc.) SHALL be included.
+The Flutter application in `app/` SHALL build and run on both iOS (minimum iOS 15) and Android (minimum API 24). No other platform targets (web, desktop, etc.) SHALL be included.
 
 #### Scenario: App builds for iOS
 - **WHEN** a developer runs `flutter build ios` from `app/`
-- **THEN** the build completes without errors targeting iOS 14+
+- **THEN** the build completes without errors targeting iOS 15+
 
 #### Scenario: App builds for Android
 - **WHEN** a developer runs `flutter build apk` from `app/`
-- **THEN** the build completes without errors targeting Android API 21+
+- **THEN** the build completes without errors targeting Android API 24+
 
 #### Scenario: No web or desktop targets
 - **WHEN** a developer inspects the `app/` directory

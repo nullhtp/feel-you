@@ -44,7 +44,7 @@ class InputComplete extends GestureEvent {
   String toString() => 'InputComplete($tokens)';
 }
 
-/// Swipe right — navigate to the next letter.
+/// Swipe right — navigate to the next item in the level.
 @immutable
 class NavigateNext extends GestureEvent {
   const NavigateNext();
@@ -56,7 +56,7 @@ class NavigateNext extends GestureEvent {
   String toString() => 'NavigateNext';
 }
 
-/// Swipe left — navigate to the previous letter.
+/// Swipe left — navigate to the previous item in the level.
 @immutable
 class NavigatePrevious extends GestureEvent {
   const NavigatePrevious();
@@ -68,7 +68,7 @@ class NavigatePrevious extends GestureEvent {
   String toString() => 'NavigatePrevious';
 }
 
-/// Long hold — reset to letter A.
+/// Long hold — reset to the level's first item.
 @immutable
 class Reset extends GestureEvent {
   const Reset();

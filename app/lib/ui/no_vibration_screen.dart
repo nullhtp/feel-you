@@ -15,9 +15,10 @@ const noVibrationBypassLabel = 'Continue anyway (debug build)';
 /// to start a session.
 ///
 /// Debug builds add a [noVibrationBypassLabel] button so developers can
-/// reach the session UI on emulators and simulators, which report no motor.
-/// It sets [vibrationGateBypassProvider], which opens the gate for the rest
-/// of the run.
+/// reach the session UI on the iOS simulator, which reports no motor, and on
+/// motorless test devices (Android emulators report a motor, so they never
+/// show this screen). The button sets [vibrationGateBypassProvider], which
+/// opens the gate for the rest of the run.
 class NoVibrationScreen extends ConsumerWidget {
   const NoVibrationScreen({super.key});
 

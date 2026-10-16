@@ -26,10 +26,12 @@ class GestureTimingConfig {
   /// an input-complete event, in ms.
   final int silenceTimeout;
 
-  /// Minimum horizontal distance for a swipe, in logical pixels.
+  /// Minimum distance for a swipe, in logical pixels, along its main
+  /// axis (horizontal or vertical).
   final double minSwipeDistance;
 
-  /// Minimum horizontal velocity for a swipe, in logical pixels per second.
+  /// Minimum velocity for a swipe, in logical pixels per second, along its
+  /// main axis (horizontal or vertical).
   final double minSwipeVelocity;
 
   /// Fraction of the screen height taken by the bottom input zone, measured

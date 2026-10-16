@@ -36,9 +36,10 @@ final vibrationCapabilitiesProvider = FutureProvider<VibrationCapabilities>(
 /// Whether a developer chose to continue past the "no vibration motor"
 /// screen in a debug build.
 ///
-/// Emulators, the iOS simulator and motorless test devices would otherwise
-/// never reach a session. Only `NoVibrationScreen` sets it, and only in
-/// debug builds. It lives in memory, so it never outlasts the app run.
+/// The iOS simulator and motorless test devices would otherwise never
+/// reach a session (Android emulators report a motor, so they pass the
+/// gate). Only `NoVibrationScreen` sets it, and only in debug builds. It
+/// lives in memory, so it never outlasts the app run.
 final vibrationGateBypassProvider = NotifierProvider<VibrationGateBypass, bool>(
   VibrationGateBypass.new,
 );

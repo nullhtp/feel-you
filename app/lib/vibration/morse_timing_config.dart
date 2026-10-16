@@ -3,9 +3,10 @@
 /// All durations are in milliseconds. Every value has a sensible default
 /// and can be overridden at construction time for tuning or testing.
 ///
-/// Note: success/error signal patterns are hardcoded in
-/// [buildSuccessSignal] and [buildErrorSignal] because their rhythmic
-/// structure doesn't decompose into simple duration/steps parameters.
+/// Note: the success and error signals are fixed patterns in
+/// `signal_pattern.dart` (see `successSignalFor` and `errorSignalFor`)
+/// because their rhythmic structure doesn't decompose into simple
+/// duration/steps parameters.
 class MorseTimingConfig {
   const MorseTimingConfig({
     this.dotDuration = 100,

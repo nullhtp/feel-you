@@ -13,7 +13,7 @@ abstract class VibrationService {
   /// Plays a Morse token pattern (word-level, with CharGap) as a vibration.
   Future<void> playMorseTokenPattern(List<MorseToken> tokens);
 
-  /// Plays the success signal (triple rapid tap).
+  /// Plays the success signal (five rapid taps).
   Future<void> playSuccess();
 
   /// Plays the error signal (single long buzz).
