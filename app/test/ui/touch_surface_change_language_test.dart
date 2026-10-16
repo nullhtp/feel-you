@@ -23,6 +23,10 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause so the teaching loop never repeats during a test.
 const _testRepeatPause = Duration(seconds: 5);
 
+/// Silence between a started language's identifier and its session: the
+/// default post-feedback pause (only the repeat pause is overridden here).
+final _startPause = const TeachingTimingConfig().postFeedbackPause;
+
 /// Identifier vibrations: Morse ع and Р.
 const _arabic = [
   MorseSignal.dot,
@@ -172,6 +176,7 @@ void main() {
     final hold = await tester.startGesture(const Offset(100, 100));
     await tester.pump(LanguagePickerSurface.confirmHoldDuration);
     await hold.up();
+    await tester.pump(_startPause);
     await tester.pumpAndSettle();
 
     expect(find.byType(TouchSurface), findsOneWidget);

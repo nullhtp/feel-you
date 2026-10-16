@@ -26,6 +26,10 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause so the teaching loop never repeats during a test.
 const _testRepeatPause = Duration(seconds: 5);
 
+/// Silence between a started language's identifier and its session: the
+/// default post-feedback pause (only the repeat pause is overridden here).
+final _startPause = const TeachingTimingConfig().postFeedbackPause;
+
 const _key = SharedPreferencesLanguagePreferenceStore.storageKey;
 
 /// Loads the persistent store from [stored] (mock platform storage), as
@@ -130,6 +134,7 @@ void main() {
       final hold = await tester.startGesture(const Offset(400, 300));
       await tester.pump(LanguagePickerSurface.confirmHoldDuration);
       await hold.up();
+      await tester.pump(_startPause);
       await tester.pumpAndSettle();
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(first.session(tester).language, MorseLanguage.arabic);
@@ -272,6 +277,7 @@ void main() {
       final hold = await tester.startGesture(const Offset(400, 300));
       await tester.pump(LanguagePickerSurface.confirmHoldDuration);
       await hold.up();
+      await tester.pump(_startPause);
       await tester.pumpAndSettle();
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(app.isTeachingRunning(tester), isTrue);
@@ -309,6 +315,7 @@ void main() {
       final hold = await tester.startGesture(const Offset(400, 300));
       await tester.pump(LanguagePickerSurface.confirmHoldDuration);
       await hold.up();
+      await tester.pump(_startPause);
       await tester.pumpAndSettle();
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(app.isTeachingRunning(tester), isTrue);

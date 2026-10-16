@@ -53,14 +53,15 @@ ProviderContainer containerOf(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
 
 /// Holds a finger on the picker long enough to start the highlighted
-/// language, then lifts it.
+/// language, lifts it, then lets the identifier and the default
+/// post-feedback pause after it pass, so the session opens.
 Future<void> holdToStart(WidgetTester tester) async {
   final gesture = await tester.startGesture(
     tester.getCenter(find.byType(LanguagePickerSurface)),
   );
   await tester.pump(LanguagePickerSurface.confirmHoldDuration);
   await gesture.up();
-  await tester.pump();
+  await tester.pump(const TeachingTimingConfig().postFeedbackPause);
 }
 
 /// Cleanly tears down the widget tree, stopping the teaching loop if a

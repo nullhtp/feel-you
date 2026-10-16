@@ -209,7 +209,10 @@ void main() {
       // One activation starts the language: no highlight-then-hold step.
       tester.semantics.tap(find.semantics.byLabel('Русский'));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      // The session opens once the identifier and the default post-feedback
+      // pause after it have passed.
+      await tester.pump(const TeachingTimingConfig().postFeedbackPause);
+      await tester.pump();
 
       // The Russian identifier (Р = · — ·) was vibrated first.
       expect(vibration.patterns.first, [

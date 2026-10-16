@@ -151,7 +151,7 @@ The language picker appears on the first launch (when no language is saved) and 
 2. **Tap** a column to highlight that language, or **swipe right / left** anywhere (at least 50 pixels) to move to the next / previous language, wrapping around. A shorter drag replays the current identifier.
 3. **Hold 1 second**, anywhere, to start the highlighted language, i.e. the last identifier felt.
 
-Starting a language plays its identifier, saves it for the next launch and opens the lessons at the digits level, on 0. Shaking does nothing in the picker.
+Starting a language plays its identifier, saves it for the next launch and opens the lessons at the digits level, on 0. The lessons open only after the identifier has finished and half a second of silence has passed, so the first lesson pattern never cuts the identifier short or runs into it. Until then the picker ignores every gesture. Shaking does nothing in the picker.
 
 For a sighted helper, the highlighted column is drawn inverted and a line at the bottom reads *"Tap a language, then hold anywhere for 1 second to start"*. Screen readers see one button per language, spoken in that language; activating a button starts that language directly.
 

@@ -39,6 +39,31 @@ const _russian = [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot];
 /// Visible hint for the sighted helper.
 const _helperHint = 'Tap a language, then hold anywhere for 1 second to start';
 
+/// Silence between a started language's identifier and its session: the
+/// default post-feedback pause (the harness only overrides the repeat pause).
+final _startPause = const TeachingTimingConfig().postFeedbackPause;
+
+/// A [MockVibrationService] that can hold the next [playMorsePattern] call
+/// open until [release] is called, as a long identifier plays on a device.
+class _HeldVibration extends MockVibrationService {
+  Completer<void>? _held;
+
+  /// Whether the next [playMorsePattern] call is held open.
+  bool holdNextPattern = false;
+
+  /// Lets the held call complete.
+  void release() => _held?.complete();
+
+  @override
+  Future<void> playMorsePattern(List<MorseSignal> signals) async {
+    await super.playMorsePattern(signals);
+    if (!holdNextPattern) return;
+    holdNextPattern = false;
+    _held = Completer<void>();
+    await _held!.future;
+  }
+}
+
 /// The picker, its collaborators and the test doubles behind it.
 class _Harness {
   _Harness({MorseLanguage? saved, this.probe})
@@ -47,7 +72,7 @@ class _Harness {
   final InMemoryLanguagePreferenceStore store;
   final VibrationCapabilityProbe? probe;
   final classifier = FakeGestureClassifier();
-  final vibration = MockVibrationService();
+  final vibration = _HeldVibration();
   final shake = FakeShakeDetector();
 
   Widget build() => ProviderScope(
@@ -104,6 +129,13 @@ Future<void> _hold(
   );
   await tester.pump(duration);
   await gesture.up();
+  await tester.pump();
+}
+
+/// Lets a started language's identifier and the silence after it pass, so
+/// the session replaces the picker.
+Future<void> _waitForSession(WidgetTester tester) async {
+  await tester.pump(_startPause);
   await tester.pump();
 }
 
@@ -315,7 +347,7 @@ void main() {
       t.vibration.reset();
 
       await _hold(tester);
-      await tester.pump();
+      await _waitForSession(tester);
 
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.english);
@@ -336,7 +368,7 @@ void main() {
       await _swipe(tester, -200);
       t.vibration.reset();
       await _hold(tester, at: tester.getCenter(find.text('English')));
-      await tester.pump();
+      await _waitForSession(tester);
 
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.russian);
@@ -351,7 +383,7 @@ void main() {
       await t.pump(tester);
 
       await _hold(tester);
-      await tester.pump();
+      await _waitForSession(tester);
 
       expect(_sessionLanguage(tester), MorseLanguage.arabic);
       expect(t.store.read(), MorseLanguage.arabic);
@@ -371,6 +403,7 @@ void main() {
       tester.semantics
         ..tap(find.semantics.byLabel('Русский'))
         ..tap(find.semantics.byLabel('English'));
+      await _waitForSession(tester);
       await tester.pumpAndSettle();
 
       expect(find.byType(TouchSurface), findsOneWidget);
@@ -380,6 +413,107 @@ void main() {
 
       await t.dispose(tester);
       handle.dispose();
+    });
+  });
+
+  // Issue #28: on Android a new vibration replaces the one in progress, so
+  // the session's first pattern must not start while the identifier plays.
+  group('starting a language', () {
+    testWidgets('the lesson waits for the identifier and a silence after it', (
+      tester,
+    ) async {
+      final t = _Harness();
+      await t.pump(tester);
+      await _swipe(tester, 200);
+      t.vibration
+        ..reset()
+        ..holdNextPattern = true;
+
+      await _hold(tester);
+      // However long the identifier plays, the picker stays.
+      await tester.pump(_testRepeatPause);
+      expect(find.byType(TouchSurface), findsNothing);
+      expect(t.identifiers, [_arabic]);
+
+      // Once it has finished, a short silence still comes first.
+      t.vibration.release();
+      await tester.pump(_startPause - const Duration(milliseconds: 1));
+      await tester.pump();
+      expect(find.byType(TouchSurface), findsNothing);
+      expect(t.identifiers, [_arabic]);
+
+      await tester.pump(const Duration(milliseconds: 1));
+      await tester.pump();
+      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(_sessionLanguage(tester), MorseLanguage.arabic);
+      final session = ProviderScope.containerOf(
+        tester.element(find.byType(TouchSurface)),
+      ).read(sessionNotifierProvider);
+      expect(t.identifiers, [
+        _arabic,
+        session.currentLevel.patterns[session.currentCharacter],
+      ]);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('gestures are ignored while the identifier plays', (
+      tester,
+    ) async {
+      final t = _Harness();
+      await t.pump(tester);
+      t.vibration
+        ..reset()
+        ..holdNextPattern = true;
+
+      await _hold(tester);
+      await tester.tapAt(tester.getCenter(find.text('Русский')));
+      await tester.pump();
+      await _swipe(tester, 200);
+      await _hold(tester);
+
+      expect(t.identifiers, [_english]);
+      expect(_isHighlighted(tester, 'English'), isTrue);
+
+      t.vibration.release();
+      await _waitForSession(tester);
+      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(_sessionLanguage(tester), MorseLanguage.english);
+      expect(t.store.read(), MorseLanguage.english);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('nothing is saved or started when detection finds no motor '
+        'while the identifier plays', (tester) async {
+      final gate = Completer<void>();
+      final t = _Harness(
+        probe: FakeVibrationCapabilityProbe(vibrator: false, gate: gate),
+      );
+      await t.pump(tester);
+
+      // Detection is slower than choosing Russian and holding to start it.
+      await _swipe(tester, -200);
+      t.vibration.holdNextPattern = true;
+      await _hold(tester);
+      expect(t.identifiers, [_russian, _russian]);
+
+      gate.complete();
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(NoVibrationScreen), findsOneWidget);
+
+      t.vibration.release();
+      await _waitForSession(tester);
+      await tester.pump(_testRepeatPause);
+
+      expect(find.byType(NoVibrationScreen), findsOneWidget);
+      expect(find.byType(TouchSurface), findsNothing);
+      expect(t.store.read(), isNull);
+      expect(_sessionLanguage(tester), MorseLanguage.english);
+      expect(t.identifiers, [_russian, _russian]);
+
+      await t.dispose(tester);
     });
   });
 
@@ -409,7 +543,7 @@ void main() {
       expect(_isHighlighted(tester, 'Русский'), isTrue);
 
       await _hold(tester, at: russian);
-      await tester.pump();
+      await _waitForSession(tester);
 
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.russian);

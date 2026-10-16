@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_providers.dart';
 import 'package:feel_you/settings/language_preference.dart';
+import 'package:feel_you/teaching/teaching.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration.dart';
@@ -76,9 +77,9 @@ const _helperHint = 'Tap a language, then hold anywhere for 1 second to start';
 /// line explains the tap-then-hold flow. Screen readers see one button per
 /// language; activating it starts that language directly.
 ///
-/// Starting a language vibrates its identifier, saves it for the next
-/// launch, selects it on the session and replaces the picker with the
-/// [TouchSurface].
+/// Starting a language vibrates its identifier. Once it has finished, plus
+/// a short silence, the language is saved for the next launch, selected on
+/// the session and the picker is replaced with the [TouchSurface].
 class LanguagePickerSurface extends ConsumerStatefulWidget {
   const LanguagePickerSurface({super.key});
 
@@ -127,10 +128,14 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
     _playIdentifier(_highlighted);
   }
 
-  void _playIdentifier(MorseLanguage language) {
+  void _playIdentifier(MorseLanguage language) =>
+      unawaited(_vibrateIdentifier(language));
+
+  /// Vibrates [language]'s identifier and completes when it has finished.
+  Future<void> _vibrateIdentifier(MorseLanguage language) async {
     final pattern = _languageIdentifiers[language];
     if (pattern == null) return;
-    unawaited(ref.read(vibrationServiceProvider).playMorsePattern(pattern));
+    await ref.read(vibrationServiceProvider).playMorsePattern(pattern);
   }
 
   /// Highlights [language] and vibrates its identifier.
@@ -163,15 +168,27 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
     _moveHighlight(_swipeDistance > 0 ? 1 : -1);
   }
 
-  void _selectLanguage(MorseLanguage language) {
+  /// Starts [language]: vibrates its identifier, then opens the session.
+  ///
+  /// The session's first pattern must not cut the identifier short (on
+  /// Android a new vibration replaces the one in progress) or run straight
+  /// into it. So the route changes only once the identifier has finished
+  /// and [TeachingTimingConfig.postFeedbackPause] has passed, the same
+  /// silence that follows feedback in a session. Until then [_started]
+  /// keeps every other gesture from vibrating.
+  Future<void> _selectLanguage(MorseLanguage language) async {
     // Ignore a tap that lands just before the switch to NoVibrationScreen.
-    if (!ref.read(effectiveVibrationCapabilitiesProvider).canVibrate) return;
+    if (!_canVibrate) return;
     if (_started) return;
     _started = true;
     setState(() => _highlighted = language);
 
-    // Vibrate the language identifier.
-    _playIdentifier(language);
+    final pause = ref.read(teachingTimingConfigProvider).postFeedbackPause;
+    await _vibrateIdentifier(language);
+    await Future<void>.delayed(pause);
+    // Detection may have found no motor meanwhile: the VibrationGate then
+    // replaces the picker, and nothing is saved or started.
+    if (!mounted || !_canVibrate) return;
 
     // Remember the choice, so the next launch skips the picker.
     unawaited(ref.read(languagePreferenceStoreProvider).write(language));
@@ -220,7 +237,7 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
                   ),
                   (recognizer) {
                     recognizer.onLongPress = () =>
-                        _selectLanguage(_highlighted);
+                        unawaited(_selectLanguage(_highlighted));
                   },
                 ),
           },
@@ -284,7 +301,7 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
         ],
       ),
       hint: 'Starts Morse lessons in ${_englishName(language)}',
-      onTap: () => _selectLanguage(language),
+      onTap: () => unawaited(_selectLanguage(language)),
       excludeSemantics: true,
       child: GestureDetector(
         onTap: () => _highlight(language),

@@ -21,6 +21,10 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause to prevent orchestrator from interfering.
 const _testRepeatPause = Duration(seconds: 5);
 
+/// Silence between a started language's identifier and its session: the
+/// default post-feedback pause (only the repeat pause is overridden here).
+final _startPause = const TeachingTimingConfig().postFeedbackPause;
+
 /// The debug-only bypass button.
 final _bypassButton = find.widgetWithText(
   OutlinedButton,
@@ -167,7 +171,7 @@ void main() {
       );
       await tester.pump(LanguagePickerSurface.confirmHoldDuration);
       await hold.up();
-      await tester.pump();
+      await tester.pump(_startPause);
       await tester.pump();
 
       expect(find.byType(TouchSurface), findsOneWidget);
