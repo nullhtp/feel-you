@@ -8,6 +8,7 @@ import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
+import 'package:feel_you/ui/vibration_gate.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -21,8 +22,9 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause to prevent orchestrator from interfering.
 const _testRepeatPause = Duration(seconds: 5);
 
-/// Builds the [LanguagePickerSurface] with [probe] answering the capability
-/// queries. When [probe] is null, the real (device) probe is used.
+/// Builds the [LanguagePickerSurface], behind the app's [VibrationGate],
+/// with [probe] answering the capability queries. When [probe] is null, the
+/// real (device) probe is used.
 Widget buildTestWidget({
   required FakeGestureClassifier classifier,
   required MockVibrationService vibration,
@@ -39,7 +41,10 @@ Widget buildTestWidget({
       if (probe != null)
         vibrationCapabilityProbeProvider.overrideWithValue(probe),
     ],
-    child: const MaterialApp(home: LanguagePickerSurface()),
+    child: MaterialApp(
+      builder: (_, navigator) => VibrationGate(child: navigator!),
+      home: const LanguagePickerSurface(),
+    ),
   );
 }
 

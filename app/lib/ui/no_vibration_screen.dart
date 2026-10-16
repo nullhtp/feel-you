@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Label of the debug-only button that bypasses the vibration gate.
 const noVibrationBypassLabel = 'Continue anyway (debug build)';
 
-/// Shown instead of the language picker on a device without a vibration
-/// motor.
+/// Shown instead of every other screen on a device without a vibration
+/// motor (see `VibrationGate`).
 ///
 /// Feel You speaks only through vibration, so on such a device a session
 /// would run while the user feels nothing. This screen tells the sighted

@@ -187,12 +187,6 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
 
   @override
   Widget build(BuildContext context) {
-    // Vibration is the only output channel: never start a session on a
-    // device that definitely has no vibration motor.
-    if (!ref.watch(effectiveVibrationCapabilitiesProvider).canVibrate) {
-      return const NoVibrationScreen();
-    }
-
     return PopScope(
       canPop: false,
       child: Scaffold(

@@ -64,9 +64,10 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   /// route transition to end.
   ///
   /// The double shake ([_onShakeEvent]) is the only way this surface leaves
-  /// on its own. It is also removed when `LaunchScreen` swaps it for the
-  /// `NoVibrationScreen`, but there `LaunchScreen` stops the loop itself in
-  /// the same frame, before the rebuild that removes this surface.
+  /// on its own. It is also removed when `VibrationGate` swaps the whole
+  /// navigator for the `NoVibrationScreen`, but there `VibrationGate` stops
+  /// the loop itself in the same frame, before the rebuild that removes this
+  /// surface.
   bool _leaving = false;
 
   @override

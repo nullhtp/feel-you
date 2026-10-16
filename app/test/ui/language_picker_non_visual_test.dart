@@ -9,6 +9,7 @@ import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
+import 'package:feel_you/ui/vibration_gate.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,7 +63,10 @@ class _Harness {
         probe ?? FakeVibrationCapabilityProbe(),
       ),
     ],
-    child: const MaterialApp(home: LanguagePickerSurface()),
+    child: MaterialApp(
+      builder: (_, navigator) => VibrationGate(child: navigator!),
+      home: const LanguagePickerSurface(),
+    ),
   );
 
   /// Shows the picker and lets it play its first identifier.

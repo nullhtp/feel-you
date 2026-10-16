@@ -6,6 +6,7 @@ import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/ui/vibration_diagnostics.dart';
+import 'package:feel_you/ui/vibration_gate.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -26,8 +27,9 @@ final _bypassButton = find.widgetWithText(
   noVibrationBypassLabel,
 );
 
-/// Pumps the [LanguagePickerSurface] on a device without a vibration motor
-/// (amplitude control and custom patterns still reported as present).
+/// Pumps the [LanguagePickerSurface] behind the app's [VibrationGate] on a
+/// device without a vibration motor (amplitude control and custom patterns
+/// still reported as present).
 Future<void> _pumpMotorlessPicker(
   WidgetTester tester,
   FakeGestureClassifier classifier,
@@ -45,7 +47,10 @@ Future<void> _pumpMotorlessPicker(
           FakeVibrationCapabilityProbe(vibrator: false),
         ),
       ],
-      child: const MaterialApp(home: LanguagePickerSurface()),
+      child: MaterialApp(
+        builder: (_, navigator) => VibrationGate(child: navigator!),
+        home: const LanguagePickerSurface(),
+      ),
     ),
   );
   await tester.pump();

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:feel_you/app.dart';
-import 'package:feel_you/gestures/gesture_providers.dart';
+import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/settings/language_preference.dart';
@@ -242,6 +242,74 @@ void main() {
       await tester.pump();
 
       // Detection is still running: the session starts.
+      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(app.isTeachingRunning(tester), isTrue);
+
+      gate.complete();
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(NoVibrationScreen), findsOneWidget);
+      expect(find.byType(TouchSurface), findsNothing);
+      expect(app.isTeachingRunning(tester), isFalse);
+
+      await app.close(tester);
+    });
+
+    // Issue #26: picking a language replaces the first route, so the gate
+    // must sit above the navigator to see a late result.
+    testWidgets('a session started from the picker stops when detection '
+        'later finds no motor', (tester) async {
+      final gate = Completer<void>();
+      final app = _App(
+        await _loadStore({}),
+        probe: FakeVibrationCapabilityProbe(vibrator: false, gate: gate),
+      );
+      await app.launch(tester);
+      await tester.pump();
+
+      // Detection is slower than the hold that starts a language.
+      final hold = await tester.startGesture(const Offset(400, 300));
+      await tester.pump(LanguagePickerSurface.confirmHoldDuration);
+      await hold.up();
+      await tester.pumpAndSettle();
+      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(app.isTeachingRunning(tester), isTrue);
+
+      gate.complete();
+      await tester.pump();
+      await tester.pump();
+
+      expect(find.byType(NoVibrationScreen), findsOneWidget);
+      expect(find.byType(TouchSurface), findsNothing);
+      expect(app.isTeachingRunning(tester), isFalse);
+
+      // Nothing is played from now on.
+      app.vibration.reset();
+      await tester.pump(_testRepeatPause * 2);
+      expect(app.vibration.patterns, isEmpty);
+
+      await app.close(tester);
+    });
+
+    testWidgets('a session restarted after a double shake stops when '
+        'detection later finds no motor', (tester) async {
+      final gate = Completer<void>();
+      final app = _App(
+        InMemoryLanguagePreferenceStore(MorseLanguage.english),
+        probe: FakeVibrationCapabilityProbe(vibrator: false, gate: gate),
+      );
+      await app.launch(tester);
+      await tester.pump();
+
+      // Back to the picker, then start a language again.
+      app.shake.addEvent(const ChangeLanguage());
+      await tester.pumpAndSettle();
+      expect(find.byType(LanguagePickerSurface), findsOneWidget);
+      final hold = await tester.startGesture(const Offset(400, 300));
+      await tester.pump(LanguagePickerSurface.confirmHoldDuration);
+      await hold.up();
+      await tester.pumpAndSettle();
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(app.isTeachingRunning(tester), isTrue);
 
