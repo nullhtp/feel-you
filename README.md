@@ -103,7 +103,7 @@ How long a tap lasts does not matter, only where it starts: the left half is alw
 |---------|-------|--------|
 | **Tap** | Left half | Dot |
 | **Tap** | Right half | Dash |
-| **Tap** | Bottom strip | Digits and letters: check the answer now instead of waiting 1 s. Words: add a letter gap after the dots and dashes tapped so far. Confirmed with a short buzz. |
+| **Tap** | Bottom strip | Digits and letters: check the answer now instead of waiting 1 s. Words: add a letter gap after the dots and dashes tapped so far. Confirmed with a short buzz. Ignored until the first dot or dash, so a stray touch never stops the item playing. |
 | *(no tap for 1 s)* | | The answer is checked |
 | **Swipe right / left** | Anywhere | Next / previous item in the level. Stops at the first and last item (no wrap-around). |
 | **Swipe up / down** | Anywhere | Next / previous level (digits → letters → words), starting at its first item. Stops at digits and at words. |

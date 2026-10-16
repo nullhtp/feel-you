@@ -315,48 +315,30 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// Handles a bottom-zone tap: inserts a character gap on a words level, or
   /// submits the pending input on a character level.
   ///
-  /// Like [_handleFeedback], the action is abandoned if the loop is stopped,
-  /// restarted or navigated while one of its vibration calls is in flight,
-  /// so it never acts on a character the user has already left. Its own
-  /// interrupt of the playback does not change the generation, so it does
-  /// not abandon the action.
+  /// Acts only while listening, i.e. once the user has tapped a dot or dash.
+  /// While the pattern plays nothing has been entered yet: there is nothing
+  /// to submit, and a character gap can only follow input. The tap is then
+  /// ignored and the pattern keeps repeating, so a stray touch on the strip
+  /// never leaves the user with nothing vibrating. During feedback it is
+  /// ignored like [MorseInput] and [InputComplete].
   ///
-  /// An abandoned action leaves the input buffer alone. That input belongs
-  /// to the character that was left, so whatever superseded the action is
-  /// responsible for it.
+  /// Like [_handleFeedback], the action is abandoned if the loop is stopped,
+  /// restarted or navigated while its tap feedback is in flight, so it never
+  /// acts on a character the user has already left. An abandoned action
+  /// leaves the input buffer alone. That input belongs to the character that
+  /// was left, so whatever superseded the action is responsible for it.
   Future<void> _onBottomZoneAction() async {
     final gen = _loopGeneration;
-    final phase = sessionNotifier.state.phase;
-
-    // Ignore during feedback (consistent with MorseInput/InputComplete).
-    if (phase == SessionPhase.feedback) return;
+    if (sessionNotifier.state.phase != SessionPhase.listening) return;
 
     final isWordsLevel =
         sessionNotifier.state.currentLevel.kind == LevelKind.words;
 
+    await vibrationService.playTapFeedback();
+    if (!_shouldRun || gen != _loopGeneration) return;
     if (isWordsLevel) {
-      // Words level: insert charGap into the input buffer.
-      // Works during playing (triggers interrupt like MorseInput) or listening.
-      if (phase == SessionPhase.playing) {
-        // Interrupt playback first, same as _onMorseInput.
-        state = state.copyWith(isInterrupted: true);
-        _cancelPause();
-        await vibrationService.cancel();
-        // Stopped (e.g. backgrounded), restarted or navigated while
-        // cancelling: no tap feedback, and any new loop keeps playing.
-        if (!_shouldRun || gen != _loopGeneration) return;
-        sessionNotifier.setPhase(SessionPhase.listening);
-      }
-      // Haptic confirmation *after* cancel so the two don't collide.
-      await vibrationService.playTapFeedback();
-      if (!_shouldRun || gen != _loopGeneration) return;
       _gestureClassifier.insertCharGap();
     } else {
-      // Character levels (digits/letters): submit input immediately.
-      // Only act during listening (when there's input to submit).
-      if (phase != SessionPhase.listening) return;
-      await vibrationService.playTapFeedback();
-      if (!_shouldRun || gen != _loopGeneration) return;
       _gestureClassifier.submitInput();
     }
   }
@@ -412,10 +394,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// - while feedback plays, the feedback finishes and resumes the loop as
   ///   usual.
   ///
-  /// Otherwise (listening, or a bottom-zone action is interrupting playback)
-  /// the swipe has already discarded the pending input in the classifier,
-  /// which would leave the user with no input and nothing vibrating. The
-  /// loop then restarts for the same character instead.
+  /// Otherwise (listening) the swipe has already discarded the pending input
+  /// in the classifier, which would leave the user with no input and nothing
+  /// vibrating. The loop then restarts for the same character instead.
   void _onNavigate(
     void Function() navigationAction, {
     bool clampAtBoundary = false,

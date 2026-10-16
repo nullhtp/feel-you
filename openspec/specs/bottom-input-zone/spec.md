@@ -91,6 +91,12 @@ The `TeachingOrchestrator` SHALL handle `BottomZoneAction` events differently ba
 - **AND** the user taps the bottom zone
 - **THEN** no `charGap` SHALL be inserted (cannot start with a charGap)
 
+#### Scenario: Bottom zone tap during playback is ignored on every level
+- **WHEN** the word or character pattern is playing (the user has not tapped a dot or dash yet)
+- **AND** the user taps the bottom zone
+- **THEN** playback SHALL NOT be interrupted and the pattern SHALL keep repeating
+- **AND** no tap feedback SHALL be played and the input buffer SHALL stay empty
+
 ### Requirement: GestureClassifier exposes methods for explicit charGap and submit
 The `GestureClassifier` SHALL expose two new public methods:
 - `insertCharGap()`: Adds a `charGap` symbol to the input buffer and restarts the silence timer

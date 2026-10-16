@@ -10,7 +10,6 @@ import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test_doubles/fake_gesture_classifier.dart';
-import '../test_doubles/fixed_levels_session.dart';
 import '../test_doubles/mock_vibration_service.dart';
 
 // ---------------------------------------------------------------------------
@@ -73,12 +72,6 @@ class _HeldVibration extends MockVibrationService {
     await super.playSuccess();
     await _maybeHold(VibrationCallType.playSuccess);
   }
-
-  @override
-  Future<void> cancel() async {
-    await super.cancel();
-    await _maybeHold(VibrationCallType.cancel);
-  }
 }
 
 /// An orchestrator wired to test doubles.
@@ -109,18 +102,6 @@ class _Harness {
     }
     return _Harness(session, classifier: classifier);
   }
-
-  /// A harness on the first word of the English words level.
-  ///
-  /// The levels are ordered words (0), letters (1), digits (2).
-  factory _Harness.firstWord() => _Harness(
-    FixedLevelsSessionNotifier(
-      FixedLevelsSessionState(
-        levels: reorderedEnglishLevels(),
-        language: MorseLanguage.english,
-      ),
-    ),
-  );
 
   final SessionNotifier session;
   final GestureClassifier classifier;
@@ -348,39 +329,6 @@ void main() {
       expect(t.vibration.callLog, isNot(contains('playError')));
 
       await subscription.cancel();
-      await t.tearDown();
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // Bottom-zone action interrupting playback
-  // -------------------------------------------------------------------------
-  group('words level, bottom-zone action during playing', () {
-    test('a swipe past the first word during cancel(): the action is abandoned '
-        'and the loop restarts', () async {
-      final t = _Harness.firstWord();
-      await t.start();
-      final word = t.session.state.currentCharacter;
-
-      // The action interrupts playback and is stuck in cancel(). The
-      // phase is still playing, but the loop has already stopped.
-      t.vibration.holdNext = VibrationCallType.cancel;
-      t.gestures.addEvent(const BottomZoneAction());
-      await settle();
-      expect(t.vibration.isHolding, isTrue);
-      expect(t.phase, SessionPhase.playing);
-      expect(t.orchestrator.state.isInterrupted, isTrue);
-
-      t.gestures.addEvent(const NavigatePrevious());
-      await settle();
-      t.vibration.release();
-      await settle();
-
-      // Not left listening with no input and nothing vibrating.
-      expect(t.gestures.insertCharGapCallCount, 0);
-      expect(t.vibration.callLog, isNot(contains('playTapFeedback')));
-      await t.expectLoopRepeating(word);
-
       await t.tearDown();
     });
   });

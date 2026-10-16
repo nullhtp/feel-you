@@ -29,19 +29,15 @@ const _severalRepeatCycles = Duration(milliseconds: 100);
 Future<void> settle([Duration duration = Duration.zero]) =>
     Future<void>.delayed(duration);
 
-/// A [MockVibrationService] that can hold the next [cancel] or
-/// [playTapFeedback] call open until the test calls [release], so the test
-/// can act while the orchestrator is awaiting it.
+/// A [MockVibrationService] that can hold the next [playTapFeedback] call
+/// open until the test calls [release], so the test can act while the
+/// orchestrator is awaiting it.
 ///
-/// Only the call that follows [holdNextCancel] or [holdNextTapFeedback] is
-/// held; later calls (e.g. the cancel made by a navigation) complete at once.
+/// Only the call that follows [holdNextTapFeedback] is held; later calls
+/// complete at once.
 class _HeldVibration extends MockVibrationService {
-  Completer<void>? _nextCancel;
   Completer<void>? _nextTapFeedback;
   Completer<void>? _held;
-
-  /// Holds the next [cancel] call open until [release] is called.
-  void holdNextCancel() => _nextCancel = Completer<void>();
 
   /// Holds the next [playTapFeedback] call open until [release] is called.
   void holdNextTapFeedback() => _nextTapFeedback = Completer<void>();
@@ -51,17 +47,8 @@ class _HeldVibration extends MockVibrationService {
 
   /// Lets the held call complete and drops any hold not yet taken.
   void release() {
-    _nextCancel = null;
     _nextTapFeedback = null;
     if (isHolding) _held!.complete();
-  }
-
-  @override
-  Future<void> cancel() async {
-    await super.cancel();
-    final hold = _nextCancel;
-    _nextCancel = null;
-    await _wait(hold);
   }
 
   @override
@@ -69,10 +56,6 @@ class _HeldVibration extends MockVibrationService {
     await super.playTapFeedback();
     final hold = _nextTapFeedback;
     _nextTapFeedback = null;
-    await _wait(hold);
-  }
-
-  Future<void> _wait(Completer<void>? hold) async {
     if (hold == null) return;
     _held = hold;
     await hold.future;
@@ -161,134 +144,6 @@ class _Harness {
 }
 
 void main() {
-  // -------------------------------------------------------------------------
-  // Words level, bottom-zone action during playing
-  // -------------------------------------------------------------------------
-  group('words level, bottom-zone action during playing', () {
-    final navigations = <String, void Function(_Harness)>{
-      'Home from the shake detector': (t) => t.shake.addEvent(const Home()),
-      'NavigateNext from a swipe': (t) =>
-          t.gestures.addEvent(const NavigateNext()),
-    };
-
-    for (final MapEntry(key: name, value: navigate) in navigations.entries) {
-      test(
-        '$name during cancel(): the new loop keeps playing, no char gap',
-        () async {
-          final t = _Harness.words();
-          await t.start();
-
-          t.vibration.holdNextCancel();
-          await t.bottomZoneActionUntilHeld();
-
-          navigate(t);
-          await settle();
-          expect(t.session.state.positionIndex, isNot(1));
-          expect(t.phase, SessionPhase.playing);
-
-          t.vibration
-            ..reset()
-            ..release();
-          await settle(_severalRepeatCycles);
-
-          // The abandoned action neither switched to listening nor
-          // touched the new word's input.
-          expect(t.phase, SessionPhase.playing);
-          expect(t.gestures.insertCharGapCallCount, 0);
-          expect(t.vibration.callLog, isNot(contains('playTapFeedback')));
-
-          // The new loop keeps repeating the new word.
-          expect(t.orchestrator.state.isInterrupted, isFalse);
-          expect(t.tokenPlaybacks, greaterThan(1));
-
-          // And a tap still interrupts it.
-          await t.startListening();
-          expect(t.orchestrator.state.isInterrupted, isTrue);
-          t.vibration.reset();
-          await settle(_severalRepeatCycles);
-          expect(t.tokenPlaybacks, 0);
-
-          await t.tearDown();
-        },
-      );
-    }
-
-    test(
-      'stop() and start() during cancel(): the new loop keeps playing',
-      () async {
-        final t = _Harness.words();
-        await t.start();
-
-        t.vibration.holdNextCancel();
-        await t.bottomZoneActionUntilHeld();
-
-        // A quick background/foreground trip: running again on release.
-        final stopping = t.orchestrator.stop();
-        t.orchestrator.start();
-        await settle();
-
-        t.vibration
-          ..reset()
-          ..release();
-        await stopping;
-        await settle(_severalRepeatCycles);
-
-        expect(t.orchestrator.state.isRunning, isTrue);
-        expect(t.phase, SessionPhase.playing);
-        expect(t.gestures.insertCharGapCallCount, 0);
-        expect(t.vibration.callLog, isNot(contains('playTapFeedback')));
-        expect(t.tokenPlaybacks, greaterThan(1));
-
-        await t.tearDown();
-      },
-    );
-
-    test('without navigation: interrupts and inserts a char gap', () async {
-      final t = _Harness.words();
-      await t.start();
-
-      t.vibration.holdNextCancel();
-      await t.bottomZoneActionUntilHeld();
-      // Interrupting does not abandon the action.
-      expect(t.orchestrator.state.isInterrupted, isTrue);
-
-      t.vibration
-        ..reset()
-        ..release();
-      await settle();
-
-      expect(t.phase, SessionPhase.listening);
-      expect(t.vibration.callLog, contains('playTapFeedback'));
-      expect(t.gestures.insertCharGapCallCount, 1);
-
-      // The interrupted loop does not resume.
-      await settle(_severalRepeatCycles);
-      expect(t.tokenPlaybacks, 0);
-
-      await t.tearDown();
-    });
-
-    test('a tap during cancel() does not abandon the action', () async {
-      final t = _Harness.words();
-      await t.start();
-
-      t.vibration.holdNextCancel();
-      await t.bottomZoneActionUntilHeld();
-
-      // The tap interrupts too, but does not start a new loop.
-      await t.startListening();
-
-      t.vibration.release();
-      await settle();
-
-      expect(t.phase, SessionPhase.listening);
-      expect(t.vibration.callLog, contains('playTapFeedback'));
-      expect(t.gestures.insertCharGapCallCount, 1);
-
-      await t.tearDown();
-    });
-  });
-
   // -------------------------------------------------------------------------
   // Words level, bottom-zone action during listening
   // -------------------------------------------------------------------------

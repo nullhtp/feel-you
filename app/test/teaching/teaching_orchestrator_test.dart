@@ -1,3 +1,4 @@
+import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_notifier.dart';
@@ -641,63 +642,126 @@ void main() {
   // BottomZoneAction handling
   // -------------------------------------------------------------------------
   group('BottomZoneAction handling', () {
+    test('on words level during listening: inserts charGap', () async {
+      final t = createOrchestrator();
+      // Move to words level (index 2).
+      t.session.nextLevel(); // → letters
+      t.session.nextLevel(); // → words
+      expect(t.session.state.levelIndex, 2);
+
+      t.orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(t.session.state.phase, SessionPhase.playing);
+
+      // Simulate first morse input to get some input in buffer.
+      t.gestures.addEvent(const MorseInput(MorseSignal.dot));
+      await Future<void>.delayed(Duration.zero);
+      expect(t.session.state.phase, SessionPhase.listening);
+
+      // Now send BottomZoneAction — should call insertCharGap.
+      t.gestures.addEvent(const BottomZoneAction());
+      await Future<void>.delayed(Duration.zero);
+
+      expect(t.gestures.insertCharGapCallCount, 1);
+      expect(t.gestures.submitInputCallCount, 0);
+      // Tap feedback should have been played.
+      expect(t.vibration.callLog, contains('playTapFeedback'));
+      // Should still be in listening phase.
+      expect(t.session.state.phase, SessionPhase.listening);
+
+      await tearDownOrchestrator(t.orchestrator, t.gestures);
+    });
+
     test(
-      'on words level during playing: interrupts and inserts charGap',
+      'on words level during playing: ignored, the word keeps repeating',
       () async {
         final t = createOrchestrator();
-        // Move to words level (index 2).
-        t.session.nextLevel(); // → letters
-        t.session.nextLevel(); // → words
-        expect(t.session.state.levelIndex, 2);
+        t.session.nextLevel();
+        t.session.nextLevel();
 
         t.orchestrator.start();
         await Future<void>.delayed(const Duration(milliseconds: 20));
         expect(t.session.state.phase, SessionPhase.playing);
 
-        // Simulate first morse input to get some input in buffer.
-        t.gestures.addEvent(const MorseInput(MorseSignal.dot));
-        await Future<void>.delayed(Duration.zero);
-        expect(t.session.state.phase, SessionPhase.listening);
-
-        // Now send BottomZoneAction — should call insertCharGap.
+        // Nothing has been entered: there is no letter for a gap to follow,
+        // so the tap must not stop the word.
+        t.vibration.reset();
         t.gestures.addEvent(const BottomZoneAction());
-        await Future<void>.delayed(Duration.zero);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
 
-        expect(t.gestures.insertCharGapCallCount, 1);
-        expect(t.gestures.submitInputCallCount, 0);
-        // Tap feedback should have been played.
-        expect(t.vibration.callLog, contains('playTapFeedback'));
-        // Should still be in listening phase.
-        expect(t.session.state.phase, SessionPhase.listening);
+        expect(t.gestures.insertCharGapCallCount, 0);
+        expect(t.vibration.callLog, isNot(contains('cancel')));
+        expect(t.vibration.callLog, isNot(contains('playTapFeedback')));
+        expect(t.session.state.phase, SessionPhase.playing);
+        expect(t.orchestrator.state.isInterrupted, isFalse);
+        expect(
+          t.vibration.calls.where(
+            (c) => c.type == VibrationCallType.playMorseTokenPattern,
+          ),
+          hasLength(greaterThan(1)),
+        );
 
         await tearDownOrchestrator(t.orchestrator, t.gestures);
       },
     );
 
-    test(
-      'on words level during playing with no prior input: interrupts and inserts charGap',
-      () async {
-        final t = createOrchestrator();
-        t.session.nextLevel();
-        t.session.nextLevel();
+    test('on words level with the real classifier: a bottom-strip tap during '
+        'playing keeps the word repeating', () async {
+      final classifier = GestureClassifier(screenWidth: 800, screenHeight: 400);
+      final vibration = MockVibrationService();
+      final session = SessionNotifier(MorseLanguage.english)
+        ..nextLevel()
+        ..nextLevel();
+      final orchestrator = TeachingOrchestrator(
+        gestureClassifier: classifier,
+        vibrationService: vibration,
+        sessionNotifier: session,
+        config: const TeachingTimingConfig(
+          repeatPause: Duration(milliseconds: 10),
+        ),
+      );
+      final events = <GestureEvent>[];
+      final subscription = classifier.events.listen(events.add);
 
-        t.orchestrator.start();
-        await Future<void>.delayed(const Duration(milliseconds: 20));
+      orchestrator.start();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(session.state.phase, SessionPhase.playing);
 
-        // Send BottomZoneAction during playing (no prior input).
-        // Should interrupt playback and call insertCharGap.
-        t.gestures.addEvent(const BottomZoneAction());
-        await Future<void>.delayed(Duration.zero);
+      // A tap in the bottom strip (y >= 400 * 0.85 = 340).
+      classifier
+        ..handleTouch(
+          const TouchDown(timestamp: Duration.zero, position: 100, y: 380),
+        )
+        ..handleTouch(
+          const TouchUp(
+            timestamp: Duration(milliseconds: 50),
+            position: 100,
+            y: 380,
+          ),
+        );
+      await Future<void>.delayed(Duration.zero);
+      expect(events, [const BottomZoneAction()]);
 
-        expect(t.session.state.phase, SessionPhase.listening);
-        expect(t.gestures.insertCharGapCallCount, 1);
-        expect(t.vibration.callLog, contains('cancel'));
-        // Tap feedback should come after cancel (no overlap).
-        expect(t.vibration.callLog, contains('playTapFeedback'));
+      vibration.reset();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
-        await tearDownOrchestrator(t.orchestrator, t.gestures);
-      },
-    );
+      expect(session.state.phase, SessionPhase.playing);
+      expect(orchestrator.state.isInterrupted, isFalse);
+      expect(vibration.callLog, isNot(contains('playTapFeedback')));
+      expect(
+        vibration.calls.where(
+          (c) => c.type == VibrationCallType.playMorseTokenPattern,
+        ),
+        hasLength(greaterThan(1)),
+      );
+      expect(classifier.inputBufferNotifier.value, isEmpty);
+
+      await subscription.cancel();
+      await orchestrator.stop();
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      orchestrator.dispose();
+      classifier.dispose();
+    });
 
     test('on letters level during listening: submits input', () async {
       final t = createOrchestrator();
@@ -911,11 +975,14 @@ void main() {
         await tearDownOrchestrator(t.orchestrator, t.gestures);
       });
 
-      test('bottom zone interrupts playback and inserts a char gap', () async {
+      test('bottom zone inserts a char gap instead of submitting', () async {
         final t = createOrchestrator(session: sessionAtLevel(0));
         t.orchestrator.start();
         await Future<void>.delayed(const Duration(milliseconds: 20));
-        expect(t.session.state.phase, SessionPhase.playing);
+
+        t.gestures.addEvent(const MorseInput(MorseSignal.dot));
+        await Future<void>.delayed(Duration.zero);
+        expect(t.session.state.phase, SessionPhase.listening);
 
         t.gestures.addEvent(const BottomZoneAction());
         await Future<void>.delayed(Duration.zero);
