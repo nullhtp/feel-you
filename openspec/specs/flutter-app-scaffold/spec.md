@@ -6,16 +6,17 @@ The Flutter project the app is built on: repository layout, supported platforms,
 
 ## Requirements
 
-### Requirement: Monorepo directory structure
-The repository SHALL have a monorepo layout with the Flutter app in `app/` and a `packages/` directory for future shared packages. The root directory SHALL contain only monorepo-level configuration files (`.gitignore`, `README.md`, `openspec/`).
+### Requirement: Repository directory structure
+The repository SHALL keep the Flutter app, its only Dart package, in `app/`. It SHALL NOT have a `packages/` directory until a second package exists. Files and directories at the root SHALL concern the repository as a whole (documentation, CI, OpenSpec, store listing, helper scripts), not the Flutter build.
 
 #### Scenario: Root directory contains expected structure
 - **WHEN** a developer clones the repository
-- **THEN** the root contains `app/`, `packages/`, `openspec/`, `README.md`, and `.gitignore`
+- **THEN** the root contains `app/`, `openspec/`, `README.md`, and `.gitignore`
+- **THEN** there is no `packages/` directory
 
-#### Scenario: Packages directory exists for future use
-- **WHEN** a developer inspects the `packages/` directory
-- **THEN** the directory exists with a `.gitkeep` file and no packages yet
+#### Scenario: Flutter commands run from app/
+- **WHEN** a developer runs a `flutter` command such as `flutter pub get` or `flutter test`
+- **THEN** they run it from `app/`, which holds `pubspec.yaml`
 
 ### Requirement: Flutter app runs on iOS and Android
 The Flutter application in `app/` SHALL build and run on both iOS (minimum iOS 15) and Android (minimum API 24). No other platform targets (web, desktop, etc.) SHALL be included.
