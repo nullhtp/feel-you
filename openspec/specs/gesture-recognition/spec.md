@@ -1,3 +1,11 @@
+# gesture-recognition Specification
+
+## Purpose
+
+How raw touches become gesture events: timing thresholds, swipes, the hold, input completion and the event types.
+
+## Requirements
+
 ### Requirement: Configurable gesture timing thresholds
 The system SHALL define gesture timing through a configuration object (`GestureTimingConfig`) with the following defaults: reset hold minimum 2000ms, silence timeout 1000ms, minimum swipe distance 50px, minimum swipe velocity 200px/s. All values SHALL be overridable at construction time. The `dotMaxDuration`, `dashMaxDuration`, and `charGapThreshold` parameters SHALL be removed since dot/dash classification is now position-based and charGap insertion is now explicit via the bottom input zone.
 

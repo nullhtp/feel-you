@@ -1,4 +1,10 @@
-## MODIFIED Requirements
+# word-pattern-composition Specification
+
+## Purpose
+
+The `composeWordPattern` and `buildWordPatterns` utilities that derive word patterns from letter patterns.
+
+## Requirements
 
 ### Requirement: composeWordPattern utility function
 The system SHALL provide a `composeWordPattern` function that accepts a word string and an alphabet map (`Map<String, List<MorseSignal>>`), and returns a `List<MorseToken>`. The function SHALL look up each character of the word in the alphabet map and create `Signal` tokens for each `MorseSignal`, inserting a `CharGap()` token between each letter's pattern.

@@ -1,3 +1,11 @@
+# vibration-engine Specification
+
+## Purpose
+
+Playing Morse patterns and the correct and wrong signals as vibrations, through an injectable service.
+
+## Requirements
+
 ### Requirement: Configurable Morse vibration timing
 The system SHALL define Morse vibration timing through a configuration object (`MorseTimingConfig`) with the following default values: dot duration 100ms, dash duration 300ms, inter-symbol gap 100ms, inter-character gap 300ms. All values SHALL be overridable at construction time.
 

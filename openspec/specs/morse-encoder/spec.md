@@ -1,4 +1,10 @@
-## ADDED Requirements
+# morse-encoder Specification
+
+## Purpose
+
+Encoding a letter to its Morse pattern and decoding a pattern back, always for a given language.
+
+## Requirements
 
 ### Requirement: Language-aware letter encoding
 The system SHALL provide an `encodeLetter(String letter, MorseLanguage language)` function that encodes a single character into its Morse signal pattern using the appropriate alphabet for the given language. The function SHALL check both the universal alphabet (digits) and the language-specific alphabet. It SHALL return `null` if the character is not found.

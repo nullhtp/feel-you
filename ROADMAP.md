@@ -93,6 +93,7 @@ Later commits, without an OpenSpec change:
 - [x] Double shake returns from a session to the language picker
 - [x] Words are spelled letter by letter before they are drilled, so the user knows which word they are on without counting ([#8](https://github.com/nullhtp/feel-you/issues/8), `spell-words-before-drill`)
 - [x] Housekeeping: no empty `packages/` folder, a [changelog](CHANGELOG.md) and release steps, and [`run.sh`](run.sh) for Android and iOS ([#13](https://github.com/nullhtp/feel-you/issues/13), `repo-housekeeping`). The empty skeleton of an `expanded-word-levels` change, which never had a proposal, is gone; more word levels would start from a new change.
+- [x] Main specs repaired: all 29 pass `openspec validate --specs --strict`, requirements lost when deltas were copied over main specs are restored or recorded as dropped, and stale requirements found on the way are brought up to date (Arabic letter patterns, word lists, the placeholder screen, the touch surface) ([#31](https://github.com/nullhtp/feel-you/issues/31), `repair-main-specs`). Behaviour still missing from the specs: [#32](https://github.com/nullhtp/feel-you/issues/32).
 
 ## Next
 

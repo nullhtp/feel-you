@@ -1,4 +1,10 @@
-## ADDED Requirements
+# morse-pattern-utils Specification
+
+## Purpose
+
+Comparing and validating Morse patterns, signal by signal and token by token.
+
+## Requirements
 
 ### Requirement: Pattern equality comparison
 The system SHALL provide a `patternsEqual(List<MorseSignal> a, List<MorseSignal> b)` function in a dedicated pattern utilities module that returns `true` if the two signal patterns contain the same signals in the same order.

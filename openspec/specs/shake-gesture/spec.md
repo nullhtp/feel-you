@@ -1,3 +1,11 @@
+# shake-gesture Specification
+
+## Purpose
+
+Detecting a shake from the accelerometer and the Home event it emits.
+
+## Requirements
+
 ### Requirement: ShakeDetector listens to accelerometer
 The system SHALL create a `ShakeDetector` class that subscribes to the device accelerometer stream (via `sensors_plus` package). It SHALL compute the acceleration magnitude from x, y, z values and detect shakes when the magnitude exceeds a configurable threshold.
 

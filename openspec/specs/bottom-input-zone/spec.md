@@ -1,3 +1,11 @@
+# bottom-input-zone Specification
+
+## Purpose
+
+The bottom strip of the lesson screen: it submits the answer on the digits and letters levels and adds a letter gap on the words levels.
+
+## Requirements
+
 ### Requirement: Bottom input zone occupies lower 15% of screen
 The touch surface SHALL define a bottom input zone spanning the full screen width and the lower 15% of the screen height. The zone boundary SHALL be calculated as `screenHeight * 0.85` — taps with a Y position greater than or equal to this boundary are in the bottom zone.
 

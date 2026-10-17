@@ -1,4 +1,10 @@
-## ADDED Requirements
+# tuning-config Specification
+
+## Purpose
+
+The central reference of timing and threshold values to tune on real devices.
+
+## Requirements
 
 ### Requirement: Centralized tuning reference
 The system SHALL provide a centralized Dart file that documents all adjustable timing constants across gesture recognition, vibration engine, and teaching loop. The file SHALL reference the existing config classes without replacing them.

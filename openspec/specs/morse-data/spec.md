@@ -1,4 +1,10 @@
-## MODIFIED Requirements
+# morse-data Specification
+
+## Purpose
+
+The English letters A-Z in International Morse: patterns, learning order, encoding, decoding and validation.
+
+## Requirements
 
 ### Requirement: Morse symbol representation
 The system SHALL represent Morse code signals using a `MorseSignal` enum with exactly two values: `dot` and `dash`. All Morse-related APIs SHALL use this enum — not strings, characters, integers, or the former `MorseSymbol` — to represent individual signals.

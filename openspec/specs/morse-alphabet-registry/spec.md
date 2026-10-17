@@ -1,13 +1,13 @@
-## ADDED Requirements
+# morse-alphabet-registry Specification
+
+## Purpose
+
+The `MorseAlphabet` data class and the registry that holds every alphabet and serves levels, encoding and decoding.
+
+## Requirements
 
 ### Requirement: MorseAlphabet data class
-The system SHALL define a `MorseAlphabet` class containing:
-- `language`: A `MorseLanguage?` field. When `null`, the alphabet is universal (included for all languages, e.g., digits).
-- `characters`: A `Map<String, List<MorseSignal>>` mapping each character to its Morse signal pattern.
-- `characterOrder`: A `List<String>` defining the learning sequence for the characters.
-- `wordList`: An optional `List<String>?` of words for the word-level, or `null` if this alphabet has no word level.
-- `wordPatterns`: An optional `Map<String, List<MorseToken>>?` mapping words to their token patterns, or `null` if no word level.
-- `levels`: A `List<Level>` of levels defined by this alphabet.
+The system SHALL define a `MorseAlphabet` class with: `language` (`MorseLanguage?`, `null` for a universal alphabet such as digits, which every language includes), `characters` (each character's `List<MorseSignal>` pattern), `characterOrder` (the learning sequence), `wordList` and `wordPatterns` (the words and their `List<MorseToken>` patterns, both `null` when the alphabet has no words level) and `levels` (the `List<Level>` the alphabet defines).
 
 #### Scenario: Universal alphabet has null language
 - **WHEN** the digits `MorseAlphabet` is inspected

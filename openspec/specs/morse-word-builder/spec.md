@@ -1,4 +1,10 @@
-## ADDED Requirements
+# morse-word-builder Specification
+
+## Purpose
+
+Building the token pattern of a word from the patterns of its letters.
+
+## Requirements
 
 ### Requirement: composeWordPattern produces MorseToken list
 The system SHALL provide a `composeWordPattern(String word, Map<String, List<MorseSignal>> alphabet)` function that accepts a word string and an alphabet map, and returns a `List<MorseToken>`. The function SHALL look up each character of the word in the alphabet map and create `Signal` tokens for each `MorseSignal`, inserting a `CharGap()` token between each letter's pattern.

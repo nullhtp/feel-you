@@ -1,15 +1,18 @@
-## MODIFIED Requirements
+# level-system Specification
+
+## Purpose
+
+Levels (digits, letters, words): their data model, how each alphabet defines them and the level list of each language.
+
+## Requirements
 
 ### Requirement: Level data model
-The system SHALL define a `Level` class containing:
-- `name`: A string identifier for the level (e.g., "digits", "letters", "arabic-letters").
-- `characters`: An ordered `List<String>` of characters in the learning sequence.
-- `patterns`: A `Map<String, List<MorseSignal>>` mapping each character to its Morse signal pattern (for single-character levels) OR the level MAY reference word-level token patterns from the alphabet.
-- `language`: An optional `MorseLanguage?` field. When `null`, the level is universal. When set, it belongs to that specific language.
+The system SHALL define a `Level` class with: `name` (e.g. "digits" or "arabic-letters"), `characters` (the items in learning order), `patterns` (each item's `List<MorseSignal>`), `kind` (`LevelKind.characters` by default, or `LevelKind.words`), `wordPatterns` (each word's `List<MorseToken>`, required for a words level) and `language` (`MorseLanguage?`, `null` for a universal level). Behaviour that differs for words SHALL switch on `kind`, never on the level's position.
 
 #### Scenario: Level contains all required fields including language
 - **WHEN** a `Level` is created with name "arabic-letters", characters for Arabic alphabet, patterns for each letter, and language `MorseLanguage.arabic`
-- **THEN** the `name`, `characters`, `patterns`, and `language` fields SHALL all be accessible
+- **THEN** the `name`, `characters`, `patterns`, `kind` and `language` fields SHALL all be accessible
+- **AND** its `kind` SHALL be `LevelKind.characters`
 
 #### Scenario: Universal level has null language
 - **WHEN** the digits level is inspected
@@ -26,6 +29,10 @@ The system SHALL define a `Level` class containing:
 #### Scenario: Pattern lookup by character
 - **WHEN** `level.patterns["3"]` is accessed on the digits level
 - **THEN** it SHALL return the Morse signal pattern for digit 3: `[MorseSignal.dot, MorseSignal.dot, MorseSignal.dot, MorseSignal.dash, MorseSignal.dash]`
+
+#### Scenario: Words level carries token patterns
+- **WHEN** the English words level is inspected
+- **THEN** its `kind` SHALL be `LevelKind.words` and its `wordPatterns` SHALL map every word to its tokens, with a `CharGap` between letters
 
 ### Requirement: Level equality uses all fields
 The `Level` class SHALL use all fields (`name`, `characters`, `patterns`, `language`) for equality comparison, not just `name`.

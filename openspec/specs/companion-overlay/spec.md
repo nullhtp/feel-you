@@ -1,3 +1,11 @@
+# companion-overlay Specification
+
+## Purpose
+
+The dim overlay that shows a sighted helper what the lesson is doing, without taking any touches.
+
+## Requirements
+
 ### Requirement: Zone boundary visualization
 The overlay SHALL render thin white divider lines showing the input zone boundaries: a vertical line at the horizontal center of the screen (separating the dot zone from the dash zone), and a horizontal line at 85% of the screen height (separating the upper input area from the bottom submit zone). Zone divider lines SHALL use low opacity (approximately 10-20%) to remain visible without dominating the screen.
 

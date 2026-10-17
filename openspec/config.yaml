@@ -3,24 +3,29 @@ schema: spec-driven
 context: |
   Project: Feel You — a mobile app for deaf-blind people to communicate with the world using only a phone.
 
-  Tech stack: Flutter (Dart), targeting iOS & Android.
-  Project status: Greenfield — pre-implementation, planning phase. No application code exists yet.
+  Tech stack: Flutter (Dart) with Riverpod, in app/. Android, and iPhone on iOS (no iPad). Landscape only.
+  Project status: Phase 1 is built and released (see README.md, ROADMAP.md and CHANGELOG.md).
+  The main specs in openspec/specs/ describe the shipped app.
 
   Domain: Accessibility / assistive technology for deaf-blind communication.
   The entire interface uses two channels:
-    - Input: Touch gestures (tap, hold, swipe)
-    - Output: Vibration patterns (Morse code)
-  No sight or hearing needed.
+    - Input: touch (tap, hold, swipe) and shaking the phone
+    - Output: vibration (Morse patterns and a few distinct signals)
+  No sight or hearing needed. A dim overlay and screen-reader labels exist only for sighted helpers.
 
-  Phase 1 (current scope): Morse code learning tool via vibration.
-    - App vibrates a Morse pattern for a letter, repeats patiently until the user taps it back.
-    - Success/failure communicated through distinct vibration patterns.
-    - User controls pace entirely — skip, revisit, or reset anytime.
-    - Minimal state: only tracks which letter the user is on.
+  Phase 1: a Morse code learning tool that works through vibration alone.
+    - Three languages (English, Arabic, Russian), each with three levels in order: digits 0-9, letters, 20 words.
+    - The app plays the current item, pauses 3 s and repeats it forever. Words are spelled letter by letter before they are drilled.
+    - The user taps the item back; the answer is checked after 1 s without a tap, or at once with a bottom-strip tap.
+    - Correct: five quick 50 ms taps. Wrong: one 500 ms buzz. Then the same item again; the app never moves on by itself.
+    - Only the chosen language is saved. Level and position live in memory; every launch starts at digit 0.
     - Design philosophy: closer to a musical instrument than a language app.
 
-  Gestures: tap (dot/dash input), swipe right (next letter), swipe left (previous letter), long hold (reset to A).
-  Signal vibrations: 3 quick pulses = correct, one long buzz = wrong.
+  Lesson screen (black, landscape): the left half is a dot and the right half a dash, decided by where a press starts, not how long it lasts.
+  The bottom 15% strip submits the answer on digits and letters, and adds a letter gap on words.
+  Gestures: swipe right/left = next/previous item, swipe up/down = next/previous level, hold 2 s = first item of the level,
+  shake = home (digits, 0), double shake = back to the language picker.
+  Language picker: first launch and double shake; tap or swipe to highlight (each answered with the language's Morse identifier), hold 1 s to start.
 
   Future phases: words/sentences, speech-to-Morse, text-to-Morse, Morse-to-text, real-time conversation.
 

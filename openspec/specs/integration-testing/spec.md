@@ -1,4 +1,10 @@
-## ADDED Requirements
+# integration-testing Specification
+
+## Purpose
+
+The end-to-end tests that drive the whole learning flow and its edge cases.
+
+## Requirements
 
 ### Requirement: Full learning flow integration test
 The system SHALL have an integration test that validates the complete learning flow from app initialization through letter playback, user input, feedback, and navigation. The test SHALL use real Riverpod providers with a mock `VibrationService` that records all vibration calls.

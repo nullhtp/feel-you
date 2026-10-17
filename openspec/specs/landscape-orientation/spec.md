@@ -1,3 +1,11 @@
+# landscape-orientation Specification
+
+## Purpose
+
+Locking the app to landscape in Flutter, on iOS and on Android.
+
+## Requirements
+
 ### Requirement: App locked to landscape orientation
 The app SHALL only run in landscape orientation (both landscape-left and landscape-right). Portrait orientation SHALL NOT be supported. The orientation lock SHALL be enforced at the Flutter level, iOS platform level, and Android platform level.
 

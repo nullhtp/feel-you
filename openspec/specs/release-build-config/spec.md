@@ -1,3 +1,11 @@
+# release-build-config Specification
+
+## Purpose
+
+Release build settings: Android signing, R8, the VIBRATE permission and App Bundles, and iOS release readiness.
+
+## Requirements
+
 ### Requirement: Android release signing configuration
 The Android build SHALL use a dedicated release keystore for signing release builds. A `key.properties` file SHALL reference the keystore location, alias, and passwords. The `build.gradle.kts` SHALL load signing configuration from `key.properties` when building in release mode. The `key.properties` file MUST NOT be committed to version control.
 

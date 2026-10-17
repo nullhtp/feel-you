@@ -1,4 +1,10 @@
-## ADDED Requirements
+# morse-signal-model Specification
+
+## Purpose
+
+The Morse value types: `MorseSignal` (dot, dash) and `MorseToken` (a signal or a letter gap).
+
+## Requirements
 
 ### Requirement: MorseSignal enum
 The system SHALL define a `MorseSignal` enum with exactly two values: `dot` and `dash`. This enum represents the atomic user-facing signals in Morse code. All APIs dealing with individual Morse symbols (gesture input, single-character patterns, pattern comparison) SHALL use `MorseSignal` instead of the former `MorseSymbol`.
