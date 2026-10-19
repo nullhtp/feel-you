@@ -156,6 +156,17 @@ void main() {
       }
     });
 
+    // Grouped by length and chosen for daily needs, not sorted by
+    // frequency (`russian-morse-data`, *Russian word list ordering*).
+    test('is the 20 words of the spec, in order', () {
+      expect(russianAlphabet.wordList, [
+        ...['ДА', 'НЕ', 'ОН', 'НУ', 'УЖ'],
+        ...['НЕТ', 'ЕДА', 'СОН', 'ДОМ', 'ПИЛ'],
+        ...['БОЛЬ', 'СТОП', 'ВОДА', 'ХОЧУ', 'ЖАРА'],
+        ...['СПАТЬ', 'УСТАЛ', 'ЖАРКО', 'ХОЛОД', 'ПУСТЬ'],
+      ]);
+    });
+
     test('all words are uppercase Cyrillic', () {
       final cyrillicUpper = RegExp(r'^[А-ЯЁ]+$');
       for (final word in russianAlphabet.wordList!) {
