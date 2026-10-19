@@ -26,7 +26,7 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause so the teaching loop never repeats during a test.
 const _testRepeatPause = Duration(seconds: 5);
 
-/// Identifier vibrations: Morse E, ع, Р and Ñ.
+/// Identifier vibrations: Morse E, ع, Р, Ñ and É.
 const _english = [MorseSignal.dot];
 const _arabic = [
   MorseSignal.dot,
@@ -42,6 +42,13 @@ const _spanish = [
   MorseSignal.dash,
   MorseSignal.dash,
 ];
+const _french = [
+  MorseSignal.dot,
+  MorseSignal.dot,
+  MorseSignal.dash,
+  MorseSignal.dot,
+  MorseSignal.dot,
+];
 
 /// Each language's column label, identifier letter and identifier
 /// vibration, in picker order.
@@ -50,6 +57,7 @@ const _options = {
   MorseLanguage.arabic: (label: 'العربية', letter: 'ع', identifier: _arabic),
   MorseLanguage.russian: (label: 'Русский', letter: 'Р', identifier: _russian),
   MorseLanguage.spanish: (label: 'Español', letter: 'Ñ', identifier: _spanish),
+  MorseLanguage.french: (label: 'Français', letter: 'É', identifier: _french),
 };
 
 /// The language of the rightmost column, where a swipe left from English
@@ -363,6 +371,27 @@ void main() {
       expect(_sessionLanguage(tester), MorseLanguage.spanish);
       expect(t.store.read(), MorseLanguage.spanish);
       expect(t.identifiers.take(2), [_spanish, _spanish]);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('Français plays É and starts French', (tester) async {
+      final t = _Harness();
+      await t.pump(tester);
+      t.vibration.reset();
+
+      final french = tester.getCenter(find.text('Français'));
+      await tester.tapAt(french);
+      await tester.pump();
+      expect(t.identifiers, [_french]);
+
+      await _hold(tester, at: french);
+      await _waitForSession(tester);
+
+      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(_sessionLanguage(tester), MorseLanguage.french);
+      expect(t.store.read(), MorseLanguage.french);
+      expect(t.identifiers.take(2), [_french, _french]);
 
       await t.dispose(tester);
     });

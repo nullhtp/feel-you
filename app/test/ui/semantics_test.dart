@@ -82,6 +82,7 @@ void main() {
       'العربية': 'Arabic',
       'Русский': 'Russian',
       'Español': 'Spanish',
+      'Français': 'French',
     };
 
     testWidgets('each language is one button node with label and hint', (
@@ -133,7 +134,7 @@ void main() {
         tester.getSemantics(find.bySemanticsLabel('English')),
         isSemantics(isSelected: true),
       );
-      for (final label in ['العربية', 'Русский', 'Español']) {
+      for (final label in ['العربية', 'Русский', 'Español', 'Français']) {
         expect(
           tester.getSemantics(find.bySemanticsLabel(label)),
           isSemantics(isSelected: false),
@@ -174,6 +175,7 @@ void main() {
         'العربية': Locale('ar'),
         'Русский': Locale('ru'),
         'Español': Locale('es'),
+        'Français': Locale('fr'),
       };
       for (final MapEntry(key: label, value: locale) in locales.entries) {
         final data = tester

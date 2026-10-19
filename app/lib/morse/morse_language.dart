@@ -15,4 +15,7 @@ enum MorseLanguage {
 
   /// Spanish Morse Code — Latin letters A-Z and Ñ.
   spanish,
+
+  /// French Morse Code — Latin letters A-Z, À, Ç, É and È.
+  french,
 }

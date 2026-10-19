@@ -1,6 +1,7 @@
 export 'arabic_alphabet.dart';
 export 'digit_alphabet.dart';
 export 'english_alphabet.dart';
+export 'french_alphabet.dart';
 export 'russian_alphabet.dart';
 export 'spanish_alphabet.dart';
 export 'level.dart';

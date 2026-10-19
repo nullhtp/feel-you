@@ -1,6 +1,6 @@
 # Roadmap
 
-The first part of this file is the original Phase 1 plan (*Learn Vibro Morse*), kept as history. Later changes replaced parts of it: dots and dashes are now told apart by where the tap lands (left half = dot, right half = dash), not by how long it lasts, and there are digits and words levels and four languages. See [After Phase 1](#after-phase-1-complete) for what changed, [The road ahead](#the-road-ahead) for the plan, and the [README](README.md) for how the app works today.
+The first part of this file is the original Phase 1 plan (*Learn Vibro Morse*), kept as history. Later changes replaced parts of it: dots and dashes are now told apart by where the tap lands (left half = dot, right half = dash), not by how long it lasts, and there are digits and words levels and five languages. See [After Phase 1](#after-phase-1-complete) for what changed, [The road ahead](#the-road-ahead) for the plan, and the [README](README.md) for how the app works today.
 
 ## Foundation (Complete)
 

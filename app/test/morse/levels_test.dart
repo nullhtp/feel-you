@@ -84,6 +84,14 @@ void main() {
       },
     );
 
+    test('French returns 3 levels: digits, french-letters, french-words', () {
+      final french = morseRegistry.levelsForLanguage(MorseLanguage.french);
+      expect(french.length, 3);
+      expect(french[0].name, 'digits');
+      expect(french[1].name, 'french-letters');
+      expect(french[2].name, 'french-words');
+    });
+
     test('Russian levels list is unmodifiable', () {
       final russian = morseRegistry.levelsForLanguage(MorseLanguage.russian);
       expect(() => russian.add(russian[0]), throwsUnsupportedError);
@@ -428,6 +436,36 @@ void main() {
     });
   });
 
+  group('French letters level', () {
+    late Level frenchLettersLevel;
+
+    setUp(() {
+      frenchLettersLevel = morseRegistry.levelsForLanguage(
+        MorseLanguage.french,
+      )[1];
+    });
+
+    test('has 30 characters (A-Z, À, Ç, É, È)', () {
+      expect(frenchLettersLevel.characters.length, 30);
+      expect(frenchLettersLevel.patterns.length, 30);
+    });
+
+    test('characters start with A and end with È', () {
+      expect(frenchLettersLevel.characters.first, 'A');
+      expect(frenchLettersLevel.characters.last, 'È');
+    });
+  });
+
+  group('French words level', () {
+    test('has 20 characters with word patterns', () {
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.french)[2];
+      expect(level.characters.length, 20);
+      for (final word in level.characters) {
+        expect(level.wordPatterns![word], isNotEmpty, reason: word);
+      }
+    });
+  });
+
   group('Level position resolution', () {
     test('position 0 in digits is character 0', () {
       final level = morseRegistry.levelsForLanguage(MorseLanguage.english)[0];
@@ -464,6 +502,18 @@ void main() {
       ]);
     });
 
+    test('position 28 in French letters is character É', () {
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.french)[1];
+      expect(level.characters[28], 'É');
+      expect(level.patterns[level.characters[28]], [
+        MorseSignal.dot,
+        MorseSignal.dot,
+        MorseSignal.dash,
+        MorseSignal.dot,
+        MorseSignal.dot,
+      ]);
+    });
+
     test('position 14 in Spanish letters is character Ñ', () {
       final level = morseRegistry.levelsForLanguage(MorseLanguage.spanish)[1];
       expect(level.characters[14], 'Ñ');
@@ -483,6 +533,7 @@ void main() {
       'arabic-words',
       'russian-words',
       'spanish-words',
+      'french-words',
     };
     final allLevels = morseRegistry.all.expand((a) => a.levels).toList();
 

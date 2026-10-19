@@ -29,15 +29,15 @@ The app is a patient, tireless teacher. It vibrates the Morse pattern of one ite
 
 #### Languages and levels
 
-Four Morse alphabets: **English** (International Morse), **Arabic**, **Russian** and **Spanish**. Each language has three levels, always in this order:
+Five Morse alphabets: **English** (International Morse), **Arabic**, **Russian**, **Spanish** and **French**. Each language has three levels, always in this order:
 
-| Level | English | Arabic | Russian | Spanish |
-|-------|---------|--------|---------|---------|
-| 1. Digits | 0-9 (10) | 0-9 (10) | 0-9 (10) | 0-9 (10) |
-| 2. Letters | A-Z (26) | ا ... ي (28) | А ... Я (32, Ё left out: same pattern as Е) | A ... Z with Ñ after N (27) |
-| 3. Words | 20 words | 20 words | 20 words | 20 words |
+| Level | English | Arabic | Russian | Spanish | French |
+|-------|---------|--------|---------|---------|--------|
+| 1. Digits | 0-9 (10) | 0-9 (10) | 0-9 (10) | 0-9 (10) | 0-9 (10) |
+| 2. Letters | A-Z (26) | ا ... ي (28) | А ... Я (32, Ё left out: same pattern as Е) | A ... Z with Ñ after N (27) | A-Z, then À Ç É È (30) |
+| 3. Words | 20 words | 20 words | 20 words | 20 words | 20 words |
 
-The digits use the same International Morse patterns in every language. Spanish uses the English patterns for A-Z, plus Ñ (`− − · − −`). Letters follow the alphabet the user learned, so they can count positions in it: Ñ is the 15th Spanish letter. Each words level has five 2-letter, five 3-letter, five 4-letter and five 5-letter words, in this order:
+The digits use the same International Morse patterns in every language. Spanish and French use the English patterns for A-Z, plus Ñ (`− − · − −`) in Spanish and À (`· − − · −`), Ç (`− · − · ·`), É (`· · − · ·`) and È (`· − · · −`) in French. Letters follow the alphabet the user learned, so they can count positions in it: Ñ is the 15th Spanish letter, while French counts 26 letters, so its accented letters come after Z. Each words level has five 2-letter, five 3-letter, five 4-letter and five 5-letter words, in this order:
 
 | Language | Words |
 |----------|-------|
@@ -45,8 +45,9 @@ The digits use the same International Morse patterns in every language. Spanish 
 | Arabic | كل لا نم هل حر · نعم ألم برد شكر قلب · سعيد شراب وقوف مريض جالس · مساعد عطشان جوعان تعبان سلامك |
 | Russian | ДА НЕ ОН НУ УЖ · НЕТ ЕДА СОН ДОМ ПИЛ · БОЛЬ СТОП ВОДА ХОЧУ ЖАРА · СПАТЬ УСТАЛ ЖАРКО ХОЛОД ПУСТЬ |
 | Spanish | NO YA YO VE AY · VEN SED MAL PAN VOY · HOLA AGUA BAÑO BIEN ALTO · AYUDA DOLOR CALOR SUEÑO FELIZ |
+| French | ÇA VA LÀ OK HÉ · OUI NON EAU MAL BON · AIDE FAIM SOIF BIEN STOP · MERCI FROID CHAUD SALUT APRÈS |
 
-Words use only the letters of their language's letters level, so the Spanish words have no accented vowels. The Spanish list still needs a native speaker's review.
+Words use only the letters of their language's letters level, so the Spanish words have no accented vowels and the French ones no Ê, Ô or other accents without a Morse code. The Spanish and French lists still need a native speaker's review.
 
 A session starts at the digits level, on 0. The level and position are not saved, so every launch starts at 0 again. The language is saved, and so are the items the user has learned, which [the quiz](#the-quiz) draws from.
 
@@ -192,7 +193,7 @@ Distinct patterns the app uses that are separate from Morse:
 | `·····` five 50 ms taps, 40 ms apart (410 ms) | Correct |
 | `━━━━━` one 500 ms buzz | Wrong, try again |
 | One 50 ms buzz | Bottom-strip tap accepted (answer submitted, or letter gap added) |
-| `·` / `· − · −` / `· − ·` / `− − · − −` | Language identifiers in the picker: Morse E (English), ع (Arabic), Р (Russian), Ñ (Spanish) |
+| `·` / `· − · −` / `· − ·` / `− − · − −` / `· · − · ·` | Language identifiers in the picker: Morse E (English), ع (Arabic), Р (Russian), Ñ (Spanish), É (French) |
 | `· · − − · ·` Morse `?` (1500 ms), then 1 s of silence | Entering a level's quiz |
 | `━━━━━━━ ━━━━━━━` two 700 ms buzzes, 300 ms apart (1700 ms) | Cloud off: the cloud key was deleted (see [The cloud key](#the-cloud-key)) |
 
@@ -200,7 +201,7 @@ The correct taps are shorter than a dot with gaps shorter than any Morse gap, an
 
 ### Choosing a Language
 
-The language picker appears on the first launch (when no language is saved) and after a double shake. It has four columns, left to right: **English**, **العربية**, **Русский**, **Español**. One language is highlighted at a time, and every gesture answers with the identifier vibration of the language it leaves highlighted, so the picker works without sight:
+The language picker appears on the first launch (when no language is saved) and after a double shake. It has five columns, left to right: **English**, **العربية**, **Русский**, **Español**, **Français**. One language is highlighted at a time, and every gesture answers with the identifier vibration of the language it leaves highlighted, so the picker works without sight:
 
 1. When the picker appears, the highlighted language's identifier plays once. It starts on the saved language, or English if none is saved.
 2. **Tap** a column to highlight that language, or **swipe right / left** anywhere (at least 50 pixels) to move to the next / previous language, wrapping around. A shorter drag replays the current identifier.

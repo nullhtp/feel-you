@@ -40,6 +40,13 @@ const _flows = <_Flow>[
     letter: 'Ñ',
     word: 'BAÑO',
   ),
+  (
+    language: MorseLanguage.french,
+    label: 'Français',
+    identifier: 'É',
+    letter: 'É',
+    word: 'ÇA',
+  ),
 ];
 
 /// A swipe right across the middle of the lesson surface.
