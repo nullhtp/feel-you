@@ -6,6 +6,7 @@ Notable changes to Feel You. The format follows [Keep a Changelog](https://keepa
 
 ### Added
 
+- A contributing guide, a code of conduct, a security policy, issue and pull request templates, and a roadmap of seven phases tracked as GitHub milestones with epics.
 - A quiz at the end of every level, one swipe right past its last item. It is announced with Morse `?`, plays random items the user has learned, and moves to a new item after each correct answer, so the user practises recognising Morse they did not choose.
 - Learned items (each item answered correctly once in the lessons) are saved per language and level, so the quiz grows from one launch to the next. Every launch still starts at digit 0.
 - The helper overlay shows how many items of the level are learned, and hides the quiz item until the user has answered.
