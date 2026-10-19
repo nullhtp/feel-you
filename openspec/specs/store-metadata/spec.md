@@ -28,7 +28,7 @@ A keywords file SHALL be provided in `store/keywords.md` listing relevant search
 - **THEN** `store/keywords.md` contains a list of relevant keywords in both English and Arabic
 
 ### Requirement: Store listing information
-A store info file SHALL be provided in `store/store-info.md` documenting: app category (Education or Accessibility), content rating (Everyone / 4+), supported languages (English, Arabic, Russian), contact email, and any required declarations (e.g., no ads, no in-app purchases, no data collection).
+A store info file SHALL be provided in `store/store-info.md` documenting: app category (Education or Accessibility), content rating (Everyone / 4+), supported languages (English, Arabic, Russian, Spanish, French, German), contact email, and any required declarations (e.g., no ads, no in-app purchases, no data collection).
 
 #### Scenario: Store info file is complete
 - **WHEN** the store listing is prepared
@@ -36,7 +36,7 @@ A store info file SHALL be provided in `store/store-info.md` documenting: app ca
 
 #### Scenario: Every taught language is listed
 - **WHEN** the supported languages in `store/store-info.md` are reviewed
-- **THEN** they list English, Arabic and Russian, the languages offered in the in-app language picker
+- **THEN** they list English, Arabic, Russian, Spanish, French and German, the languages offered in the in-app language picker
 
 ### Requirement: Privacy policy
 A privacy policy document SHALL be provided in `store/privacy-policy.md`. It SHALL state that the app does not collect, store, or transmit any personal data. It SHALL list the device permissions used (vibration, accelerometer for shake detection, wake lock) and explain their purpose. The privacy policy MUST be suitable for both App Store and Google Play requirements.

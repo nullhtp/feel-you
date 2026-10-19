@@ -38,7 +38,7 @@ The system SHALL define a `MorseAlphabetRegistry` that holds all registered `Mor
 
 #### Scenario: Registry contains all registered alphabets
 - **WHEN** `registry.all` is accessed
-- **THEN** it SHALL return a list containing the digits, English, and Arabic alphabets
+- **THEN** it SHALL return a list containing the digits, English, Arabic, Russian, Spanish, French and German alphabets, in that order
 
 #### Scenario: Lookup by language
 - **WHEN** `registry.forLanguage(MorseLanguage.english)` is called
@@ -51,6 +51,10 @@ The system SHALL define a `MorseAlphabetRegistry` that holds all registered `Mor
 #### Scenario: Registry returns null for unregistered language
 - **WHEN** `registry.forLanguage` is called with a language that has no registered alphabet
 - **THEN** it SHALL return `null`
+
+#### Scenario: Every language has a registered alphabet
+- **WHEN** `registry.forLanguage` is called with each `MorseLanguage` value on the global registry
+- **THEN** it SHALL return that language's alphabet, never `null`
 
 ### Requirement: Registry provides levels for language
 The registry SHALL provide a `levelsForLanguage(MorseLanguage language)` method that returns an ordered, unmodifiable list of levels. The list SHALL include levels from universal alphabets first, followed by levels from the language-specific alphabet.
@@ -115,7 +119,7 @@ A `MorseAlphabet` SHALL hold `aliases`: letters written in words that share anot
 - **AND** 'Ё' SHALL NOT be a key of its `characters`
 
 #### Scenario: Alphabets without aliases
-- **WHEN** the digits or English alphabet's `aliases` are inspected
+- **WHEN** the digits, English, Spanish, French or German alphabet's `aliases` are inspected
 - **THEN** they SHALL be empty
 
 #### Scenario: Aliases do not decode
