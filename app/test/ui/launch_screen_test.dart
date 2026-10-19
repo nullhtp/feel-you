@@ -8,6 +8,7 @@ import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
@@ -22,22 +23,43 @@ import '../test_doubles/fake_shake_detector.dart';
 import '../test_doubles/fake_vibration_capability_probe.dart';
 import '../test_doubles/mock_vibration_service.dart';
 
-// A saved language skips the picker on launch (issue #9).
+// A saved language skips the picker on launch (issue #9) and opens the home
+// menu (#41).
 
 /// Long repeat pause so the teaching loop never repeats during a test.
 const _testRepeatPause = Duration(seconds: 5);
 
-/// Silence between a started language's identifier and its session: the
-/// default post-feedback pause (only the repeat pause is overridden here).
-final _startPause = const TeachingTimingConfig().postFeedbackPause;
+/// Silence between a confirmed identifier (a language, a mode) and the next
+/// screen: the default post-feedback pause (only the repeat pause is
+/// overridden here).
+final _confirmPause = const TeachingTimingConfig().postFeedbackPause;
 
 const _key = SharedPreferencesLanguagePreferenceStore.storageKey;
+
+/// Morse L, the menu's identifier for Learn.
+const _learn = [
+  MorseSignal.dot,
+  MorseSignal.dash,
+  MorseSignal.dot,
+  MorseSignal.dot,
+];
 
 /// Loads the persistent store from [stored] (mock platform storage), as
 /// `main` does before the first frame.
 Future<LanguagePreferenceStore> _loadStore(Map<String, Object> stored) {
   SharedPreferences.setMockInitialValues(stored);
   return loadLanguagePreferenceStore();
+}
+
+/// Holds a finger in the middle of the screen for 1 second, the hold that
+/// confirms on the picker and on the menu, then lets the identifier and
+/// the silence after it pass, so the next screen opens.
+Future<void> _holdToConfirm(WidgetTester tester) async {
+  final hold = await tester.startGesture(const Offset(400, 300));
+  await tester.pump(HomeMenuSurface.confirmHoldDuration);
+  await hold.up();
+  await tester.pump(_confirmPause);
+  await tester.pumpAndSettle();
 }
 
 /// The whole app with test doubles, launched with [store].
@@ -107,6 +129,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(LanguagePickerSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(find.byType(TouchSurface), findsNothing);
       expect(app.isTeachingRunning(tester), isFalse);
 
@@ -122,7 +145,7 @@ void main() {
         await tester.pump();
 
         expect(find.byType(LanguagePickerSurface), findsOneWidget);
-        expect(find.byType(TouchSurface), findsNothing);
+        expect(find.byType(HomeMenuSurface), findsNothing);
 
         await app.close(tester);
       });
@@ -138,12 +161,8 @@ void main() {
       // Pick Arabic: swipe right from English, then hold.
       await tester.dragFrom(const Offset(400, 300), const Offset(200, 0));
       await tester.pump();
-      final hold = await tester.startGesture(const Offset(400, 300));
-      await tester.pump(LanguagePickerSurface.confirmHoldDuration);
-      await hold.up();
-      await tester.pump(_startPause);
-      await tester.pumpAndSettle();
-      expect(find.byType(TouchSurface), findsOneWidget);
+      await _holdToConfirm(tester);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(first.session(tester).language, MorseLanguage.arabic);
       await first.close(tester);
 
@@ -154,7 +173,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(LanguagePickerSurface), findsNothing);
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(second.session(tester).language, MorseLanguage.arabic);
 
       await second.close(tester);
@@ -162,25 +181,33 @@ void main() {
   });
 
   group('launch with a saved language', () {
-    testWidgets('goes straight to the lessons in that language', (
-      tester,
-    ) async {
+    testWidgets('opens on the menu, whose Learn opens the lessons in that '
+        'language', (tester) async {
       final app = _App(await _loadStore({_key: 'russian'}));
       await app.launch(tester);
 
-      // No picker, not even for the first frame.
+      // No picker and no lessons, not even for the first frame.
       expect(find.byType(LanguagePickerSurface), findsNothing);
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(app.session(tester).language, MorseLanguage.russian);
 
+      // The menu says where the user is, Learn; no lesson runs yet.
       await tester.pump();
-      expect(app.isTeachingRunning(tester), isTrue);
+      expect(app.isTeachingRunning(tester), isFalse);
+      expect(app.vibration.patterns, [_learn]);
 
+      await _holdToConfirm(tester);
+
+      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(app.isTeachingRunning(tester), isTrue);
       // The loop plays the first Russian character.
       final session = app.session(tester);
       expect(session.levelIndex, 0);
       expect(session.positionIndex, 0);
       expect(app.vibration.patterns, [
+        _learn,
+        _learn,
         session.currentLevel.patterns[session.currentCharacter],
       ]);
       // No language identifier was played.
@@ -251,6 +278,10 @@ void main() {
         await app.launch(tester);
         await tester.pump();
 
+        expect(find.byType(HomeMenuSurface), findsOneWidget);
+        expect(app.session(tester).language, language);
+
+        await _holdToConfirm(tester);
         expect(find.byType(TouchSurface), findsOneWidget);
         expect(app.session(tester).language, language);
         expect(app.isTeachingRunning(tester), isTrue);
@@ -278,7 +309,7 @@ void main() {
     });
 
     testWidgets('no motor shows the no-vibration screen instead of the '
-        'lessons', (tester) async {
+        'menu', (tester) async {
       final app = _App(
         await _loadStore({_key: 'russian'}),
         probe: FakeVibrationCapabilityProbe(vibrator: false),
@@ -287,11 +318,10 @@ void main() {
       await tester.pump();
 
       expect(find.byType(NoVibrationScreen), findsOneWidget);
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(app.isTeachingRunning(tester), isFalse);
 
       // Nothing is played from now on.
-      app.vibration.reset();
       await tester.pump(_testRepeatPause * 2);
       expect(app.vibration.patterns, isEmpty);
 
@@ -309,7 +339,8 @@ void main() {
       await app.launch(tester);
       await tester.pump();
 
-      // Detection is still running: the session starts.
+      // Detection is still running: the menu opens the lessons.
+      await _holdToConfirm(tester);
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(app.isTeachingRunning(tester), isTrue);
 
@@ -336,12 +367,11 @@ void main() {
       await app.launch(tester);
       await tester.pump();
 
-      // Detection is slower than the hold that starts a language.
-      final hold = await tester.startGesture(const Offset(400, 300));
-      await tester.pump(LanguagePickerSurface.confirmHoldDuration);
-      await hold.up();
-      await tester.pump(_startPause);
-      await tester.pumpAndSettle();
+      // Detection is slower than the holds that choose a language and open
+      // the lessons.
+      await _holdToConfirm(tester);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      await _holdToConfirm(tester);
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(app.isTeachingRunning(tester), isTrue);
 
@@ -370,16 +400,14 @@ void main() {
       );
       await app.launch(tester);
       await tester.pump();
+      await _holdToConfirm(tester);
+      expect(find.byType(TouchSurface), findsOneWidget);
 
-      // Back to the picker, then start a language again.
+      // Back to the menu, then into the lessons again.
       app.shake.addEvent(const ChangeLanguage());
       await tester.pumpAndSettle();
-      expect(find.byType(LanguagePickerSurface), findsOneWidget);
-      final hold = await tester.startGesture(const Offset(400, 300));
-      await tester.pump(LanguagePickerSurface.confirmHoldDuration);
-      await hold.up();
-      await tester.pump(_startPause);
-      await tester.pumpAndSettle();
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      await _holdToConfirm(tester);
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(app.isTeachingRunning(tester), isTrue);
 
@@ -404,6 +432,7 @@ void main() {
       );
       await app.launch(tester);
       await tester.pump();
+      await _holdToConfirm(tester);
 
       gate.complete();
       await tester.pump();

@@ -52,7 +52,7 @@ The app has no UI localisation: its text for sighted helpers (overlay labels, th
 
 - **Vibration Motor**: Required (core output mechanism). On a device that reports no motor the app shows a "No vibration motor" screen and cannot be used
 - **Custom vibration patterns**: Needed for Morse timing. Every Android device can play them; on iOS they need Core Haptics (not available on iPhone 7 and older). Without them every vibration is the same fixed system buzz; the app still runs and its helper overlay shows `custom: no`
-- **Accelerometer**: Required (shake = home, double shake = back to the language picker)
+- **Accelerometer**: Required (shake = home, double shake = back to the home menu)
 - **Orientation**: Landscape only
 - **Minimum OS**: Android: Flutter's default `minSdk` (`flutter.minSdkVersion` in `app/android/app/build.gradle.kts`); iOS 15.0+ (`IPHONEOS_DEPLOYMENT_TARGET` in `app/ios/Runner.xcodeproj`)
 - **iOS Devices**: iPhone only (no iPad, iPod touch, Apple Vision Pro or Mac)

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io' show Platform;
 
 import 'package:feel_you/morse/morse.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
@@ -44,7 +45,10 @@ void main() {
   bool shown(Type screen) => find.byType(screen).evaluate().isNotEmpty;
 
   for (final savedLanguage in [null, MorseLanguage.english]) {
-    final firstScreen = savedLanguage == null ? 'the picker' : 'the lessons';
+    final firstScreen = savedLanguage == null ? 'the picker' : 'the menu';
+    final firstScreenType = savedLanguage == null
+        ? LanguagePickerSurface
+        : HomeMenuSurface;
 
     testWidgets("with the device's own answers, the gate decides whether "
         '$firstScreen may open', (tester) async {
@@ -67,12 +71,7 @@ void main() {
 
       if (detected.canVibrate) {
         expect(find.byType(NoVibrationScreen), findsNothing);
-        expect(
-          find.byType(
-            savedLanguage == null ? LanguagePickerSurface : TouchSurface,
-          ),
-          findsOneWidget,
-        );
+        expect(find.byType(firstScreenType), findsOneWidget);
       } else {
         await waitUntil(
           tester,
@@ -81,57 +80,55 @@ void main() {
         );
         expect(find.text('No vibration motor'), findsOneWidget);
         expect(find.byType(LanguagePickerSurface), findsNothing);
+        expect(find.byType(HomeMenuSurface), findsNothing);
         expect(find.byType(TouchSurface), findsNothing);
         expect(app.isTeachingRunning(tester), isFalse);
-        // The picker waits for detection, so it never played its
-        // identifier.
-        if (savedLanguage == null) expect(vibration.patterns, isEmpty);
+        // The picker and the menu wait for detection, so neither played
+        // its identifier.
+        expect(vibration.patterns, isEmpty);
       }
 
       await app.close(tester);
     });
 
-    testWidgets(
-      'the debug button on the No vibration screen opens $firstScreen',
-      (tester) async {
-        FakeVibrationPlatform(hasVibrator: false).install(tester);
-        await launch(tester, savedLanguage);
-        await waitUntil(
-          tester,
-          () => shown(NoVibrationScreen),
-          reason: 'the No vibration screen is shown',
+    testWidgets('the debug button on the No vibration screen opens $firstScreen'
+        '${savedLanguage == null ? '' : ', and the menu the lessons'}', (
+      tester,
+    ) async {
+      FakeVibrationPlatform(hasVibrator: false).install(tester);
+      await launch(tester, savedLanguage);
+      await waitUntil(
+        tester,
+        () => shown(NoVibrationScreen),
+        reason: 'the No vibration screen is shown',
+      );
+
+      await tester.tap(find.text(noVibrationBypassLabel));
+      await tester.pump();
+      await waitUntil(
+        tester,
+        () => shown(firstScreenType),
+        reason: 'the bypass opens $firstScreen',
+      );
+      expect(find.byType(NoVibrationScreen), findsNothing);
+
+      if (savedLanguage != null) {
+        await app.openLessons(tester);
+        expect(app.isTeachingRunning(tester), isTrue);
+        // The helper's readout still shows the real answer.
+        expect(find.textContaining('Vibration: NONE'), findsOneWidget);
+        expect(
+          find.textContaining(vibrationGateBypassedMarker),
+          findsOneWidget,
         );
+      }
 
-        await tester.tap(find.text(noVibrationBypassLabel));
-        await tester.pump();
-        final opened = savedLanguage == null
-            ? LanguagePickerSurface
-            : TouchSurface;
-        await waitUntil(
-          tester,
-          () => shown(opened),
-          reason: 'the bypass opens $firstScreen',
-        );
-        expect(find.byType(NoVibrationScreen), findsNothing);
-
-        if (savedLanguage != null) {
-          expect(app.isTeachingRunning(tester), isTrue);
-          // The helper's readout still shows the real answer.
-          expect(find.textContaining('Vibration: NONE'), findsOneWidget);
-          expect(
-            find.textContaining(vibrationGateBypassedMarker),
-            findsOneWidget,
-          );
-        }
-
-        await app.close(tester);
-      },
-      skip: !kDebugMode,
-    );
+      await app.close(tester);
+    }, skip: !kDebugMode);
   }
 
-  testWidgets('a detection that ends after a language was started replaces '
-      'the lessons and stops the loop', (tester) async {
+  testWidgets('a detection that ends after a language was started and the '
+      'lessons opened replaces the lessons and stops the loop', (tester) async {
     final detection = Completer<void>();
     FakeVibrationPlatform(
       hasVibrator: false,
@@ -153,6 +150,8 @@ void main() {
           const Duration(milliseconds: 200),
     );
     await finger.up();
+    // The menu opens on Learn; holding there opens the lessons.
+    await app.openLessons(tester);
     await waitUntil(
       tester,
       () => shown(TouchSurface) && app.isTeachingRunning(tester),

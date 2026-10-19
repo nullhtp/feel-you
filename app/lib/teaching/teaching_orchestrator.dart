@@ -357,7 +357,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
         _onNavigate(sessionNotifier.home);
       case ChangeLanguage():
         // Not a session change: TouchSurface stops the loop and returns to
-        // the language picker.
+        // the home menu.
         break;
       case BottomZoneAction():
         _onBottomZoneAction();

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// Remembers the language the user last chose in the language picker, so
-/// later launches can go straight to the lessons.
+/// later launches can skip the picker and open the home menu.
 abstract interface class LanguagePreferenceStore {
   /// The saved language, or `null` when none is saved or the stored value
   /// is not a known language (e.g. corrupt, or written by another version).
@@ -99,8 +99,8 @@ final languagePreferenceStoreProvider = Provider<LanguagePreferenceStore>(
 /// Read from the store once, when first needed (at launch), and kept for the
 /// rest of the run: choosing a language later saves it for the next launch
 /// but does not change this value. Decides whether the app opens on the
-/// language picker or goes straight to the lessons, and is the language the
-/// session starts in.
+/// language picker or on the home menu, and is the language the session
+/// starts in.
 final launchLanguageProvider = Provider<MorseLanguage?>(
   (ref) => ref.watch(languagePreferenceStoreProvider).read(),
 );

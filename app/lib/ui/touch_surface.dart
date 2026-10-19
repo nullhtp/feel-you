@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/teaching/teaching.dart';
 import 'package:feel_you/ui/companion_overlay.dart';
-import 'package:feel_you/ui/language_picker_surface.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
@@ -57,7 +57,8 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   /// actually suspended.
   bool _suspendedInBackground = false;
 
-  /// Listens to the shake detector for a double shake ([ChangeLanguage]).
+  /// Listens to the shake detector for a double shake ([ChangeLanguage]),
+  /// which returns to the home menu.
   late final StreamSubscription<GestureEvent> _shakeSubscription;
 
   /// Whether this surface has navigated away and is only waiting for its
@@ -97,21 +98,23 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
     super.dispose();
   }
 
-  /// Leaves the session for the [LanguagePickerSurface] on a double shake
-  /// ([ChangeLanguage]).
+  /// Leaves the session for the [HomeMenuSurface], with Learn highlighted,
+  /// on a double shake ([ChangeLanguage]).
   ///
   /// Like every gesture, it is ignored while the teaching loop is stopped
   /// (in the background, or before the loop first starts). The loop is
   /// stopped right away, so nothing vibrates during the route transition,
   /// and [_leaving] keeps a resume during the transition from restarting
   /// it; [dispose] stops it again (a no-op) when this route is removed.
+  /// Stopping also pauses shake detection, which the menu resumes as it
+  /// appears.
   void _onShakeEvent(GestureEvent event) {
     if (event is! ChangeLanguage || !mounted || _leaving) return;
     if (!ref.read(teachingOrchestratorProvider).isRunning) return;
     _leaving = true;
     unawaited(_orchestrator.stop());
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const LanguagePickerSurface()),
+      MaterialPageRoute<void>(builder: (_) => const HomeMenuSurface()),
     );
   }
 
@@ -145,7 +148,7 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
   /// beginning.
   ///
   /// Does nothing once this surface is [_leaving]: restarting would vibrate
-  /// a lesson on the way to the picker.
+  /// a lesson on the way to the menu.
   void _resumeTeaching() {
     if (!_suspendedInBackground) return;
     _suspendedInBackground = false;

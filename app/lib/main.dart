@@ -14,7 +14,7 @@ Future<void> main() async {
   ]);
 
   // Load the saved language before the first frame, so a returning user
-  // goes straight to the lessons without the picker flashing up first.
+  // goes straight to the home menu without the picker flashing up first.
   // Learned items are loaded with it, so the quiz and the overlay's count
   // never start empty.
   final languagePreference = await loadLanguagePreferenceStore();

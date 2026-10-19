@@ -75,6 +75,7 @@ void main() {
       overrides: [_secureStore],
     );
     await app.launch(tester);
+    await app.openLessons(tester);
     await _waitForText(tester, _noneLine);
     expect(_summary(tester), endsWith(', cloud key none'));
 
@@ -106,6 +107,7 @@ void main() {
       overrides: [_secureStore],
     );
     await app.launch(tester);
+    await app.openLessons(tester);
     await _waitForText(tester, _maskedLine);
     _expectKeyNotShown(tester);
 
@@ -138,6 +140,7 @@ void main() {
         overrides: [_secureStore],
       );
       await app.launch(tester);
+      await app.openLessons(tester);
       await _cloudKey(app, tester).save(_key);
       await _waitForText(tester, _maskedLine);
       expect(platform.indexOfPattern(_cloudOff), -1);

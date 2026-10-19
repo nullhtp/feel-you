@@ -28,14 +28,14 @@ Specifically, Feel You does NOT:
 Feel You uses the following device features, solely for core app functionality:
 
 ### Vibration
-- **Purpose**: Vibration is the app's only output channel. It is used to play Morse code patterns, success and error feedback, and the identifier of each language in the language picker.
+- **Purpose**: Vibration is the app's only output channel. It is used to play Morse code patterns, success and error feedback, the identifier of each mode in the home menu and the identifier of each language in the language picker.
 - **Permission**: On Android the app declares the `VIBRATE` permission, which the system grants at install without asking. iOS needs no permission.
 - **Usage**: On-device only. No data is transmitted.
 
 ### Accelerometer (Motion Sensors)
-- **Purpose**: The accelerometer detects shaking the phone: one shake returns to the start of the lessons ("Home"), and a double shake returns to the language picker.
+- **Purpose**: The accelerometer detects shaking the phone: one shake returns to the start of the lessons ("Home"), and a double shake returns to the home menu.
 - **Permission**: None needed on Android or iOS.
-- **Usage**: Sensor data is processed in real time, on the device, while the lesson screen is in use. No motion data is stored or transmitted.
+- **Usage**: Sensor data is processed in real time, on the device, while the lessons, the home menu or the language picker opened from it are in use, and only while the app is in the foreground. No motion data is stored or transmitted.
 
 ### Keep Screen Awake
 - **Purpose**: The app keeps the screen on during lessons so that the touch surface stays responsive and the screen does not time out while the user is interacting with the app. This stops when the app leaves the foreground.

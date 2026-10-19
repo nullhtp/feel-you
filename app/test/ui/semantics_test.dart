@@ -6,6 +6,7 @@ import 'package:feel_you/session/session.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/companion_overlay.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration_providers.dart';
@@ -108,7 +109,7 @@ void main() {
           node,
           isSemantics(
             label: label,
-            hint: 'Starts Morse lessons in $englishName',
+            hint: 'Chooses $englishName for the lessons',
             isButton: true,
             hasTapAction: true,
           ),
@@ -160,7 +161,7 @@ void main() {
         tester.getSemantics(find.bySemanticsLabel('English')),
         isSemantics(isSelected: false),
       );
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
 
       await _cleanUp(tester);
       classifier.dispose();
@@ -226,8 +227,8 @@ void main() {
       // One activation starts the language: no highlight-then-hold step.
       tester.semantics.tap(find.semantics.byLabel('Русский'));
       await tester.pump();
-      // The session opens once the identifier and the default post-feedback
-      // pause after it have passed.
+      // The home menu opens once the identifier and the default
+      // post-feedback pause after it have passed.
       await tester.pump(const TeachingTimingConfig().postFeedbackPause);
       await tester.pump();
 
@@ -237,9 +238,9 @@ void main() {
         MorseSignal.dash,
         MorseSignal.dot,
       ]);
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       final container = ProviderScope.containerOf(
-        tester.element(find.byType(TouchSurface)),
+        tester.element(find.byType(HomeMenuSurface)),
       );
       expect(
         container.read(sessionNotifierProvider).language,

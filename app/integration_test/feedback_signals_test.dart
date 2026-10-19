@@ -83,6 +83,7 @@ void main() {
       () => app.container(tester).read(vibrationCapabilitiesProvider).hasValue,
       reason: 'detection ends',
     );
+    await app.openLessons(tester);
     await waitUntil(
       tester,
       () => platform.indexOfPattern(zeroSegments) >= 0,

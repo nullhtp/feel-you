@@ -7,6 +7,7 @@ import 'package:feel_you/session/session.dart';
 import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/teaching/teaching.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/services.dart';
@@ -50,6 +51,21 @@ const digitZero = [
   MorseSignal.dash,
   MorseSignal.dash,
 ];
+
+/// The home menu's identifier for Learn: Morse L.
+const menuLearn = [
+  MorseSignal.dot,
+  MorseSignal.dash,
+  MorseSignal.dot,
+  MorseSignal.dot,
+];
+
+/// The home menu's identifier for Settings: Morse S.
+const menuSettings = [MorseSignal.dot, MorseSignal.dot, MorseSignal.dot];
+
+/// A pause between two shakes inside the double-shake window (0.7 to
+/// 1.5 s after the first shake ends), well clear of both ends.
+const doubleShakePause = Duration(milliseconds: 900);
 
 // ---------------------------------------------------------------------------
 // The vibration platform
@@ -155,7 +171,8 @@ class FakeVibrationPlatform {
 /// needs.
 class E2EApp {
   /// Creates the app with [savedLanguage] as the language saved on an
-  /// earlier run (none: the picker opens first).
+  /// earlier run (none: the picker opens first; one: the home menu, from
+  /// which [openLessons] opens the lessons).
   ///
   /// With a [vibration] service the vibrations are recorded there; without
   /// one the app's own `DeviceVibrationService` plays them through the
@@ -230,6 +247,34 @@ class E2EApp {
     }
   }
 
+  /// A double shake: [shake], [doubleShakePause], [shake].
+  Future<void> doubleShake() async {
+    await shake();
+    await Future<void>.delayed(doubleShakePause);
+    await shake();
+  }
+
+  /// Opens the lessons from the home menu, where a launch with a saved
+  /// language lands with Learn highlighted: holds on the menu, then waits
+  /// until the lesson surface has replaced it.
+  Future<void> openLessons(WidgetTester tester) async {
+    await waitUntil(
+      tester,
+      () => find.byType(HomeMenuSurface).evaluate().isNotEmpty,
+      reason: 'the home menu is shown',
+    );
+    // Let the route transition end, so the hold lands on the menu alone.
+    await tester.pumpAndSettle();
+    await holdToConfirm(tester, find.byType(HomeMenuSurface));
+    await waitUntil(
+      tester,
+      () =>
+          find.byType(TouchSurface).evaluate().isNotEmpty &&
+          find.byType(HomeMenuSurface).evaluate().isEmpty,
+      reason: 'Learn opens the lessons',
+    );
+  }
+
   /// Stops the loop and removes the app, so the next test starts afresh.
   Future<void> close(WidgetTester tester) async {
     if (!tester.binding.framesEnabled) await bringToForeground(tester);
@@ -262,6 +307,19 @@ Offset dashPoint(WidgetTester tester) => surfacePoint(tester, 0.75, 0.4);
 
 /// A point in the bottom strip, the lower 15% of the surface.
 Offset bottomStripPoint(WidgetTester tester) => surfacePoint(tester, 0.5, 0.95);
+
+/// Holds a finger in the middle of [screen] for the 1-second hold that
+/// confirms on the home menu and the language picker, with some slack, then
+/// lifts it.
+Future<void> holdToConfirm(WidgetTester tester, Finder screen) async {
+  final finger = await tester.startGesture(tester.getCenter(screen));
+  await waitFor(
+    tester,
+    HomeMenuSurface.confirmHoldDuration + const Duration(milliseconds: 300),
+  );
+  await finger.up();
+  await tester.pump();
+}
 
 /// Taps once at [point] and draws a frame.
 Future<void> tapAt(WidgetTester tester, Offset point) async {

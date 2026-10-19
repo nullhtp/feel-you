@@ -26,8 +26,11 @@ context: |
   Lesson screen (black, landscape): the left half is a dot and the right half a dash, decided by where a press starts, not how long it lasts.
   The bottom 15% strip submits the answer on digits and letters, and adds a letter gap on words.
   Gestures: swipe right/left = next/previous item, swipe up/down = next/previous level, hold 2 s = first item of the level,
-  shake = home (digits, 0), double shake = back to the language picker.
-  Language picker: first launch and double shake; tap or swipe to highlight (each answered with the language's Morse identifier), hold 1 s to start.
+  shake = home (digits, 0), double shake = back to the home menu (from any mode).
+  Home menu: modes left to right, each announced by its International Morse letter (L = Learn, S = Settings); tap or swipe
+  to highlight, hold 1 s to enter. Opens on launch once a language is saved, after a language is chosen, after a double shake.
+  Language picker: first launch and the menu's Settings; tap or swipe to highlight (each answered with the language's
+  Morse identifier), hold 1 s to choose it, then the menu opens.
 
   Future phases: words/sentences, speech-to-Morse, text-to-Morse, Morse-to-text, real-time conversation.
 

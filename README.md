@@ -25,7 +25,7 @@ The app is a patient, tireless teacher. It vibrates the Morse pattern of one ite
 
 **Prerequisites:** The user knows the digits and the alphabet of their language, and can count positions (A=1, B=2, C=3...). Digits come in order 0-9 and letters in alphabetical order, so counting swipes tells the user which item they are on. Words are grouped by length only, so counting cannot tell which word it is: instead the app spells each word with the letters the user already knows before drilling it (see [the learning loop](#the-learning-loop)).
 
-**Almost no other help needed.** On the very first launch someone (or the user, by touch) picks the language. The choice is saved on the phone, so every later launch goes straight into the lessons.
+**Almost no other help needed.** On the very first launch someone (or the user, by touch) picks the language. The choice is saved on the phone, so every later launch opens on the [home menu](#the-home-menu), where **L** (Learn) is already highlighted and one hold starts the lessons.
 
 #### Languages and levels
 
@@ -149,7 +149,7 @@ How long a tap lasts does not matter, only where it starts: the left half is alw
 | **Swipe up / down** | Anywhere | Next / previous level (digits → letters → words), starting at its first item. Stops at digits and at words. |
 | **Hold 2 seconds** | Anywhere | Back to the first item of the current level (0, A, ا or А, or the first word). Triggers while the finger is still down. |
 | **Shake** | | Home: the digits level, on 0. The language stays. |
-| **Double shake** | | Back to the language picker (shake, stop for about a second, shake again). |
+| **Double shake** | | Back to the [home menu](#the-home-menu), on Learn (shake, stop for about a second, shake again). |
 
 Where the swipes lead (English shown; every language has the same layout):
 
@@ -170,7 +170,7 @@ Details, with the values from the code:
 - **Tap:** any press that is not a swipe and is released within 2 seconds. Only the first finger counts; other fingers touching at the same time are ignored.
 - **Swipe:** the finger moves at least 50 logical pixels, at least 200 pixels per second. The direction is the axis it moved further along. A slower or shorter movement is a tap where it started. A swipe or hold discards the dots and dashes tapped so far.
 - **Shake:** the acceleration, minus gravity, reaches 15 m/s². A shake goes home at most once per second.
-- **Double shake:** the second shake starts 0.7 to 1.5 seconds after the first one ends. The first shake has already gone home; the second one opens the language picker.
+- **Double shake:** the second shake starts 0.7 to 1.5 seconds after the first one ends. The first shake has already gone home; the second one stops the lesson and opens the home menu.
 - Gestures only act while the lesson is running. When the app leaves the foreground the lesson stops, so nothing vibrates in the background; when the user comes back, the current item starts again from the beginning. The screen stays on during lessons.
 - **Screen readers:** while TalkBack or VoiceOver is on, the screen reader takes taps and swipes for itself, so they never reach the lesson screen. Use the screen reader's pass-through gesture (double tap and hold, then gesture) or turn it off for lessons.
 
@@ -195,26 +195,57 @@ Distinct patterns the app uses that are separate from Morse:
 | `━━━━━` one 500 ms buzz | Wrong, try again |
 | One 50 ms buzz | Bottom-strip tap accepted (answer submitted, or letter gap added) |
 | `·` / `· − · −` / `· − ·` / `− − · − −` / `· · − · ·` / `· · − −` | Language identifiers in the picker: Morse E (English), ع (Arabic), Р (Russian), Ñ (Spanish), É (French), Ü (German) |
+| `· − · ·` (900 ms) / `· · ·` (500 ms) | Mode identifiers on the home menu: Morse L (Learn), S (Settings) |
 | `· · − − · ·` Morse `?` (1500 ms), then 1 s of silence | Entering a level's quiz |
 | `━━━━━━━ ━━━━━━━` two 700 ms buzzes, 300 ms apart (1700 ms) | Cloud off: the cloud key was deleted (see [The cloud key](#the-cloud-key)) |
 
 The correct taps are shorter than a dot with gaps shorter than any Morse gap, and the wrong buzz is longer than a dash, so neither can be mistaken for Morse. On a phone whose motor reports no amplitude control, the app uses duration-only versions: the five taps are 60 ms apart (490 ms) and the wrong buzz lasts 700 ms. After either signal the app waits 0.5 s before repeating the item (in the quiz, before a new item after a correct answer). The `?` has 6 elements, more than any digit or letter (5 at most), so it cannot be mistaken for an item. The cloud-off signal is the same on every motor: each of its buzzes is more than twice a dash, so it is not Morse, and it has two buzzes where *wrong* has one.
 
+### The Home Menu
+
+The home menu is where the modes live, and where a double shake always leads back to. It opens on launch once a language is saved, after a language is chosen in the picker, and after a double shake in a mode. For now it has two modes, left to right:
+
+| Mode | Identifier | Opens |
+|------|------------|-------|
+| **L** Learn | `· − · ·` Morse L (900 ms) | The lessons, as described above |
+| **S** Settings | `· · ·` Morse S (500 ms) | The [language picker](#choosing-a-language); a list of settings comes later |
+
+The identifiers are International Morse letters, played the same whatever the lesson language. Arabic ل and Russian Л have the same pattern as L, and س and С the same as S, and L and S are letters of the Spanish, French and German alphabets too, so every user feels a letter of their own alphabet. One mode is highlighted at a time, and every gesture answers with the identifier of the mode it leaves highlighted, exactly as in the language picker:
+
+1. When the menu appears, the highlighted mode's identifier plays once: **L** on launch and after the first-launch picker, otherwise the mode the user came back from.
+2. **Tap** a column to highlight that mode, or **swipe right / left** anywhere (at least 50 pixels) to move to the next / previous mode, wrapping around. A shorter drag replays the current identifier.
+3. **Hold 1 second**, anywhere, to open the highlighted mode, i.e. the last identifier felt. Its identifier plays, then half a second of silence, then the mode opens, so the mode's first vibration never cuts the letter short. Until then the menu ignores every gesture.
+4. **Double shake** in a mode (the lessons, or the picker opened from Settings) to come back to the menu, on that mode. On the menu itself a double shake replays the highlighted identifier, so the user can always check where they are. A single shake does nothing on the menu.
+
+```
+launch:        · − · ·                    (L: Learn is highlighted)
+swipe:         · · ·                      (S)
+hold:          · · ·  ...0.5 s...         (Settings opens the language picker)
+...
+lessons, shake, about a second, shake:
+               − − − − −                  (first shake: home, digit 0)
+               · − · ·                    (second shake: back on the menu, on L)
+```
+
+The lessons open where the session is, which is digit 0 after a launch, a language choice or a double shake (whose first shake goes home). When the app leaves the foreground the menu stops vibrating and stops listening for shakes; when the user comes back it plays the highlighted identifier again. Unlike the lessons, the menu does not keep the screen on.
+
+For a sighted helper, each column shows the mode's letter, name and Morse pattern, the highlighted one drawn inverted, and a line at the bottom reads *"Tap or swipe to a mode, then hold anywhere for 1 second to open it"*. Screen readers hear the screen as "Home menu" and see one button per mode ("Learn", "Settings"); activating a button opens that mode directly.
+
 ### Choosing a Language
 
-The language picker appears on the first launch (when no language is saved) and after a double shake. It has six columns, left to right: **English**, **العربية**, **Русский**, **Español**, **Français**, **Deutsch**. One language is highlighted at a time, and every gesture answers with the identifier vibration of the language it leaves highlighted, so the picker works without sight:
+The language picker appears on the first launch (when no language is saved) and from **S** (Settings) on the home menu. It has six columns, left to right: **English**, **العربية**, **Русский**, **Español**, **Français**, **Deutsch**. One language is highlighted at a time, and every gesture answers with the identifier vibration of the language it leaves highlighted, so the picker works without sight:
 
 1. When the picker appears, the highlighted language's identifier plays once. It starts on the saved language, or English if none is saved.
 2. **Tap** a column to highlight that language, or **swipe right / left** anywhere (at least 50 pixels) to move to the next / previous language, wrapping around. A shorter drag replays the current identifier.
-3. **Hold 1 second**, anywhere, to start the highlighted language, i.e. the last identifier felt.
+3. **Hold 1 second**, anywhere, to choose the highlighted language, i.e. the last identifier felt.
 
-Starting a language plays its identifier, saves it for the next launch and opens the lessons at the digits level, on 0. The lessons open only after the identifier has finished and half a second of silence has passed, so the first lesson pattern never cuts the identifier short or runs into it. Until then the picker ignores every gesture. Shaking does nothing in the picker.
+Choosing a language plays its identifier, saves it for the next launch, sets the lessons to it (they start at the digits level, on 0) and opens the home menu: on **L** after the first launch, on **S** when the picker was opened from Settings. The menu opens only after the identifier has finished and half a second of silence has passed, so the menu's letter never cuts the identifier short or runs into it. Until then the picker ignores every gesture. A single shake does nothing in the picker. A double shake in the picker opened from Settings returns to the menu without changing the language; on the first launch there is no menu yet, so it does nothing.
 
-For a sighted helper, the highlighted column is drawn inverted and a line at the bottom reads *"Tap a language, then hold anywhere for 1 second to start"*. Screen readers see one button per language, spoken in that language; activating a button starts that language directly.
+For a sighted helper, the highlighted column is drawn inverted and a line at the bottom reads *"Tap a language, then hold anywhere for 1 second to choose it"*, followed by *"Double shake: back to the menu"* when the picker was opened from Settings. Screen readers see one button per language, spoken in that language; activating a button chooses that language directly.
 
 ### No Vibration Motor
 
-Vibration is the only output, so on a device that reports it has **no vibration motor** the app shows a "No vibration motor" screen with an explanation for a sighted helper, instead of the picker or the lessons. Release builds offer no way past it. Debug builds add a *Continue anyway (debug build)* button for developers, since the iOS simulator reports no motor. Android emulators report one, so they open on the picker. If the app cannot tell whether there is a motor, it assumes there is one.
+Vibration is the only output, so on a device that reports it has **no vibration motor** the app shows a "No vibration motor" screen with an explanation for a sighted helper, instead of the picker, the menu or the lessons. Release builds offer no way past it. Debug builds add a *Continue anyway (debug build)* button for developers, since the iOS simulator reports no motor. Android emulators report one, so they open on the picker (or on the menu once a language is saved). If the app cannot tell whether there is a motor, it assumes there is one.
 
 On an iPhone without Core Haptics (iPhone 7 and older) every vibration is the same fixed system buzz, so Morse timing is lost. The app still runs; the helper overlay shows `custom: no` in amber.
 
@@ -238,7 +269,7 @@ Phase 2 adds cloud features (see the [roadmap](ROADMAP.md#the-road-ahead)): the 
 
 - **User controls the pace.** The app just repeats and listens. It never advances by itself: even the quiz moves on only after a correct answer or a swipe.
 - **Skip anything, anytime.** Swipe left or right to move between items, up or down to change level.
-- **Lost? Reset.** A 2-second hold goes back to the start of the level, a shake to the very start (digit 0). You can always re-anchor.
+- **Lost? Reset.** A 2-second hold goes back to the start of the level, a shake to the very start (digit 0), a double shake to the home menu from anywhere. You can always re-anchor.
 - **Almost no state.** The app saves only the language and the items the user has learned, and the assistant's [cloud key](#the-cloud-key) in the phone's secure storage. Level and position live in memory.
 - **Closer to a musical instrument than a language app.** Like a metronome that plays a note: you listen, you play along when ready, you move on when you decide.
 

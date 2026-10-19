@@ -5,6 +5,7 @@ import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
@@ -54,7 +55,7 @@ ProviderContainer containerOf(WidgetTester tester) =>
 
 /// Holds a finger on the picker long enough to start the highlighted
 /// language, lifts it, then lets the identifier and the default
-/// post-feedback pause after it pass, so the session opens.
+/// post-feedback pause after it pass, so the home menu opens.
 Future<void> holdToStart(WidgetTester tester) async {
   final gesture = await tester.startGesture(
     tester.getCenter(find.byType(LanguagePickerSurface)),
@@ -121,7 +122,7 @@ void main() {
       await tester.tap(find.byType(NoVibrationScreen), warnIfMissed: false);
       await tester.pumpAndSettle();
 
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(find.byType(NoVibrationScreen), findsOneWidget);
       expect(vibration.calls, isEmpty);
 
@@ -152,7 +153,7 @@ void main() {
       await tester.tap(find.text('English'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(find.byType(NoVibrationScreen), findsOneWidget);
       expect(vibration.calls, isEmpty);
 
@@ -254,7 +255,9 @@ void main() {
       classifier.dispose();
     });
 
-    testWidgets('starts a session when the device can vibrate', (tester) async {
+    testWidgets('starts a language when the device can vibrate', (
+      tester,
+    ) async {
       final classifier = FakeGestureClassifier();
       final vibration = MockVibrationService();
 
@@ -267,14 +270,14 @@ void main() {
       );
       await tester.pump();
 
-      // Tap highlights Russian; the hold starts it.
+      // Tap highlights Russian; the hold starts it and opens the menu.
       await tester.tap(find.text('Русский'));
       await tester.pump();
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       await holdToStart(tester);
       await tester.pump();
 
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(
         containerOf(tester).read(sessionNotifierProvider).language,
         MorseLanguage.russian,

@@ -6,6 +6,7 @@ Notable changes to Feel You. The format follows [Keep a Changelog](https://keepa
 
 ### Added
 
+- A home menu of modes ([#41](https://github.com/nullhtp/feel-you/issues/41)): **L** Learn opens the lessons and **S** Settings opens the language picker, each announced by its Morse letter (`· − · ·`, `· · ·`). Tap or swipe to move, hold 1 second to open; a double shake from any mode comes back to it. The app opens on the menu once a language is saved, and choosing a language opens it too.
 - Secure storage for the assistant's OpenRouter key, ahead of the cloud features: it is kept in the iOS Keychain or the Android Keystore, stays on the phone (not synced to iCloud, left out of Android backup and device transfer), is shown on the helper overlay only masked (`Cloud key: sk-or-...a1b2`) and is never logged. Deleting it plays a new *cloud off* signal, two 700 ms buzzes. There is no screen to enter the key yet ([#61](https://github.com/nullhtp/feel-you/issues/61)).
 - Spanish: the letters A-Z and Ñ (`−−·−−`, after N, as in the Spanish alphabet), 20 everyday words and **Español** in the language picker, identified by Morse Ñ. The word list awaits a native speaker's review ([#91](https://github.com/nullhtp/feel-you/issues/91)).
 - French: the letters A-Z, then À (`·−−·−`), Ç (`−·−··`), É (`··−··`) and È (`·−··−`) after Z, 20 everyday words and **Français** in the language picker, identified by Morse É. The word list awaits a native speaker's review ([#91](https://github.com/nullhtp/feel-you/issues/91)).
@@ -15,12 +16,12 @@ Notable changes to Feel You. The format follows [Keep a Changelog](https://keepa
 - Learned items (each item answered correctly once in the lessons) are saved per language and level, so the quiz grows from one launch to the next. Every launch still starts at digit 0.
 - The helper overlay shows how many items of the level are learned, and hides the quiz item until the user has answered.
 - Each word is spelled letter by letter before it is drilled, so the user knows which word they are on without counting ([#8](https://github.com/nullhtp/feel-you/issues/8)).
-- The chosen language is saved, so later launches skip the picker and go straight to the lessons.
+- The chosen language is saved, so later launches skip the picker and open on the home menu.
 - The language picker can be used without sight: it vibrates the highlighted language's identifier, and the user moves and chooses by touch.
-- A double shake returns from a session to the language picker.
+- A double shake returns from the lessons, or from the language picker opened from Settings, to the home menu.
 - A "No vibration motor" screen on devices that can't vibrate. Debug builds can continue past it.
 - Success and error signals that differ by duration alone, for vibration motors without amplitude control.
-- Screen-reader labels for the language picker, the lesson surface and the helper overlay.
+- Screen-reader labels for the home menu, the language picker, the lesson surface and the helper overlay.
 
 ### Changed
 

@@ -10,8 +10,8 @@ import '../test_doubles/fake_shake_detector.dart';
 import '../test_doubles/mock_vibration_service.dart';
 
 // A double shake (ChangeLanguage) is acted on by TouchSurface, which stops
-// the loop and opens the language picker. The orchestrator itself must not
-// treat it as navigation.
+// the loop and opens the home menu. The orchestrator itself must not treat
+// it as navigation.
 
 /// Long enough that the loop never repeats during a test.
 const _repeatPause = Duration(seconds: 5);

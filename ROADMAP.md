@@ -39,7 +39,7 @@ Single full-screen widget connecting real touch events to the gesture classifier
 - [x] Full-screen `GestureDetector` capturing all taps, holds, and swipes
 - [x] Feed raw touch events (`onPanDown`/`onPanEnd`/`onPanUpdate`) into `RawTouchEvent` for the classifier
 - [x] No visual elements (blank screen — the user is deaf-blind)
-- [x] Start button: one large tap target for a sighted person to press once to begin. *Not built: the change dropped it and the loop starts automatically (`openspec/changes/archive/2026-02-27-touch-ui-layer`). The app now opens on the language picker, or straight into the lessons once a language is saved.*
+- [x] Start button: one large tap target for a sighted person to press once to begin. *Not built: the change dropped it and the loop starts automatically (`openspec/changes/archive/2026-02-27-touch-ui-layer`). The app now opens on the language picker, or on the home menu once a language is saved, and the lessons start when Learn is chosen there.*
 - [x] Accessibility metadata / semantics
 
 ### Change 4: Integration Testing & Polish (Complete)

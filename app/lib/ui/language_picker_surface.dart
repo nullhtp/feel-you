@@ -1,11 +1,14 @@
 import 'dart:async';
 
+import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_providers.dart';
 import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/teaching/teaching.dart';
+import 'package:feel_you/ui/foreground_shake_listener.dart';
+import 'package:feel_you/ui/home_menu_mode.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
-import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -62,15 +65,20 @@ String _englishName(MorseLanguage language) =>
 const double _minSwipeDistance = 50;
 
 /// Visible instructions for a sighted helper.
-const _helperHint = 'Tap a language, then hold anywhere for 1 second to start';
+const _helperHint =
+    'Tap a language, then hold anywhere for 1 second to choose it';
+
+/// Added to [_helperHint] when the picker was opened from the home menu.
+const _backHint = 'Double shake: back to the menu';
 
 /// Full-screen language picker.
 ///
-/// Shown on launch when no language is saved yet, and after a double shake
-/// in a session. One language is highlighted at a time, starting with the
-/// saved one (English when none is saved). Every touch gesture works
-/// without sight and is answered with the identifier vibration (Morse E, ع,
-/// Р, Ñ, É or Ü) of the language it leaves highlighted:
+/// Shown on launch when no language is saved yet, and from the home menu's
+/// Settings ([LanguagePickerSurface.fromMenu]). One language is highlighted
+/// at a time, starting with the saved one (English when none is saved).
+/// Every touch gesture works without sight and is answered with the
+/// identifier vibration (Morse E, ع, Р, Ñ, É or Ü) of the language it
+/// leaves highlighted:
 ///
 /// - When the picker appears, the highlighted identifier plays once, so a
 ///   user who lands here knows where they are.
@@ -80,19 +88,29 @@ const _helperHint = 'Tap a language, then hold anywhere for 1 second to start';
 ///   around, and vibrates its identifier.
 /// - Hold for [confirmHoldDuration], anywhere: starts the highlighted
 ///   language, i.e. the last identifier felt.
+/// - Double shake ([ChangeLanguage]), only when [fromMenu]: back to the
+///   home menu, keeping the language as it was. On the first launch there
+///   is no menu to return to yet, so the picker does not listen for shakes
+///   at all. A single shake never does anything here.
 ///
 /// For a sighted helper the highlighted column is drawn inverted and a hint
-/// line explains the tap-then-hold flow. Screen readers see one button per
-/// language; activating it starts that language directly.
+/// line explains the tap-then-hold flow (and the double shake back, when
+/// [fromMenu]). Screen readers see one button per language; activating it
+/// starts that language directly.
 ///
 /// Starting a language vibrates its identifier. Once it has finished, plus
 /// a short silence, the language is saved for the next launch, selected on
-/// the session and the picker is replaced with the [TouchSurface].
+/// the session, and the picker is replaced with the [HomeMenuSurface]:
+/// with Learn highlighted on the first launch, Settings when [fromMenu].
 class LanguagePickerSurface extends ConsumerStatefulWidget {
-  const LanguagePickerSurface({super.key});
+  const LanguagePickerSurface({super.key, this.fromMenu = false});
 
   /// How long a press must last to start the highlighted language.
   static const confirmHoldDuration = Duration(seconds: 1);
+
+  /// Whether the picker was opened from the home menu's Settings, rather
+  /// than shown on the first launch.
+  final bool fromMenu;
 
   @override
   ConsumerState<LanguagePickerSurface> createState() =>
@@ -106,10 +124,19 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
   /// Horizontal distance covered by the current swipe.
   double _swipeDistance = 0;
 
-  /// Whether a language has been started. A second confirmation during the
-  /// route transition (e.g. another hold or a screen-reader tap) must not
-  /// start another session.
+  /// Whether a language has been started, or the picker is going back to
+  /// the menu. A second confirmation during the route transition (e.g.
+  /// another hold, a screen-reader tap or a double shake) must not start
+  /// another session.
   bool _started = false;
+
+  /// Shake detection for the double shake back to the menu. Only when
+  /// [LanguagePickerSurface.fromMenu].
+  ForegroundShakeListener? _shakes;
+
+  /// The mode the menu highlights when the picker hands over to it.
+  HomeMenuMode get _menuMode =>
+      widget.fromMenu ? HomeMenuMode.settings : HomeMenuMode.learn;
 
   @override
   void initState() {
@@ -117,9 +144,21 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
     _highlighted =
         ref.read(languagePreferenceStoreProvider).read() ??
         MorseLanguage.english;
+    if (widget.fromMenu) {
+      _shakes = ForegroundShakeListener(
+        ref.read(shakeDetectorProvider),
+        onEvent: _onShakeEvent,
+      );
+    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       unawaited(_announceHighlighted());
     });
+  }
+
+  @override
+  void dispose() {
+    _shakes?.dispose();
+    super.dispose();
   }
 
   bool get _canVibrate =>
@@ -177,14 +216,35 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
     _moveHighlight(_swipeDistance > 0 ? 1 : -1);
   }
 
-  /// Starts [language]: vibrates its identifier, then opens the session.
+  /// Goes back to the home menu on a double shake ([ChangeLanguage]),
+  /// without saving or selecting anything. A single shake ([Home]) is
+  /// ignored. The menu announces itself with Settings' identifier.
+  void _onShakeEvent(GestureEvent event) {
+    if (event is! ChangeLanguage || !mounted) return;
+    if (_started || !_canVibrate) return;
+    _started = true;
+    _openMenu();
+  }
+
+  /// Replaces the picker with the home menu, which owns shake detection
+  /// from now on.
+  void _openMenu() {
+    _shakes?.handOver();
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (_) => HomeMenuSurface(highlighted: _menuMode),
+      ),
+    );
+  }
+
+  /// Starts [language]: vibrates its identifier, then opens the menu.
   ///
-  /// The session's first pattern must not cut the identifier short (on
-  /// Android a new vibration replaces the one in progress) or run straight
-  /// into it. So the route changes only once the identifier has finished
-  /// and [TeachingTimingConfig.postFeedbackPause] has passed, the same
-  /// silence that follows feedback in a session. Until then [_started]
-  /// keeps every other gesture from vibrating.
+  /// The menu's identifier must not cut the language's short (on Android a
+  /// new vibration replaces the one in progress) or run straight into it.
+  /// So the route changes only once the identifier has finished and
+  /// [TeachingTimingConfig.postFeedbackPause] has passed, the same silence
+  /// that follows feedback in a session. Until then [_started] keeps every
+  /// other gesture from vibrating.
   Future<void> _selectLanguage(MorseLanguage language) async {
     // Ignore a tap that lands just before the switch to NoVibrationScreen.
     if (!_canVibrate) return;
@@ -202,13 +262,11 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
     // Remember the choice, so the next launch skips the picker.
     unawaited(ref.read(languagePreferenceStoreProvider).write(language));
 
-    // Set the selected language on the session notifier.
+    // Set the selected language on the session notifier: the lessons start
+    // in it, at digit 0.
     ref.read(sessionNotifierProvider.notifier).selectLanguage(language);
 
-    // Navigate to the main learning surface.
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const TouchSurface()),
-    );
+    _openMenu();
   }
 
   @override
@@ -258,7 +316,7 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
                     Expanded(child: _buildOption(language)),
                 ],
               ),
-              const Positioned(
+              Positioned(
                 left: 16,
                 right: 16,
                 bottom: 20,
@@ -267,9 +325,14 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
                 child: IgnorePointer(
                   child: ExcludeSemantics(
                     child: Text(
-                      _helperHint,
+                      widget.fromMenu
+                          ? '$_helperHint. $_backHint'
+                          : _helperHint,
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white70, fontSize: 20),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 20,
+                      ),
                     ),
                   ),
                 ),
@@ -309,7 +372,7 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
             ),
         ],
       ),
-      hint: 'Starts Morse lessons in ${_englishName(language)}',
+      hint: 'Chooses ${_englishName(language)} for the lessons',
       onTap: () => unawaited(_selectLanguage(language)),
       excludeSemantics: true,
       child: GestureDetector(

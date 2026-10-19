@@ -12,8 +12,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Vibration is the only output channel: no screen of the app may run on
 /// such a device. The app installs this gate with [MaterialApp.builder], so
 /// [child] is the navigator and the gate covers every route, including the
-/// ones pushed after launch (the session after a language is picked, the
-/// picker after a double shake).
+/// ones pushed after launch (the home menu after a language is picked, the
+/// lessons and the picker opened from the menu, the menu after a double
+/// shake).
 ///
 /// Capability detection may finish after the first frame. If it then
 /// reports no motor, the running session is stopped and the whole route

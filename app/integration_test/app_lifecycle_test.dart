@@ -17,13 +17,14 @@ void main() {
   late RecordingVibrationService vibration;
   late E2EApp app;
 
-  /// Launches the app straight into an English lesson on digit "0" and
-  /// waits until the loop has played it.
+  /// Launches the app with English saved, opens the lessons from the home
+  /// menu, on digit "0", and waits until the loop has played it.
   Future<void> launchLesson(WidgetTester tester) async {
     FakeVibrationPlatform().install(tester);
     vibration = RecordingVibrationService();
     app = E2EApp(savedLanguage: MorseLanguage.english, vibration: vibration);
     await app.launch(tester);
+    await app.openLessons(tester);
     expect(find.byType(TouchSurface), findsOneWidget);
     await waitUntil(
       tester,

@@ -129,8 +129,8 @@ class ShakeDetector {
           sincePreviousShake != null &&
           sincePreviousShake <= _config.doubleShakeWindow) {
         // Second shake of a double shake. The first already went home, so
-        // this one only asks for the language picker. Restarting the
-        // cooldown keeps the rest of this shake from emitting Home too.
+        // this one only asks for the home menu. Restarting the cooldown
+        // keeps the rest of this shake from emitting Home too.
         _awaitingSecondShake = false;
         _lastShakeTime = now;
         _emit(const ChangeLanguage());

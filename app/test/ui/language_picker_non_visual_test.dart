@@ -1,14 +1,16 @@
 import 'dart:async';
 
+import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
+import 'package:feel_you/ui/home_menu_mode.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
-import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/ui/vibration_gate.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/material.dart';
@@ -78,10 +80,23 @@ List<MorseSignal> _identifierOf(MorseLanguage language) =>
 /// The column label of [language].
 String _labelOf(MorseLanguage language) => _options[language]!.label;
 
-/// Visible hint for the sighted helper.
-const _helperHint = 'Tap a language, then hold anywhere for 1 second to start';
+/// The home menu's identifiers: Morse L and S.
+const _learn = [
+  MorseSignal.dot,
+  MorseSignal.dash,
+  MorseSignal.dot,
+  MorseSignal.dot,
+];
+const _settings = [MorseSignal.dot, MorseSignal.dot, MorseSignal.dot];
 
-/// Silence between a started language's identifier and its session: the
+/// Visible hint for the sighted helper.
+const _helperHint =
+    'Tap a language, then hold anywhere for 1 second to choose it';
+
+/// The hint when the picker was opened from the menu's Settings.
+const _settingsHint = '$_helperHint. Double shake: back to the menu';
+
+/// Silence between a started language's identifier and the menu: the
 /// default post-feedback pause (the harness only overrides the repeat pause).
 final _startPause = const TeachingTimingConfig().postFeedbackPause;
 
@@ -107,12 +122,16 @@ class _HeldVibration extends MockVibrationService {
 }
 
 /// The picker, its collaborators and the test doubles behind it.
+///
+/// With [fromMenu] the picker is the one the home menu's Settings opens;
+/// otherwise it is the first-launch picker.
 class _Harness {
-  _Harness({MorseLanguage? saved, this.probe})
+  _Harness({MorseLanguage? saved, this.probe, this.fromMenu = false})
     : store = InMemoryLanguagePreferenceStore(saved);
 
   final InMemoryLanguagePreferenceStore store;
   final VibrationCapabilityProbe? probe;
+  final bool fromMenu;
   final classifier = FakeGestureClassifier();
   final vibration = _HeldVibration();
   final shake = FakeShakeDetector();
@@ -132,12 +151,13 @@ class _Harness {
     ],
     child: MaterialApp(
       builder: (_, navigator) => VibrationGate(child: navigator!),
-      home: const LanguagePickerSurface(),
+      home: LanguagePickerSurface(fromMenu: fromMenu),
     ),
   );
 
   /// Shows the picker and lets it play its first identifier.
   Future<void> pump(WidgetTester tester) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pumpWidget(build());
     await tester.pump();
   }
@@ -145,13 +165,15 @@ class _Harness {
   /// Identifiers played so far.
   List<List<MorseSignal>> get identifiers => vibration.patterns;
 
+  /// A double shake: the first shake emits Home, the second ChangeLanguage.
+  Future<void> doubleShake(WidgetTester tester) async {
+    shake
+      ..addEvent(const Home())
+      ..addEvent(const ChangeLanguage());
+    await tester.pump();
+  }
+
   Future<void> dispose(WidgetTester tester) async {
-    final surface = find.byType(TouchSurface);
-    if (surface.evaluate().isNotEmpty) {
-      await ProviderScope.containerOf(
-        tester.element(surface),
-      ).read(teachingOrchestratorProvider.notifier).stop();
-    }
     await tester.pumpWidget(const SizedBox());
     await tester.pump(_testRepeatPause);
     classifier.dispose();
@@ -175,11 +197,39 @@ Future<void> _hold(
 }
 
 /// Lets a started language's identifier and the silence after it pass, so
-/// the session replaces the picker.
-Future<void> _waitForSession(WidgetTester tester) async {
+/// the home menu replaces the picker.
+Future<void> _waitForMenu(WidgetTester tester) async {
   await tester.pump(_startPause);
   await tester.pump();
 }
+
+/// Simulates the app leaving the foreground.
+Future<void> _sendToBackground(WidgetTester tester) async {
+  for (final state in const [
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    AppLifecycleState.paused,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+  await tester.pump();
+}
+
+/// Simulates the app returning to the foreground.
+Future<void> _bringToForeground(WidgetTester tester) async {
+  for (final state in const [
+    AppLifecycleState.hidden,
+    AppLifecycleState.inactive,
+    AppLifecycleState.resumed,
+  ]) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+  }
+  await tester.pump();
+}
+
+/// The mode the home menu highlights.
+HomeMenuMode _menuHighlight(WidgetTester tester) =>
+    tester.widget<HomeMenuSurface>(find.byType(HomeMenuSurface)).highlighted;
 
 /// Swipes horizontally across the middle of the screen by [dx].
 Future<void> _swipe(WidgetTester tester, double dx) async {
@@ -256,8 +306,8 @@ void main() {
       expect(t.identifiers, [_russian, _arabic]);
       expect(_isHighlighted(tester, 'العربية'), isTrue);
 
-      // Tapping does not start a session or save anything.
-      expect(find.byType(TouchSurface), findsNothing);
+      // Tapping does not choose a language or save anything.
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(t.store.read(), isNull);
 
       await t.dispose(tester);
@@ -282,7 +332,7 @@ void main() {
       await tester.pump();
 
       expect(t.identifiers, [_identifierOf(_last), _arabic, _arabic]);
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
 
       await t.dispose(tester);
     });
@@ -298,7 +348,7 @@ void main() {
         duration: const Duration(milliseconds: 900),
       );
 
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(t.identifiers, [_russian]);
       expect(_isHighlighted(tester, 'Русский'), isTrue);
 
@@ -372,12 +422,12 @@ void main() {
       expect(t.identifiers, [_spanish]);
 
       await _hold(tester, at: spanish);
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
 
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.spanish);
       expect(t.store.read(), MorseLanguage.spanish);
-      expect(t.identifiers.take(2), [_spanish, _spanish]);
+      expect(t.identifiers, [_spanish, _spanish, _learn]);
 
       await t.dispose(tester);
     });
@@ -393,12 +443,12 @@ void main() {
       expect(t.identifiers, [_french]);
 
       await _hold(tester, at: french);
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
 
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.french);
       expect(t.store.read(), MorseLanguage.french);
-      expect(t.identifiers.take(2), [_french, _french]);
+      expect(t.identifiers, [_french, _french, _learn]);
 
       await t.dispose(tester);
     });
@@ -414,12 +464,12 @@ void main() {
       expect(t.identifiers, [_german]);
 
       await _hold(tester, at: german);
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
 
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.german);
       expect(t.store.read(), MorseLanguage.german);
-      expect(t.identifiers.take(2), [_german, _german]);
+      expect(t.identifiers, [_german, _german, _learn]);
 
       await t.dispose(tester);
     });
@@ -456,7 +506,7 @@ void main() {
       }
 
       expect(t.identifiers, [for (final l in order) _identifierOf(l)]);
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
 
       await t.dispose(tester);
     });
@@ -515,19 +565,22 @@ void main() {
   });
 
   group('hold', () {
-    testWidgets('starts the highlighted language', (tester) async {
+    testWidgets('starts the highlighted language and opens the menu on '
+        'Learn', (tester) async {
       final t = _Harness();
       await t.pump(tester);
       t.vibration.reset();
 
       await _hold(tester);
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
 
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      expect(_menuHighlight(tester), HomeMenuMode.learn);
       expect(_sessionLanguage(tester), MorseLanguage.english);
       expect(t.store.read(), MorseLanguage.english);
-      // The confirmation plays the identifier before the lesson starts.
-      expect(t.identifiers.first, _english);
+      // The confirmation plays the identifier before the menu says where
+      // the user is.
+      expect(t.identifiers, [_english, _learn]);
 
       await t.dispose(tester);
     });
@@ -542,9 +595,9 @@ void main() {
       await _swipe(tester, -200);
       t.vibration.reset();
       await _hold(tester, at: tester.getCenter(find.text('English')));
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
 
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(_sessionLanguage(tester), _last);
       expect(t.store.read(), _last);
       expect(t.identifiers.first, _identifierOf(_last));
@@ -557,7 +610,7 @@ void main() {
       await t.pump(tester);
 
       await _hold(tester);
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
 
       expect(_sessionLanguage(tester), MorseLanguage.arabic);
       expect(t.store.read(), MorseLanguage.arabic);
@@ -573,14 +626,14 @@ void main() {
       await t.pump(tester);
 
       // Two activations before the picker is rebuilt: only the first one
-      // starts a session.
+      // starts a language.
       tester.semantics
         ..tap(find.semantics.byLabel('Русский'))
         ..tap(find.semantics.byLabel('English'));
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
       await tester.pumpAndSettle();
 
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(find.byType(LanguagePickerSurface), findsNothing);
       expect(_sessionLanguage(tester), MorseLanguage.russian);
       expect(t.store.read(), MorseLanguage.russian);
@@ -591,9 +644,10 @@ void main() {
   });
 
   // Issue #28: on Android a new vibration replaces the one in progress, so
-  // the session's first pattern must not start while the identifier plays.
+  // the next screen's first vibration (now the menu's identifier) must not
+  // start while the language's identifier plays.
   group('starting a language', () {
-    testWidgets('the lesson waits for the identifier and a silence after it', (
+    testWidgets('the menu waits for the identifier and a silence after it', (
       tester,
     ) async {
       final t = _Harness();
@@ -606,27 +660,21 @@ void main() {
       await _hold(tester);
       // However long the identifier plays, the picker stays.
       await tester.pump(_testRepeatPause);
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(t.identifiers, [_arabic]);
 
       // Once it has finished, a short silence still comes first.
       t.vibration.release();
       await tester.pump(_startPause - const Duration(milliseconds: 1));
       await tester.pump();
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(t.identifiers, [_arabic]);
 
       await tester.pump(const Duration(milliseconds: 1));
       await tester.pump();
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.arabic);
-      final session = ProviderScope.containerOf(
-        tester.element(find.byType(TouchSurface)),
-      ).read(sessionNotifierProvider);
-      expect(t.identifiers, [
-        _arabic,
-        session.currentLevel.patterns[session.currentCharacter],
-      ]);
+      expect(t.identifiers, [_arabic, _learn]);
 
       await t.dispose(tester);
     });
@@ -650,8 +698,8 @@ void main() {
       expect(_isHighlighted(tester, 'English'), isTrue);
 
       t.vibration.release();
-      await _waitForSession(tester);
-      expect(find.byType(TouchSurface), findsOneWidget);
+      await _waitForMenu(tester);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.english);
       expect(t.store.read(), MorseLanguage.english);
 
@@ -680,11 +728,11 @@ void main() {
       expect(find.byType(NoVibrationScreen), findsOneWidget);
 
       t.vibration.release();
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
       await tester.pump(_testRepeatPause);
 
       expect(find.byType(NoVibrationScreen), findsOneWidget);
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(t.store.read(), isNull);
       expect(_sessionLanguage(tester), MorseLanguage.english);
       expect(t.identifiers, [identifier, identifier]);
@@ -694,7 +742,7 @@ void main() {
   });
 
   group('sighted helper', () {
-    testWidgets('sees how to start and which language is highlighted', (
+    testWidgets('sees how to choose and which language is highlighted', (
       tester,
     ) async {
       final t = _Harness();
@@ -709,7 +757,17 @@ void main() {
       await t.dispose(tester);
     });
 
-    testWidgets('taps a language, then holds it to start', (tester) async {
+    testWidgets('sees the way back when the picker was opened from the '
+        'menu', (tester) async {
+      final t = _Harness(fromMenu: true);
+      await t.pump(tester);
+
+      expect(find.text(_settingsHint), findsOneWidget);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('taps a language, then holds it to choose it', (tester) async {
       final t = _Harness();
       await t.pump(tester);
 
@@ -719,11 +777,139 @@ void main() {
       expect(_isHighlighted(tester, 'Русский'), isTrue);
 
       await _hold(tester, at: russian);
-      await _waitForSession(tester);
+      await _waitForMenu(tester);
 
-      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(_sessionLanguage(tester), MorseLanguage.russian);
       expect(t.store.read(), MorseLanguage.russian);
+
+      await t.dispose(tester);
+    });
+  });
+
+  group('shakes on the first-launch picker', () {
+    testWidgets('a single or a double shake does nothing', (tester) async {
+      final t = _Harness();
+      await t.pump(tester);
+      t.vibration.reset();
+
+      t.shake.addEvent(const Home());
+      await tester.pump(const Duration(seconds: 2));
+      await t.doubleShake(tester);
+      await tester.pumpAndSettle();
+
+      // No menu to go back to before a language is chosen.
+      expect(find.byType(LanguagePickerSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsNothing);
+      expect(t.vibration.calls, isEmpty);
+      expect(t.store.read(), isNull);
+
+      await t.dispose(tester);
+    });
+  });
+
+  group('opened from the menu', () {
+    testWidgets('choosing a language returns to the menu on Settings', (
+      tester,
+    ) async {
+      final t = _Harness(saved: MorseLanguage.arabic, fromMenu: true);
+      await t.pump(tester);
+      await _swipe(tester, 200);
+      t.vibration.reset();
+
+      await _hold(tester);
+      await _waitForMenu(tester);
+
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      expect(_menuHighlight(tester), HomeMenuMode.settings);
+      expect(_sessionLanguage(tester), MorseLanguage.russian);
+      expect(t.store.read(), MorseLanguage.russian);
+      expect(t.identifiers, [_russian, _settings]);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('a double shake returns to the menu on Settings, keeping the '
+        'language', (tester) async {
+      final t = _Harness(saved: MorseLanguage.arabic, fromMenu: true);
+      await t.pump(tester);
+      // Moving the highlight is not choosing.
+      await _swipe(tester, 200);
+      t.vibration.reset();
+
+      await t.doubleShake(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LanguagePickerSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      expect(_menuHighlight(tester), HomeMenuMode.settings);
+      // Only the menu's identifier: the first shake did nothing here.
+      expect(t.identifiers, [_settings]);
+      expect(t.store.read(), MorseLanguage.arabic);
+      expect(_sessionLanguage(tester), MorseLanguage.arabic);
+      // The menu listens for shakes now.
+      expect(t.shake.isPaused, isFalse);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('a single shake does nothing', (tester) async {
+      final t = _Harness(fromMenu: true);
+      await t.pump(tester);
+      t.vibration.reset();
+
+      t.shake.addEvent(const Home());
+      await tester.pump(const Duration(seconds: 2));
+
+      expect(find.byType(LanguagePickerSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsNothing);
+      expect(t.vibration.calls, isEmpty);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('a double shake while a language starts is ignored', (
+      tester,
+    ) async {
+      final t = _Harness(saved: MorseLanguage.arabic, fromMenu: true);
+      await t.pump(tester);
+      await _swipe(tester, 200);
+      t.vibration
+        ..reset()
+        ..holdNextPattern = true;
+
+      await _hold(tester);
+      await t.doubleShake(tester);
+      await tester.pump(_testRepeatPause);
+      expect(find.byType(HomeMenuSurface), findsNothing);
+      expect(t.identifiers, [_russian]);
+
+      // The choice still completes.
+      t.vibration.release();
+      await _waitForMenu(tester);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      expect(t.store.read(), MorseLanguage.russian);
+      expect(t.identifiers, [_russian, _settings]);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('shakes are off in the background', (tester) async {
+      final t = _Harness(fromMenu: true);
+      await t.pump(tester);
+
+      await _sendToBackground(tester);
+      expect(t.shake.isPaused, isTrue);
+      await t.doubleShake(tester);
+      await tester.pumpAndSettle();
+      expect(find.byType(LanguagePickerSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsNothing);
+
+      await _bringToForeground(tester);
+      expect(t.shake.isPaused, isFalse);
+      await t.doubleShake(tester);
+      await tester.pumpAndSettle();
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
 
       await t.dispose(tester);
     });
@@ -748,7 +934,7 @@ void main() {
       tester.semantics.tap(find.semantics.byLabel('English'));
       await tester.pumpAndSettle();
 
-      expect(find.byType(TouchSurface), findsNothing);
+      expect(find.byType(HomeMenuSurface), findsNothing);
       expect(find.byType(NoVibrationScreen), findsOneWidget);
       expect(t.store.read(), isNull);
       expect(t.vibration.calls, isEmpty);

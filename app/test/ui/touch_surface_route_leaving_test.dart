@@ -5,7 +5,7 @@ import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
-import 'package:feel_you/ui/language_picker_surface.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/material.dart';
@@ -24,12 +24,12 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause so the teaching loop never repeats during a test.
 const _testRepeatPause = Duration(seconds: 5);
 
-/// Identifier vibration of the picker for Arabic: Morse ع.
-const _arabic = [
+/// Identifier vibration of the menu for Learn: Morse L.
+const _learn = [
   MorseSignal.dot,
   MorseSignal.dash,
   MorseSignal.dot,
-  MorseSignal.dash,
+  MorseSignal.dot,
 ];
 
 /// Test doubles shared by the app and the surface-only harness.
@@ -110,32 +110,41 @@ void main() {
         ),
       );
       await tester.pump();
+      // The app opens on the menu; holding on Learn opens the lessons.
+      final hold = await tester.startGesture(const Offset(400, 300));
+      await tester.pump(HomeMenuSurface.confirmHoldDuration);
+      await hold.up();
+      await tester.pump(const TeachingTimingConfig().postFeedbackPause);
+      await tester.pumpAndSettle();
+      expect(find.byType(TouchSurface), findsOneWidget);
       expect(_isTeachingRunning(tester), isTrue);
 
       // The double shake stops the loop and starts the route transition.
+      doubles.vibration.reset();
       doubles.shake.addEvent(const ChangeLanguage());
       await tester.pump();
       expect(_isTeachingRunning(tester), isFalse);
-      doubles.vibration.reset();
 
-      // The notification shade (or a call) comes and goes before the picker
+      // The notification shade (or a call) comes and goes before the menu
       // has finished sliding in.
       await _sendToBackground(tester);
       await _bringToForeground(tester);
 
       expect(find.byType(TouchSurface), findsOneWidget);
       expect(_isTeachingRunning(tester), isFalse);
-      expect(doubles.shake.isPaused, isTrue);
 
       // The transition ends and the outgoing surface is disposed.
       await tester.pumpAndSettle();
 
       expect(tester.takeException(), isNull);
-      expect(find.byType(LanguagePickerSurface), findsOneWidget);
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
       expect(find.byType(TouchSurface), findsNothing);
       expect(_isTeachingRunning(tester), isFalse);
-      // Only the picker's identifier played, not a lesson pattern.
-      expect(doubles.vibration.patterns, [_arabic]);
+      // The menu, not the outgoing surface, owns shake detection.
+      expect(doubles.shake.isPaused, isFalse);
+      // Only the menu's identifier played, never a lesson pattern.
+      expect(doubles.vibration.patterns, isNotEmpty);
+      expect(doubles.vibration.patterns, everyElement(_learn));
 
       await doubles.close(tester);
     });

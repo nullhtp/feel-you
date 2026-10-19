@@ -1,6 +1,8 @@
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/settings/learned_items.dart';
+import 'package:feel_you/ui/home_menu_mode.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -10,9 +12,10 @@ import 'test_helpers.dart';
 
 // End to end, for each language added after English, Arabic and Russian:
 // the whole app opens on the language picker (nothing saved), the user
-// chooses the language, then learns its own letter and a word with real
-// pointer events on the lesson surface. The motor is answered at the
-// platform channels; vibration is recorded instead of played.
+// chooses the language, opens Learn on the home menu, then learns its own
+// letter and a word with real pointer events on the lesson surface. The
+// motor is answered at the platform channels; vibration is recorded instead
+// of played.
 
 /// One language's flow.
 typedef _Flow = ({
@@ -139,8 +142,8 @@ void main() {
       expect(vibration.patterns, [identifier]);
       expect(vibration.calls.single.played, codec.encode(flow.identifier));
 
-      // Hold anywhere for a second: the identifier again, then the lesson
-      // opens on digit 0 and the language is saved.
+      // Hold anywhere for a second: the identifier again, the language is
+      // saved, and the home menu replaces the picker, on Learn.
       final hold = await tester.startGesture(
         tester.getCenter(find.byType(LanguagePickerSurface)),
       );
@@ -152,14 +155,30 @@ void main() {
       await waitUntil(
         tester,
         () => find.byType(LanguagePickerSurface).evaluate().isEmpty,
-        reason: 'the lesson surface replaces the picker',
+        reason: 'the home menu replaces the picker',
       );
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      expect(
+        tester
+            .widget<HomeMenuSurface>(find.byType(HomeMenuSurface))
+            .highlighted,
+        HomeMenuMode.learn,
+      );
+
+      // Hold on Learn: Morse L, then the lesson opens on digit 0.
+      await app.openLessons(tester);
       await waitUntil(
         tester,
         () => vibration.hasPattern(digitZero),
         reason: 'digit 0 plays',
       );
-      expect(vibration.patterns.take(2), [identifier, identifier]);
+      expect(vibration.patterns.take(5), [
+        identifier,
+        identifier,
+        menuLearn, // the menu appears
+        menuLearn, // the hold on Learn
+        digitZero,
+      ]);
       expect(app.session(tester).language, flow.language);
       expect(app.session(tester).levelIndex, 0);
       expect(app.session(tester).currentCharacter, '0');

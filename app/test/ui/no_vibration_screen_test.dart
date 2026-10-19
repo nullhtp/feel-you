@@ -2,6 +2,7 @@ import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/companion_overlay.dart';
+import 'package:feel_you/ui/home_menu_surface.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
 import 'package:feel_you/ui/no_vibration_screen.dart';
 import 'package:feel_you/ui/touch_surface.dart';
@@ -21,8 +22,9 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause to prevent orchestrator from interfering.
 const _testRepeatPause = Duration(seconds: 5);
 
-/// Silence between a started language's identifier and its session: the
-/// default post-feedback pause (only the repeat pause is overridden here).
+/// Silence between a confirmed identifier (a language, a mode) and the next
+/// screen: the default post-feedback pause (only the repeat pause is
+/// overridden here).
 final _startPause = const TeachingTimingConfig().postFeedbackPause;
 
 /// The debug-only bypass button.
@@ -171,6 +173,14 @@ void main() {
       );
       await tester.pump(LanguagePickerSurface.confirmHoldDuration);
       await hold.up();
+      await tester.pump(_startPause);
+      await tester.pumpAndSettle();
+
+      // The menu opens on Learn; holding anywhere opens the lessons.
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      final enter = await tester.startGesture(const Offset(400, 300));
+      await tester.pump(HomeMenuSurface.confirmHoldDuration);
+      await enter.up();
       await tester.pump(_startPause);
       await tester.pump();
 

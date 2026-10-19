@@ -24,8 +24,8 @@ Designed for deaf-blind individuals, Feel You turns your phone into a patient, p
 **Features:**
 - Full Morse code curriculum: digits (0-9), plus the letters and 20 everyday words of English, Arabic, Russian, Spanish, French, and German
 - Vibration-only feedback — works without seeing or hearing the screen
-- Intuitive gesture navigation: swipe left or right to move between characters, up or down to change level, shake to go home, double shake to change language
-- Language picker that works by touch and vibration alone, and remembers your choice
+- Intuitive gesture navigation: swipe left or right to move between characters, up or down to change level, shake to go home, double shake to return to the menu
+- A home menu of modes, each announced by its Morse letter, and a language picker, both used by touch and vibration alone; the app remembers your language
 - Landscape orientation for comfortable two-handed use
 - Companion overlay for sighted helpers to follow along
 - No ads, no in-app purchases, no data collection

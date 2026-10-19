@@ -6,13 +6,13 @@ import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/touch_surface.dart';
 import 'package:feel_you/vibration/vibration_providers.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../test_doubles/fake_gesture_classifier.dart';
 import '../test_doubles/fake_shake_detector.dart';
 import '../test_doubles/mock_vibration_service.dart';
+import '../test_doubles/mock_wakelock.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -23,46 +23,6 @@ final _repeatPause = const TeachingTimingConfig().repeatPause;
 
 /// Long enough for the teaching loop to have repeated several times.
 final _severalRepeatCycles = _repeatPause * 4;
-
-/// The pigeon channel `WakelockPlus.toggle` sends its requests on.
-const _wakelockToggleChannel =
-    'dev.flutter.pigeon.wakelock_plus_platform_interface.'
-    'WakelockPlusApi.toggle';
-
-/// Decodes wakelock_plus pigeon messages, where a `ToggleMessage` is a
-/// custom type wrapping the list `[enable]`.
-class _WakelockMessageCodec extends StandardMessageCodec {
-  const _WakelockMessageCodec();
-
-  @override
-  Object? readValueOfType(int type, ReadBuffer buffer) {
-    if (type >= 128) return readValue(buffer);
-    return super.readValueOfType(type, buffer);
-  }
-}
-
-/// Mocks the wakelock platform channel and returns the list of requested
-/// wakelock states (`true` = enable, `false` = disable) in call order.
-List<bool> mockWakelock(WidgetTester tester) {
-  const codec = _WakelockMessageCodec();
-  final toggles = <bool>[];
-  tester.binding.defaultBinaryMessenger.setMockMessageHandler(
-    _wakelockToggleChannel,
-    (message) async {
-      final args = codec.decodeMessage(message)! as List<Object?>;
-      final toggleMessage = args.first! as List<Object?>;
-      toggles.add(toggleMessage.first! as bool);
-      return codec.encodeMessage(<Object?>[]);
-    },
-  );
-  addTearDown(
-    () => tester.binding.defaultBinaryMessenger.setMockMessageHandler(
-      _wakelockToggleChannel,
-      null,
-    ),
-  );
-  return toggles;
-}
 
 /// Builds a [ProviderScope] with test overrides and [TouchSurface] as child.
 Widget buildTestWidget({

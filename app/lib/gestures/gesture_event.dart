@@ -116,10 +116,13 @@ class Home extends GestureEvent {
   String toString() => 'Home';
 }
 
-/// Double shake detected — leave the session for the language picker.
+/// Double shake detected — back to the home menu.
 ///
 /// Emitted for the second shake of a double shake; the first one has
-/// already emitted [Home].
+/// already emitted [Home]. A mode (the lessons, the language picker opened
+/// from the menu) returns to the home menu; on the menu itself it replays
+/// the highlighted mode's identifier. The name predates the menu, when a
+/// double shake opened the language picker.
 @immutable
 class ChangeLanguage extends GestureEvent {
   const ChangeLanguage();
