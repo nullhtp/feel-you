@@ -1,0 +1,24 @@
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+data: {"id":"gen-1760900000-aB3dE5fG7hJ9kL1mN3pQ","provider":"OpenAI","model":"openai/gpt-4o-mini","object":"chat.completion.chunk","created":1760900000,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":null,"native_finish_reason":null,"logprobs":null}]}
+
+data: {"id":"gen-1760900000-aB3dE5fG7hJ9kL1mN3pQ","provider":"OpenAI","model":"openai/gpt-4o-mini","object":"chat.completion.chunk","created":1760900000,"choices":[{"index":0,"delta":{"role":"assistant","content":"Hel"},"finish_reason":null,"native_finish_reason":null,"logprobs":null}]}
+
+data: {"id":"gen-1760900000-aB3dE5fG7hJ9kL1mN3pQ","provider":"OpenAI","model":"openai/gpt-4o-mini","object":"chat.completion.chunk","created":1760900000,"choices":[{"index":0,"delta":{"role":"assistant","content":"lo wor"},"finish_reason":null,"native_finish_reason":null,"logprobs":null}]}
+
+: OPENROUTER PROCESSING
+
+data: {"id":"gen-1760900000-aB3dE5fG7hJ9kL1mN3pQ","provider":"OpenAI","model":"openai/gpt-4o-mini","object":"chat.completion.chunk","created":1760900000,"choices":[{"index":0,"delta":{"role":"assistant","content":"ld, how"},"finish_reason":null,"native_finish_reason":null,"logprobs":null}]}
+
+data: {"id":"gen-1760900000-aB3dE5fG7hJ9kL1mN3pQ","provider":"OpenAI","model":"openai/gpt-4o-mini","object":"chat.completion.chunk","created":1760900000,"choices":[{"index":0,"delta":{"role":"assistant","content":" are you?"},"finish_reason":null,"native_finish_reason":null,"logprobs":null}]}
+
+data: {"id":"gen-1760900000-aB3dE5fG7hJ9kL1mN3pQ","provider":"OpenAI","model":"openai/gpt-4o-mini","object":"chat.completion.chunk","created":1760900000,"choices":[{"index":0,"delta":{"role":"assistant","content":" Ça va."},"finish_reason":null,"native_finish_reason":null,"logprobs":null}]}
+
+data: {"id":"gen-1760900000-aB3dE5fG7hJ9kL1mN3pQ","provider":"OpenAI","model":"openai/gpt-4o-mini","object":"chat.completion.chunk","created":1760900000,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":"stop","native_finish_reason":"stop","logprobs":null}]}
+
+data: {"id":"gen-1760900000-aB3dE5fG7hJ9kL1mN3pQ","provider":"OpenAI","model":"openai/gpt-4o-mini","object":"chat.completion.chunk","created":1760900000,"choices":[{"index":0,"delta":{"role":"assistant","content":""},"finish_reason":"stop","native_finish_reason":"stop","logprobs":null}],"usage":{"prompt_tokens":24,"completion_tokens":9,"total_tokens":33,"cost":0.0000054,"is_byok":false,"prompt_tokens_details":{"cached_tokens":0,"audio_tokens":0},"cost_details":{"upstream_inference_cost":null},"completion_tokens_details":{"reasoning_tokens":0,"image_tokens":0}}}
+
+data: [DONE]
+

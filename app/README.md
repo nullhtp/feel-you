@@ -70,6 +70,6 @@ The version is `version: X.Y.Z+N` in [`pubspec.yaml`](pubspec.yaml). `X.Y.Z` is 
 | `lib/session/` | Current language, level, position and phase |
 | `lib/vibration/` | Plays tactile tokens and the success, error and tap signals; the lesson timing and the reading speeds (Farnsworth gaps) with their own timing and service; device capability checks. Knows nothing about Morse |
 | `lib/settings/` | The saved language and reading speed, and the change of speed that plays a sample word |
-| `lib/cloud/` | The cloud (OpenRouter) key: validation, masking and its store in the Keychain / Keystore |
+| `lib/cloud/` | The cloud (OpenRouter) key: validation, masking and its store in the Keychain / Keystore. The OpenRouter client: streamed chat completions with model fallback, the event-stream parser and word buffer, the typed errors, the base-URL and data-collection settings, and usage and key-information accounting. No screen uses the client yet |
 | `lib/ui/` | Home menu and language picker (built on one shared touch chooser), lesson surface, helper overlay, no-vibration screen |
 | `test/`, `integration_test/` | Tests |

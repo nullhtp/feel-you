@@ -1,0 +1,6 @@
+: OPENROUTER PROCESSING
+
+: OPENROUTER PROCESSING
+
+data: {"id":"gen-1760900200-eF5gH7jK9lM1nP3qR5sT","object":"chat.completion.chunk","created":1760900200,"model":"google/gemini-2.5-flash","provider":"Google","error":{"code":502,"message":"Provider returned error","metadata":{"error_type":"provider_unavailable","provider_name":"Google"}},"choices":[{"index":0,"delta":{"content":""},"finish_reason":"error"}]}
+

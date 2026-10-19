@@ -1,2 +1,9 @@
+export 'cloud_error.dart';
 export 'cloud_key.dart';
 export 'cloud_key_store.dart';
+export 'cloud_preferences.dart';
+export 'cloud_settings.dart';
+export 'cloud_usage.dart';
+export 'openrouter_client.dart';
+export 'sse_parser.dart';
+export 'word_buffer.dart';

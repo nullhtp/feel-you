@@ -1,5 +1,6 @@
 import 'package:feel_you/app.dart';
 import 'package:feel_you/cloud/cloud_key_store.dart';
+import 'package:feel_you/cloud/cloud_preferences.dart';
 import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/settings/reading_speed_preference.dart';
@@ -22,6 +23,10 @@ Future<void> main() async {
   final languagePreference = await loadLanguagePreferenceStore();
   final learnedItems = await loadLearnedItemsStore();
   final readingSpeed = await loadReadingSpeedStore();
+  // The cloud settings and usage share those preferences (already loaded,
+  // so this costs no extra wait). Nothing is sent: the cloud client makes
+  // a request only when a feature asks for one.
+  final cloudPreferences = await loadCloudPreferencesStore();
 
   // The dot/dash midpoint is not read here: before the first frame the view
   // can still report a zero size, and the width changes with split-screen,
@@ -38,6 +43,7 @@ Future<void> main() async {
         // first needed (the helper overlay), so the first frame never waits
         // for the secure storage.
         cloudKeyStoreProvider.overrideWithValue(const SecureCloudKeyStore()),
+        cloudPreferencesStoreProvider.overrideWithValue(cloudPreferences),
       ],
       child: const FeelYouApp(),
     ),

@@ -1,0 +1,8 @@
+: OPENROUTER PROCESSING
+
+data: {"id":"gen-1760900100-cD4eF6gH8jK0lM2nP4qR","provider":"Groq","model":"meta-llama/llama-3.3-70b-instruct","object":"chat.completion.chunk","created":1760900100,"choices":[{"index":0,"delta":{"role":"assistant","content":"The answer is"},"finish_reason":null,"native_finish_reason":null,"logprobs":null}]}
+
+data: {"id":"gen-1760900100-cD4eF6gH8jK0lM2nP4qR","provider":"Groq","model":"meta-llama/llama-3.3-70b-instruct","object":"chat.completion.chunk","created":1760900100,"choices":[{"index":0,"delta":{"role":"assistant","content":" forty"},"finish_reason":null,"native_finish_reason":null,"logprobs":null}]}
+
+data: {"id":"gen-1760900100-cD4eF6gH8jK0lM2nP4qR","object":"chat.completion.chunk","created":1760900100,"model":"meta-llama/llama-3.3-70b-instruct","provider":"Groq","error":{"code":"server_error","message":"Provider disconnected unexpectedly"},"choices":[{"index":0,"delta":{"content":""},"finish_reason":"error"}]}
+
