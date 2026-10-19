@@ -37,7 +37,7 @@ When the app leaves the foreground while the lesson surface is shown, the lesson
 - **WHEN** a gesture event or a shake arrives while the lesson is suspended
 - **THEN** it SHALL be ignored, and shake detection SHALL be paused until the loop starts again
 
-### Requirement: Returning to the foreground restarts the current item
+### Requirement: Returning to the foreground restarts the lesson's current item
 When the app is resumed after the lesson was suspended, the wakelock SHALL be enabled again and the teaching loop SHALL start again on the same item, from the beginning, in the `playing` phase, with no input. As on any start, a word SHALL be spelled first, and in the quiz `?` SHALL be played first. Language, level, position and quiz item SHALL NOT change. A resume that follows no suspension SHALL do nothing.
 
 #### Scenario: Resume replays the current item
@@ -65,7 +65,7 @@ When the app is resumed after the lesson was suspended, the wakelock SHALL be en
 - **WHEN** the app goes to the background and comes back several times in a row
 - **THEN** each return SHALL start the loop exactly once, and the loop SHALL be running after the last one
 
-#### Scenario: Leaving for the picker
-- **WHEN** a double shake has stopped the loop and the language picker is replacing the lesson surface
+#### Scenario: Leaving for the menu
+- **WHEN** a double shake has stopped the loop and the home menu is replacing the lesson surface
 - **AND** the app goes to the background and comes back during the transition
 - **THEN** the teaching loop SHALL NOT start again

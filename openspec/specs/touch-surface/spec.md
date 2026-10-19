@@ -92,40 +92,19 @@ The touch surface SHALL prevent the system back navigation (Android back button,
 - **THEN** the system SHALL NOT navigate away from the touch surface
 
 ### Requirement: App entry point integration
-The touch surface SHALL be the lesson screen. The app SHALL open on it when a language is saved; otherwise the language picker SHALL replace itself with it once a language is started. A double shake during a lesson SHALL replace it with the language picker. Each switch SHALL replace the route rather than push on top of it, so there is never more than one of the two screens.
+The touch surface SHALL be the lesson screen, opened by entering Learn on the home menu. A double shake during a lesson SHALL replace it with the home menu, with Learn highlighted. Each switch SHALL replace the route rather than push on top of it, so there is only ever one screen: the language picker, the home menu or the lessons.
 
 #### Scenario: App startup
 - **WHEN** the app is launched and a language is saved
-- **THEN** the touch surface SHALL be displayed, in that language
+- **THEN** the home menu SHALL be displayed, and entering Learn SHALL display the touch surface, in that language
 
 #### Scenario: App startup without a saved language
 - **WHEN** the app is launched with no saved language and the user starts a language in the picker
-- **THEN** the touch surface SHALL replace the picker
+- **THEN** the home menu SHALL replace the picker, and entering Learn SHALL display the touch surface, in that language
 
 #### Scenario: Double shake leaves the lesson
 - **WHEN** the user double-shakes while the teaching loop is running
-- **THEN** the teaching loop SHALL stop and the language picker SHALL replace the touch surface
-
-### Requirement: Double shake returns to the language picker
-While the teaching loop is running, a `ChangeLanguage` from the shake detector SHALL stop the loop at once, so nothing vibrates during the route transition, and replace the lesson surface with the language picker. The first shake of the pair has already gone home (see `shake-gesture`). The event SHALL be ignored while the loop is stopped, and once the surface is leaving: neither further shakes nor a resume during the transition SHALL start the loop again.
-
-#### Scenario: Double shake during a lesson
-- **WHEN** the teaching loop plays letter "K" and the user double-shakes
-- **THEN** the first shake SHALL take the session home, to digit "0", and restart the loop there
-- **AND** the second SHALL stop the loop and replace the lesson surface with the language picker
-- **AND** the picker SHALL highlight the current language and vibrate its identifier
-
-#### Scenario: Double shake in the background
-- **WHEN** the lesson is suspended in the background and a `ChangeLanguage` arrives
-- **THEN** the lesson surface SHALL stay, and the loop SHALL stay stopped
-
-#### Scenario: Shakes during the transition
-- **WHEN** more shakes arrive while the picker is replacing the lesson surface
-- **THEN** the loop SHALL NOT start again, and only one picker SHALL open
-
-#### Scenario: Shaking in the picker
-- **WHEN** the picker has replaced the lesson surface and the user shakes
-- **THEN** nothing SHALL happen, as shake detection stays paused until a lesson starts
+- **THEN** the teaching loop SHALL stop and the home menu SHALL replace the touch surface, with Learn highlighted
 
 ### Requirement: Screen-reader description of the lesson surface
 The touch area SHALL be one semantics node labelled "Morse input surface" that names the route, so screen readers announce the lesson screen when it opens. Its hint SHALL explain the input: the halves for dot and dash, the bottom strip to submit or add a letter gap, swipes to change character and level, and the quiz past the last character. It SHALL have no semantic tap action, and touches SHALL reach the classifier with semantics on.
@@ -143,3 +122,24 @@ The touch area SHALL be one semantics node labelled "Morse input surface" that n
 - **WHEN** TalkBack or VoiceOver is on
 - **THEN** the screen reader SHALL take single taps and swipes for exploration, so they do not reach the lesson surface: there is no app setting that opts the surface out (VoiceOver Direct Touch is not exposed by Flutter, and Android has no equivalent)
 - **AND** the user SHALL need the screen reader's pass-through gesture (double tap and hold, then gesture) or turn the screen reader off to enter Morse
+
+### Requirement: Double shake returns to the home menu
+While the teaching loop is running, a `ChangeLanguage` from the shake detector SHALL stop the loop at once, so nothing vibrates during the route transition, and replace the lesson surface with the home menu, with Learn highlighted. The first shake of the pair has already gone home (see `shake-gesture`). The event SHALL be ignored while the loop is stopped, and once the surface is leaving: neither further shakes nor a resume during the transition SHALL start the loop again.
+
+#### Scenario: Double shake during a lesson
+- **WHEN** the teaching loop plays letter "K" and the user double-shakes
+- **THEN** the first shake SHALL take the session home, to digit "0", and restart the loop there
+- **AND** the second SHALL stop the loop and replace the lesson surface with the home menu
+- **AND** the menu SHALL highlight Learn and vibrate its identifier, Morse L
+
+#### Scenario: Double shake in the background
+- **WHEN** the lesson is suspended in the background and a `ChangeLanguage` arrives
+- **THEN** the lesson surface SHALL stay, and the loop SHALL stay stopped
+
+#### Scenario: Shakes during the transition
+- **WHEN** more shakes arrive while the home menu is replacing the lesson surface
+- **THEN** the loop SHALL NOT start again, and only one menu SHALL open
+
+#### Scenario: Shaking on the menu
+- **WHEN** the home menu has replaced the lesson surface and the user shakes
+- **THEN** no lesson SHALL start: a single shake SHALL do nothing and a double shake SHALL replay Morse L (see `home-menu`)

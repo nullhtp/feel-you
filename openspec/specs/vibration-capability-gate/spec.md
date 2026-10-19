@@ -29,15 +29,15 @@ Once per run, without delaying the first frame, the app SHALL ask the device whe
 
 #### Scenario: Still checking
 - **WHEN** the first frame is drawn before detection has finished
-- **THEN** the language picker or the lessons SHALL be shown, as on a device with a motor
+- **THEN** the language picker or the home menu SHALL be shown, as on a device with a motor
 
 ### Requirement: No screen runs without a vibration motor
-On a device that definitely has no vibration motor, the No vibration screen SHALL replace every route of the app, including routes opened after launch (the lessons after a language is started, the picker after a double shake). When detection reports no motor after a lesson has started, the teaching loop SHALL stop at once and the whole route stack SHALL be replaced. The picker SHALL wait for detection before it plays its first identifier.
+On a device that definitely has no vibration motor, the No vibration screen SHALL replace every route of the app, including routes opened after launch (the home menu after a language is chosen or a double shake, the lessons and the picker opened from it). When detection reports no motor after a lesson has started, the teaching loop SHALL stop at once and the whole route stack SHALL be replaced. The picker and the menu SHALL wait for detection before they play their first identifier.
 
 #### Scenario: No motor, language saved
 - **WHEN** the app is launched with a saved language on a device without a motor
-- **THEN** the No vibration screen SHALL be shown instead of the lessons
-- **AND** no teaching loop SHALL run once detection has answered, though the lessons MAY have started, and sent their first pattern, before the answer arrived
+- **THEN** the No vibration screen SHALL be shown instead of the home menu
+- **AND** no identifier SHALL be played, since the menu waits for detection, and no teaching loop SHALL run once detection has answered, though the lessons MAY have been opened from the menu before the answer arrived
 
 #### Scenario: No motor, no language saved
 - **WHEN** the app is launched without a saved language on a device without a motor
@@ -50,7 +50,7 @@ On a device that definitely has no vibration motor, the No vibration screen SHAL
 - **AND** the No vibration screen SHALL replace the lesson surface
 
 #### Scenario: Detection ends after a route change
-- **WHEN** detection reports no motor after the picker was replaced by the lessons, or after a double shake opened the picker again
+- **WHEN** detection reports no motor after the picker was replaced by the menu, after the menu was replaced by the lessons or by the picker, or after a double shake opened the menu again
 - **THEN** the No vibration screen SHALL replace whichever route is shown, and any running loop SHALL stop
 
 #### Scenario: A motor found later
@@ -60,6 +60,10 @@ On a device that definitely has no vibration motor, the No vibration screen SHAL
 #### Scenario: The picker waits for detection
 - **WHEN** the language picker appears before detection has finished
 - **THEN** it SHALL play the highlighted identifier only once detection has finished without reporting "no motor"
+
+#### Scenario: The menu waits for detection
+- **WHEN** the home menu appears before detection has finished
+- **THEN** it SHALL play the highlighted mode's identifier only once detection has finished without reporting "no motor"
 
 ### Requirement: The No vibration screen explains why the app cannot run
 The No vibration screen SHALL be black, with the heading "No vibration motor" and the text "This device cannot vibrate, so Feel You cannot work on it." followed on a new line by "Feel You communicates only through vibration. Please use a phone with a vibration motor.", in white and centred. Release and profile builds SHALL offer no way past it. For screen readers it SHALL be its own route.
@@ -89,7 +93,7 @@ Debug builds SHALL add a button "Continue anyway (debug build)" to the No vibrat
 
 #### Scenario: Tapping the button
 - **WHEN** the button is tapped
-- **THEN** the app SHALL show its first screen: the language picker when no language is saved, the lessons otherwise
+- **THEN** the app SHALL show its first screen: the language picker when no language is saved, the home menu otherwise
 - **AND** the success and error signals SHALL still follow the detected amplitude control
 
 #### Scenario: The bypass is not saved
