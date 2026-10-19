@@ -53,7 +53,7 @@ The system SHALL show a full-screen language picker on launch when no language i
 - **AND** when the picker was opened from Settings, the line SHALL go on with "Double shake: back to the menu"
 
 ### Requirement: The chosen language is saved
-Starting a language in the picker SHALL save it on the device (`SharedPreferences`, key `selected_language`) for the next launch. A launch that finds a saved language SHALL skip the picker, open the home menu and set the session to that language. Apart from the learned items (see `learned-items`), the language SHALL be the only setting saved. Saving is best effort: when the storage cannot be loaded or written, the app SHALL still run, and the picker SHALL appear again on the next launch.
+Starting a language in the picker SHALL save it on the device (`SharedPreferences`, key `selected_language`) for the next launch. A launch that finds a saved language SHALL skip the picker, open the home menu and set the session to that language. Apart from the learned items and the reading speed, the language SHALL be the only setting saved. Saving is best effort: when the storage cannot be loaded or written, the app SHALL still run, and the picker SHALL appear again on the next launch.
 
 #### Scenario: Next launch skips the picker
 - **WHEN** the user started Arabic in the picker and the app is restarted
@@ -71,6 +71,10 @@ Starting a language in the picker SHALL save it on the device (`SharedPreference
 #### Scenario: Storage unavailable
 - **WHEN** the platform storage cannot be loaded at launch
 - **THEN** the choice SHALL be kept in memory for the current run only, and the picker SHALL appear on every launch
+
+#### Scenario: Other saved settings
+- **WHEN** a developer lists what the app keeps in `SharedPreferences`
+- **THEN** it SHALL be the language, the learned items (see `learned-items`) and the reading speed (see `reading-speed`), and nothing else
 
 ### Requirement: Language identifiers, labels and locales
 Each language SHALL have, in the picker: an identifier vibration, one of its letters encoded with that language's codec rather than hardcoded as a raw signal list; a label in its own language; and the locale a screen reader speaks that label in. The identifier SHALL vibrate when its language is highlighted. No two languages SHALL share an identifier pattern.

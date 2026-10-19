@@ -5,25 +5,6 @@ The seam between text and vibration: the tactile tokens that every code (Morse t
 
 ## Requirements
 
-### Requirement: Tactile token vocabulary
-The system SHALL define the tactile tokens that codecs produce and the vibration engine plays: a short pulse, a long pulse, an empty slot (a pulse-length silence) and a character gap. Tokens SHALL carry no duration and no amplitude: the engine's timing configuration decides how long each one lasts, so a codec decides only what is felt, in which order.
-
-#### Scenario: Four token kinds
-- **WHEN** a developer lists the tactile tokens
-- **THEN** there SHALL be exactly four: short pulse, long pulse, empty slot and character gap
-
-#### Scenario: Same tokens feel the same
-- **WHEN** two codecs produce the same list of tokens
-- **THEN** the vibration engine SHALL play them identically
-
-#### Scenario: A prosign fits as one character
-- **WHEN** a codec encodes a sign as a run of pulses with no character gap inside, such as SOS as three short, three long and three short pulses
-- **THEN** the tokens SHALL be a valid pattern that plays as a single character, with no other token kind needed
-
-#### Scenario: A braille cell fits as six slots
-- **WHEN** a codec encodes a braille cell as six slots, each a short pulse (raised dot) or an empty slot (flat dot)
-- **THEN** the tokens SHALL be a valid pattern, with no other token kind needed
-
 ### Requirement: Tactile codec interface
 The system SHALL define a `TactileCodec` interface with `encode(text)`, which returns the tactile tokens that play the text, and `describe(text)`, which returns the text form of the same pattern for a sighted helper. Code that plays or shows a text SHALL go through this interface, so it does not depend on which code is in use.
 
@@ -71,15 +52,15 @@ The Morse codec SHALL encode a text for one language character by character, loo
 - **THEN** it SHALL throw an `ArgumentError`: a codec knows its own language's letters and the shared digits only
 
 ### Requirement: Morse codec rejects what it cannot encode
-The Morse codec SHALL throw an `ArgumentError` naming the character when the text contains a character it cannot encode for its language, including a space and any punctuation other than `?`. It SHALL return no tokens for an empty text.
+The Morse codec SHALL throw an `ArgumentError` naming the character when the text contains a character it cannot encode for its language, including any punctuation other than `?`. Whitespace is not a character it encodes: it only separates words (see *Morse codec separates words with a word gap*). It SHALL return no tokens for an empty text.
 
 #### Scenario: Unknown character
 - **WHEN** the English Morse codec encodes "A!"
 - **THEN** it SHALL throw an `ArgumentError` that names "!"
 
 #### Scenario: Space is not encoded
-- **WHEN** the English Morse codec encodes "HI OK"
-- **THEN** it SHALL throw an `ArgumentError`
+- **WHEN** the English Morse codec encodes " " or "HI OK"
+- **THEN** it SHALL not throw, and no space SHALL give a pulse: " " SHALL return no tokens, and "HI OK" only the pulses of H, I, O and K with a word gap between the two words
 
 #### Scenario: Empty text
 - **WHEN** the Morse codec encodes or describes an empty text
@@ -120,7 +101,7 @@ For every item of every level of every language, the language's Morse codec SHAL
 - **THEN** the description SHALL be the item's level pattern written with `·`, `—` and `/`
 
 ### Requirement: Splitting tokens into characters
-The system SHALL split a token pattern at its character gaps into the tokens of each character, in order, so a caller can play a text one character at a time without knowing the codec. A pattern without a character gap SHALL be one character, and an empty pattern SHALL have none.
+The system SHALL split a token pattern at its character gaps and word gaps into the tokens of each character, in order, so a caller can play a text one character at a time without knowing the codec. A pattern without a gap SHALL be one character, and an empty pattern SHALL have none.
 
 #### Scenario: A word splits into its letters
 - **WHEN** the tokens of the English word "HI" are split
@@ -133,6 +114,10 @@ The system SHALL split a token pattern at its character gaps into the tokens of 
 #### Scenario: Empty pattern
 - **WHEN** an empty pattern is split
 - **THEN** the result SHALL be empty
+
+#### Scenario: Two words split into their letters
+- **WHEN** the tokens of the English text "HI OK" are split
+- **THEN** the result SHALL be the tokens of "H", "I", "O" and "K", none of them containing a gap
 
 ### Requirement: Codec per language through a provider
 The system SHALL provide the codec of each language through a Riverpod provider keyed by the language, which tests can override. The default SHALL be the Morse codec of that language, looking characters up in the registry given by the Morse registry provider.
@@ -163,3 +148,53 @@ Besides texts, the `TactileCodec` interface SHALL encode a named prosign (see `m
 #### Scenario: Through the provider
 - **WHEN** the codec provider is read for a language and asked for the SOS prosign
 - **THEN** it SHALL return the same tokens as the Morse codec of any other language
+
+### Requirement: Tactile tokens
+The system SHALL define the tactile tokens that codecs produce and the vibration engine plays: a short pulse, a long pulse, an empty slot (a pulse-length silence), a character gap and a word gap. Tokens SHALL carry no duration and no amplitude: the engine's timing configuration decides how long each one lasts, so a codec decides only what is felt, in which order, and a reading speed never re-encodes a text.
+
+#### Scenario: Five token kinds
+- **WHEN** a developer lists the tactile tokens
+- **THEN** there SHALL be exactly five: short pulse, long pulse, empty slot, character gap and word gap
+
+#### Scenario: Same tokens feel the same
+- **WHEN** two codecs produce the same list of tokens
+- **THEN** the vibration engine SHALL play them identically
+
+#### Scenario: A prosign fits as one character
+- **WHEN** a codec encodes a sign as a run of pulses with no character gap inside, such as SOS as three short, three long and three short pulses
+- **THEN** the tokens SHALL be a valid pattern that plays as a single character, with no other token kind needed
+
+#### Scenario: A braille cell fits as six slots
+- **WHEN** a codec encodes a braille cell as six slots, each a short pulse (raised dot) or an empty slot (flat dot)
+- **THEN** the tokens SHALL be a valid pattern, with no other token kind needed
+
+#### Scenario: Words are separated by a word gap
+- **WHEN** a codec encodes a text of two words
+- **THEN** a single word gap SHALL separate the tokens of the first word from those of the second, with no character gap next to it
+
+### Requirement: Morse codec separates words with a word gap
+The Morse codec SHALL encode any run of whitespace (spaces, tabs, line breaks) between two words as one word gap, in place of the character gap, and SHALL ignore whitespace before the first word and after the last. Its description SHALL write a word gap as `//`. A text of whitespace only SHALL give no tokens and an empty description. Every word SHALL be encoded as it is on its own.
+
+#### Scenario: Two words
+- **WHEN** the English Morse codec encodes "HI OK"
+- **THEN** it SHALL return the tokens of "HI", a word gap, then the tokens of "OK"
+
+#### Scenario: A run of whitespace is one word gap
+- **WHEN** the English Morse codec encodes "HI   OK", "HI\tOK" or "HI" and "OK" on two lines
+- **THEN** each SHALL return the same tokens as "HI OK"
+
+#### Scenario: Whitespace around the text
+- **WHEN** the English Morse codec encodes " HI " or "HI\n"
+- **THEN** it SHALL return the tokens of "HI", with no gap before or after
+
+#### Scenario: Description of two words
+- **WHEN** the English Morse codec describes "HI OK"
+- **THEN** it SHALL return "· · · · / · · // — — — / — · —"
+
+#### Scenario: Words of another language
+- **WHEN** the Russian Morse codec encodes "ДА НЕТ"
+- **THEN** it SHALL return the tokens of "ДА", a word gap, then the tokens of "НЕТ"
+
+#### Scenario: An unknown character in a later word
+- **WHEN** the English Morse codec encodes or describes "HI A!"
+- **THEN** it SHALL throw an `ArgumentError` that names "!"

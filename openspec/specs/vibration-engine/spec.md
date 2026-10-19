@@ -7,19 +7,27 @@ Playing tactile token patterns (Morse today) and the app's signals as vibrations
 ## Requirements
 
 ### Requirement: Configurable Morse vibration timing
-The system SHALL define Morse vibration timing through a configuration object (`MorseTimingConfig`) with the following default values: dot duration 100ms, dash duration 300ms, inter-symbol gap 100ms, inter-character gap 300ms. All values SHALL be overridable at construction time.
+The system SHALL define Morse vibration timing through a configuration object (`MorseTimingConfig`) with the following default values: dot duration 100ms, dash duration 300ms, inter-symbol gap 100ms, inter-character gap 300ms, inter-word gap 700ms. The inter-character and inter-word gaps SHALL be independent of each other. All values SHALL be overridable at construction time, and a copy SHALL be able to replace any of them.
 
 #### Scenario: Default timing values
 - **WHEN** a `MorseTimingConfig` is created with no arguments
-- **THEN** dot is 100ms, dash is 300ms, inter-symbol gap is 100ms, and inter-character gap is 300ms
+- **THEN** dot is 100ms, dash is 300ms, inter-symbol gap is 100ms, inter-character gap is 300ms, and inter-word gap is 700ms
 
 #### Scenario: Custom timing values
-- **WHEN** a `MorseTimingConfig` is created with dot=150ms, dash=450ms, gap=120ms, interCharGap=400ms
+- **WHEN** a `MorseTimingConfig` is created with dot=150ms, dash=450ms, gap=120ms, interCharGap=400ms, interWordGap=900ms
 - **THEN** those custom values are used instead of defaults
 
 #### Scenario: Default inter-character gap follows ITU standard
 - **WHEN** a `MorseTimingConfig` is created with no arguments
 - **THEN** the inter-character gap (300ms) SHALL be 3 times the dot duration (100ms)
+
+#### Scenario: Default inter-word gap follows ITU standard
+- **WHEN** a `MorseTimingConfig` is created with no arguments
+- **THEN** the inter-word gap (700ms) SHALL be 7 times the dot duration (100ms)
+
+#### Scenario: Gaps change independently
+- **WHEN** a copy of the default config replaces only the inter-word gap, with 1000ms
+- **THEN** the inter-character gap SHALL stay 300ms and every other value SHALL stay as it was
 
 ### Requirement: Play success signal
 The `VibrationService` SHALL provide a `playSuccess()` method that plays five short taps at full strength. The intensity version is five 50 ms taps with 40 ms of silence between them, 410 ms in all. The duration-only version, for a motor without amplitude control, is five 50 ms taps with 60 ms gaps, 490 ms in all (see *Signals follow the motor's amplitude control*). The call SHALL complete once the signal has finished.
@@ -110,6 +118,11 @@ The conversion from a list of tactile tokens to a vibration duration pattern (mi
 - **WHEN** calling the pattern generation function in a unit test
 - **THEN** no device hardware or vibration permission is required
 
+#### Scenario: Pattern generation handles a word gap
+- **WHEN** generating a vibration pattern for `[shortPulse, wordGap, longPulse]` with default config
+- **THEN** the word gap produces a silence of 700ms in place of the inter-symbol gap: `[0, 100, 700, 300]`
+- **AND** `[wordGap]` alone produces an empty pattern
+
 ### Requirement: Play tap feedback
 The `VibrationService` SHALL provide a `playTapFeedback()` method that vibrates once for 50 ms and completes once the vibration has finished. It confirms a bottom-strip tap (see `bottom-input-zone`). At half a Morse dot it is shorter than any Morse element, and as a single tap it cannot be mistaken for the five taps of the success signal.
 
@@ -167,7 +180,7 @@ The device service SHALL send every tactile pattern, Morse included, with one in
 - **THEN** nothing SHALL vibrate and the call SHALL complete at once
 
 ### Requirement: Play tactile tokens as vibration
-The `VibrationService` SHALL play a list of tactile tokens as one vibration pattern and complete once it has played. A short pulse SHALL vibrate for the dot duration, a long pulse for the dash duration, and an empty slot SHALL be silent for the dot duration. Consecutive slots SHALL be separated by the inter-symbol gap; a character gap SHALL be a silence of the inter-character gap in its place.
+The `VibrationService` SHALL play a list of tactile tokens as one vibration pattern and complete once it has played. A short pulse SHALL vibrate for the dot duration, a long pulse for the dash duration, and an empty slot SHALL be silent for the dot duration. Consecutive slots SHALL be separated by the inter-symbol gap; a character gap SHALL be a silence of the inter-character gap in its place, and a word gap a silence of the inter-word gap.
 
 #### Scenario: Play single short pulse
 - **WHEN** `playTokens([shortPulse])` is called with the default config
@@ -196,6 +209,10 @@ The `VibrationService` SHALL play a list of tactile tokens as one vibration patt
 #### Scenario: A run of pulses has only inter-symbol gaps
 - **WHEN** nine pulses with no character gap are played (three short, three long, three short)
 - **THEN** every pause between them is the 100ms inter-symbol gap
+
+#### Scenario: Play two words with a word gap
+- **WHEN** the tokens of "E T" (`[shortPulse, wordGap, longPulse]`) are played on the device service with the default config
+- **THEN** it SHALL send the durations `[0, 100, 700, 300]` ms with the intensities `[0, 255, 0, 255]`: the device vibrates 100ms, pauses 700ms, then vibrates 300ms
 
 ### Requirement: The vibration engine has no Morse dependency
 The vibration engine SHALL depend only on the tactile tokens and its timing configuration. No code in the engine SHALL import or reference the Morse types (signals, tokens, alphabets, languages); codecs SHALL depend on the tactile tokens, never on the engine.
