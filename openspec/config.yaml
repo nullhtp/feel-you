@@ -21,6 +21,7 @@ context: |
     - The chosen language and the learned items (answered correctly once in the lessons) are saved. Level and position live in memory; every launch starts at digit 0.
     - Phase 2 groundwork: the assistant's OpenRouter key can be kept in the Keychain / Android Keystore (this device only, never backed up or logged, shown masked); deleting it plays the cloud-off signal (two 700 ms buzzes). No screen to enter it yet.
     - Each level ends with a quiz (swipe right past the last item): Morse ? marks it, it plays random learned items, the user echoes them.
+    - Phase 0 groundwork: the Morse prosigns AR (end of message), AS (wait), SOS and error (8 dots) are in the codec, one character each, the same in every language; nothing plays them yet.
     - Design philosophy: closer to a musical instrument than a language app.
 
   Lesson screen (black, landscape): the left half is a dot and the right half a dash, decided by where a press starts, not how long it lasts.

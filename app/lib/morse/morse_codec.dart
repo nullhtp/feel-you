@@ -1,6 +1,7 @@
 import 'package:feel_you/morse/morse_alphabet_data.dart';
 import 'package:feel_you/morse/morse_alphabet_registry.dart';
 import 'package:feel_you/morse/morse_language.dart';
+import 'package:feel_you/morse/morse_prosigns.dart';
 import 'package:feel_you/morse/morse_punctuation.dart';
 import 'package:feel_you/morse/morse_signal.dart';
 import 'package:feel_you/morse/morse_token.dart';
@@ -18,7 +19,9 @@ const Map<String, List<MorseSignal>> _punctuation = {'?': questionMarkPattern};
 /// is looked up in the language's letters, ignoring case, and the digits
 /// (through [MorseAlphabetRegistry.encodeLetter]), then in the language
 /// alphabet's [MorseAlphabet.aliases], then in the punctuation (`?`).
-/// Consecutive characters are separated by a letter gap.
+/// Consecutive characters are separated by a letter gap. A [Prosign] is
+/// encoded from [morseProsignPattern] instead, as one character, the same
+/// in every language.
 ///
 /// A dot becomes [TactileToken.shortPulse], a dash
 /// [TactileToken.longPulse] and a letter gap [TactileToken.characterGap].
@@ -43,6 +46,22 @@ class MorseCodec implements TactileCodec {
 
   @override
   String describe(String text) => formatMorseTokens(_morseTokens(text));
+
+  /// The [morseProsignPattern] of [prosign] as pulses, with no character
+  /// gap: the same in every language, whatever this codec's alphabet.
+  @override
+  List<TactileToken> encodeProsign(Prosign prosign) => [
+    for (final token in _prosignTokens(prosign)) _tactileToken(token),
+  ];
+
+  @override
+  String describeProsign(Prosign prosign) =>
+      formatMorseTokens(_prosignTokens(prosign));
+
+  /// The Morse tokens of [prosign]: its signals, without a [CharGap].
+  static List<MorseToken> _prosignTokens(Prosign prosign) => [
+    for (final signal in morseProsignPattern(prosign)) Signal(signal),
+  ];
 
   /// The Morse tokens of [text]: each character's signals, with a [CharGap]
   /// between consecutive characters.

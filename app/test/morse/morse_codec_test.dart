@@ -191,6 +191,102 @@ void main() {
     });
   });
 
+  group('MorseCodec prosigns', () {
+    final codecs = [
+      for (final language in MorseLanguage.values) MorseCodec(language),
+    ];
+
+    // Written out from `morse-prosigns`, not taken from the code.
+    const tokens = {
+      Prosign.endOfMessage: [_s, _l, _s, _l, _s], // AR
+      Prosign.wait: [_s, _l, _s, _s, _s], // AS
+      Prosign.sos: [_s, _s, _s, _l, _l, _l, _s, _s, _s],
+      Prosign.error: [_s, _s, _s, _s, _s, _s, _s, _s], // HH
+    };
+    const descriptions = {
+      Prosign.endOfMessage: '· — · — ·',
+      Prosign.wait: '· — · · ·',
+      Prosign.sos: '· · · — — — · · ·',
+      Prosign.error: '· · · · · · · ·',
+    };
+
+    test('there are four prosigns', () {
+      expect(Prosign.values, [
+        Prosign.endOfMessage,
+        Prosign.wait,
+        Prosign.sos,
+        Prosign.error,
+      ]);
+    });
+
+    test('encodes each prosign as its pulses, the same in all six '
+        'languages', () {
+      expect(codecs, hasLength(6));
+      for (final codec in codecs) {
+        for (final prosign in Prosign.values) {
+          expect(
+            codec.encodeProsign(prosign),
+            tokens[prosign],
+            reason: '${codec.language.name} $prosign',
+          );
+        }
+      }
+    });
+
+    test('a prosign has no character gap: it splits as one character', () {
+      for (final codec in codecs) {
+        for (final prosign in Prosign.values) {
+          final encoded = codec.encodeProsign(prosign);
+          expect(encoded, isNot(contains(_gap)), reason: '$prosign');
+          expect(splitAtCharacterGaps(encoded), [encoded], reason: '$prosign');
+        }
+      }
+    });
+
+    test('describes each prosign in the overlay notation, in every '
+        'language', () {
+      for (final codec in codecs) {
+        for (final prosign in Prosign.values) {
+          expect(
+            codec.describeProsign(prosign),
+            descriptions[prosign],
+            reason: '${codec.language.name} $prosign',
+          );
+        }
+      }
+    });
+
+    test('the SOS prosign is not the word SOS', () {
+      final word = english.encode('SOS');
+      expect(word, [_s, _s, _s, _gap, _l, _l, _l, _gap, _s, _s, _s]);
+      expect(english.describe('SOS'), '· · · / — — — / · · ·');
+      expect(english.encodeProsign(Prosign.sos), [
+        for (final token in word)
+          if (token != _gap) token,
+      ]);
+    });
+
+    test("does not look at the language's alphabet", () {
+      final digitsOnly = MorseCodec(
+        MorseLanguage.german,
+        registry: MorseAlphabetRegistry([digitAlphabet]),
+      );
+      for (final prosign in Prosign.values) {
+        expect(digitsOnly.encodeProsign(prosign), tokens[prosign]);
+        expect(digitsOnly.describeProsign(prosign), descriptions[prosign]);
+      }
+    });
+
+    test('leaves the text encoding as it was: + and & are not prosigns '
+        'in a text, and ? is still the quiz marker', () {
+      for (final codec in codecs) {
+        expect(() => codec.encode('+'), throwsArgumentError);
+        expect(() => codec.encode('&'), throwsArgumentError);
+        expect(codec.encode('?'), [_s, _s, _l, _l, _s, _s]);
+      }
+    });
+  });
+
   group('formatMorseTokens', () {
     test('writes Morse input in the overlay notation', () {
       expect(
@@ -315,6 +411,21 @@ void main() {
       );
     });
 
+    test('gives every language the same prosigns', () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+
+      for (final language in MorseLanguage.values) {
+        final codec = container.read(tactileCodecProvider(language));
+        expect(
+          codec.encodeProsign(Prosign.sos),
+          MorseCodec(MorseLanguage.english).encodeProsign(Prosign.sos),
+          reason: language.name,
+        );
+        expect(codec.describeProsign(Prosign.sos), '· · · — — — · · ·');
+      }
+    });
+
     test('looks characters up in the overridden registry', () {
       final container = ProviderContainer(
         overrides: [
@@ -351,11 +462,17 @@ void main() {
   });
 }
 
-/// A codec that encodes every text the same way.
+/// A codec that encodes every text and prosign the same way.
 class _FixedCodec implements TactileCodec {
   @override
   List<TactileToken> encode(String text) => const [_l];
 
   @override
   String describe(String text) => 'fixed';
+
+  @override
+  List<TactileToken> encodeProsign(Prosign prosign) => const [_l];
+
+  @override
+  String describeProsign(Prosign prosign) => 'fixed';
 }

@@ -63,8 +63,8 @@ The version is `version: X.Y.Z+N` in [`pubspec.yaml`](pubspec.yaml). `X.Y.Z` is 
 
 | Directory | Contents |
 |-----------|----------|
-| `lib/tactile/` | The tactile tokens (short and long pulse, empty slot, character gap) and the `TactileCodec` interface that turns text into them |
-| `lib/morse/` | Alphabets (digits, English, Arabic, Russian, Spanish, French, German), levels, word patterns and the Morse codec |
+| `lib/tactile/` | The tactile tokens (short and long pulse, empty slot, character gap), the prosigns (end of message, wait, SOS, error) and the `TactileCodec` interface that turns text and prosigns into tokens |
+| `lib/morse/` | Alphabets (digits, English, Arabic, Russian, Spanish, French, German), levels, word patterns, the prosigns' Morse patterns and the Morse codec |
 | `lib/gestures/` | Touch classification (dot, dash, swipes, hold, bottom strip) and shake detection |
 | `lib/teaching/` | The play-wait-repeat loop that ties gestures, session and vibration together |
 | `lib/session/` | Current language, level, position and phase |

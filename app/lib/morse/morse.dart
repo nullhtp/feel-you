@@ -12,6 +12,7 @@ export 'morse_codec.dart';
 export 'morse_encoder.dart';
 export 'morse_language.dart';
 export 'morse_pattern.dart';
+export 'morse_prosigns.dart';
 export 'morse_providers.dart';
 export 'morse_punctuation.dart';
 export 'morse_signal.dart';

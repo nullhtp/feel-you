@@ -35,6 +35,16 @@ class _ThreeDashesCodec implements TactileCodec {
 
   @override
   String describe(String text) => 'codec:$text';
+
+  // No screen plays or shows a prosign yet (`morse-prosigns`): asking for
+  // one fails the test.
+  @override
+  List<TactileToken> encodeProsign(Prosign prosign) =>
+      throw UnimplementedError('$prosign');
+
+  @override
+  String describeProsign(Prosign prosign) =>
+      throw UnimplementedError('$prosign');
 }
 
 /// The fake codec's tokens, as the mock records them.

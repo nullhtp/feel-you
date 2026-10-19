@@ -201,6 +201,17 @@ Distinct patterns the app uses that are separate from Morse:
 
 The correct taps are shorter than a dot with gaps shorter than any Morse gap, and the wrong buzz is longer than a dash, so neither can be mistaken for Morse. On a phone whose motor reports no amplitude control, the app uses duration-only versions: the five taps are 60 ms apart (490 ms) and the wrong buzz lasts 700 ms. After either signal the app waits 0.5 s before repeating the item (in the quiz, before a new item after a correct answer). The `?` has 6 elements, more than any digit or letter (5 at most), so it cannot be mistaken for an item. The cloud-off signal is the same on every motor: each of its buzzes is more than twice a dash, so it is not Morse, and it has two buzzes where *wrong* has one.
 
+Morse prosigns, the standard service signals of Morse, for the modes to come. Nothing in the app plays them yet:
+
+| Prosign | Pattern | Duration | For |
+|---------|---------|----------|-----|
+| **AR**, end of message | `· − · − ·` | 1300 ms | The end of a text in the reader ([#44](https://github.com/nullhtp/feel-you/issues/44)) |
+| **AS**, wait | `· − · · ·` | 1100 ms | The app is working on something, such as a cloud request ([#64](https://github.com/nullhtp/feel-you/issues/64)) |
+| **SOS** | `· · · − − − · · ·` | 2300 ms | Reserved for the emergency gesture ([#80](https://github.com/nullhtp/feel-you/issues/80)) |
+| **Error** (HH) | `· · · · · · · ·` eight dots | 1500 ms | Morse input: "I made a mistake" ([#53](https://github.com/nullhtp/feel-you/issues/53)) |
+
+Each prosign is one character: its dots and dashes are 100 ms apart, with no 300 ms letter gap inside, so SOS is felt as one sign and not as the word S-O-S. They follow the Morse timing above, so a speed setting will change them too. They are International Morse and the same in all six languages, and none has the pattern of a digit, a letter of any of the six alphabets or `?`: the nearest are AS, which is L with one more dot, and AR, which is ع, Я or Ä with one more dot. Their pulses are Morse dots and dashes, so none can be taken for the *correct* taps, the *wrong* or *cloud off* buzzes or the tap feedback. The quiz's `?` stays the character `?`, and *correct* and *wrong* stay deliberately non-Morse: the error prosign is not the *wrong* signal.
+
 ### The Home Menu
 
 The home menu is where the modes live, and where a double shake always leads back to. It opens on launch once a language is saved, after a language is chosen in the picker, and after a double shake in a mode. For now it has two modes, left to right:

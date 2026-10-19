@@ -48,6 +48,16 @@ class _TwoDotsCodec implements TactileCodec {
 
   @override
   String describe(String text) => 'two dots';
+
+  // The teaching loop plays no prosign (`morse-prosigns`): asking for one
+  // fails the test.
+  @override
+  List<TactileToken> encodeProsign(Prosign prosign) =>
+      throw UnimplementedError('$prosign');
+
+  @override
+  String describeProsign(Prosign prosign) =>
+      throw UnimplementedError('$prosign');
 }
 
 /// The fake codec's tokens for one character, as the mock records them.

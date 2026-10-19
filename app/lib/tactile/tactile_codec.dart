@@ -1,3 +1,4 @@
+import 'package:feel_you/tactile/prosign.dart';
 import 'package:feel_you/tactile/tactile_token.dart';
 
 /// Turns text into tactile tokens, and into a written form of the same
@@ -19,4 +20,15 @@ abstract interface class TactileCodec {
   ///
   /// Throws an [ArgumentError] for the characters [encode] rejects.
   String describe(String text);
+
+  /// The tokens that play [prosign]: one character of this code, a run of
+  /// pulses with no [TactileToken.characterGap] inside.
+  ///
+  /// A prosign is the same in every language, so the codecs of one code
+  /// return the same tokens whatever their language.
+  List<TactileToken> encodeProsign(Prosign prosign);
+
+  /// The written form of the pattern [encodeProsign] returns for [prosign],
+  /// in the notation of [describe] (e.g. `· — · — ·` for Morse AR).
+  String describeProsign(Prosign prosign);
 }
