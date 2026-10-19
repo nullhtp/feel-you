@@ -15,7 +15,8 @@ import 'package:vibration/vibration.dart';
 /// `vibrate(pattern:, intensities:)` call so the OS plays the entire ramp
 /// natively without gaps. On a device that definitely lacks amplitude
 /// control, the duration-only variants are played instead (see
-/// [successSignalFor] and [errorSignalFor]).
+/// [successSignalFor] and [errorSignalFor]). The cloud-off signal is the
+/// same on every motor.
 ///
 /// Missing custom vibration support is not compensated for here: without
 /// it the platform plays a fixed system buzz for every request, which can't
@@ -69,6 +70,12 @@ class DeviceVibrationService implements VibrationService {
   @override
   Future<void> playError() async {
     await _playSignal(errorSignalFor(_capabilities()));
+  }
+
+  @override
+  Future<void> playCloudOff() async {
+    // The same pattern on every motor: see [cloudOffSignal].
+    await _playSignal(cloudOffSignal);
   }
 
   /// Plays a signal pattern in a single native call.

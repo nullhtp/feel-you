@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Auto Backup rules for Android 11 (API 30) and lower, referenced by
+    android:fullBackupContent in AndroidManifest.xml. Android 12 and higher
+    read data_extraction_rules.xml instead; keep the two in sync.
+
+    Everything is backed up as before (the saved language and learned items
+    in FlutterSharedPreferences.xml), except the files flutter_secure_storage
+    keeps the cloud key in. The key must stay on this phone, and its Android
+    Keystore key is never backed up, so a restored copy could not be
+    decrypted anyway. The file names are the plugin's defaults (no
+    storageNamespace); see SecureCloudKeyStore in lib/cloud/.
+
+    Only exclude rules: an include rule would stop everything else from
+    being backed up.
+-->
+<full-backup-content>
+    <!-- The encrypted values. -->
+    <exclude domain="sharedpref" path="FlutterSecureStorage.xml" />
+    <!-- The AES key, wrapped by the Keystore key. -->
+    <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml" />
+    <!-- The plugin's cipher and migration markers. -->
+    <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml" />
+</full-backup-content>

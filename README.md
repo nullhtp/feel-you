@@ -191,8 +191,9 @@ Distinct patterns the app uses that are separate from Morse:
 | One 50 ms buzz | Bottom-strip tap accepted (answer submitted, or letter gap added) |
 | `·` / `· − · −` / `· − ·` | Language identifiers in the picker: Morse E (English), ع (Arabic), Р (Russian) |
 | `· · − − · ·` Morse `?` (1500 ms), then 1 s of silence | Entering a level's quiz |
+| `━━━━━━━ ━━━━━━━` two 700 ms buzzes, 300 ms apart (1700 ms) | Cloud off: the cloud key was deleted (see [The cloud key](#the-cloud-key)) |
 
-The correct taps are shorter than a dot with gaps shorter than any Morse gap, and the wrong buzz is longer than a dash, so neither can be mistaken for Morse. On a phone whose motor reports no amplitude control, the app uses duration-only versions: the five taps are 60 ms apart (490 ms) and the wrong buzz lasts 700 ms. After either signal the app waits 0.5 s before repeating the item (in the quiz, before a new item after a correct answer). The `?` has 6 elements, more than any digit or letter (5 at most), so it cannot be mistaken for an item.
+The correct taps are shorter than a dot with gaps shorter than any Morse gap, and the wrong buzz is longer than a dash, so neither can be mistaken for Morse. On a phone whose motor reports no amplitude control, the app uses duration-only versions: the five taps are 60 ms apart (490 ms) and the wrong buzz lasts 700 ms. After either signal the app waits 0.5 s before repeating the item (in the quiz, before a new item after a correct answer). The `?` has 6 elements, more than any digit or letter (5 at most), so it cannot be mistaken for an item. The cloud-off signal is the same on every motor: each of its buzzes is more than twice a dash, so it is not Morse, and it has two buzzes where *wrong* has one.
 
 ### Choosing a Language
 
@@ -214,16 +215,26 @@ On an iPhone without Core Haptics (iPhone 7 and older) every vibration is the sa
 
 ### For Sighted Helpers
 
-The lesson screen is black for the user, with a dim overlay for anyone watching: the zone lines and labels (`DOT`, `DASH`, `SUBMIT` or `GAP`), the current item in large type with its Morse pattern, the level name, the position (e.g. `3/26`) with the number of learned items of the level under it (e.g. `learned 11/26`), the phase (`PLAYING`, `LISTENING`, `FEEDBACK`), the dots and dashes tapped so far, and a vibration readout in the bottom-left corner (e.g. `Vibration: OK · amplitude: yes · custom: yes`, amber when something is missing). Screen readers get a spoken summary instead: level, item, pattern, position, learned count, phase and the input so far.
+The lesson screen is black for the user, with a dim overlay for anyone watching: the zone lines and labels (`DOT`, `DASH`, `SUBMIT` or `GAP`), the current item in large type with its Morse pattern, the level name, the position (e.g. `3/26`) with the number of learned items of the level under it (e.g. `learned 11/26`), the phase (`PLAYING`, `LISTENING`, `FEEDBACK`), the dots and dashes tapped so far, a vibration readout in the bottom-left corner (e.g. `Vibration: OK · amplitude: yes · custom: yes`, amber when something is missing), and the [cloud key](#the-cloud-key) in the bottom-right corner, masked (`Cloud key: sk-or-...a1b2`, or `Cloud key: none`). Screen readers get a spoken summary instead: level, item, pattern, position, learned count, phase, the input so far and, last, the masked cloud key (`cloud key none`).
 
 In the quiz the position reads `QUIZ`, and the item and its pattern are replaced by `?` until the user has answered: they appear during the *correct* or *wrong* signal. A user with some sight left cannot read the answer off the screen, and a helper still sees what it was. The spoken summary says "quiz" and leaves the item out in the same way.
+
+### The Cloud Key
+
+Phase 2 adds cloud features (see the [roadmap](ROADMAP.md#the-road-ahead)): the assistant enters their own [OpenRouter](https://openrouter.ai) key once, and the app uses it. The app can already keep that key; the screen to enter or delete it comes with the assistant screen ([#63](https://github.com/nullhtp/feel-you/issues/63)), so for now the overlay reads `Cloud key: none`.
+
+- **Where:** in the phone's secure storage: the iOS Keychain, or on Android encrypted with a key held in the Android Keystore. Never in the app's preferences.
+- **On this phone only:** on iOS the Keychain item is "this device only" and not synchronized, so it is neither in iCloud Keychain nor restored to another iPhone. On Android it is left out of cloud backup and device-to-device transfer. The language and learned items are backed up as before.
+- **Never shown or logged in full:** the overlay shows `sk-or-` and the last 4 characters (`sk-or-...a1b2`), and only `sk-or-...` or `...` for a short key or one without the `sk-or-` prefix.
+- **Deleting it** plays the *cloud off* signal (two 700 ms buzzes), so the user knows the cloud is off.
+- iOS keeps Keychain items when an app is deleted, so reinstalling on the same iPhone finds the key again. Delete the key in the app, or erase the phone, to remove it.
 
 ### Design Principles
 
 - **User controls the pace.** The app just repeats and listens. It never advances by itself: even the quiz moves on only after a correct answer or a swipe.
 - **Skip anything, anytime.** Swipe left or right to move between items, up or down to change level.
 - **Lost? Reset.** A 2-second hold goes back to the start of the level, a shake to the very start (digit 0). You can always re-anchor.
-- **Almost no state.** The app saves only the language and the items the user has learned. Level and position live in memory.
+- **Almost no state.** The app saves only the language and the items the user has learned, and the assistant's [cloud key](#the-cloud-key) in the phone's secure storage. Level and position live in memory.
 - **Closer to a musical instrument than a language app.** Like a metronome that plays a note: you listen, you play along when ready, you move on when you decide.
 
 ## Future Phases

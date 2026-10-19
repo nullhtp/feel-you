@@ -1,0 +1,44 @@
+# Tasks
+
+## 1. Dependency
+
+- [x] 1.1 Add `flutter_secure_storage: ^11.2.0` to `app/pubspec.yaml` and commit the updated `pubspec.lock`; verify `flutter pub get` succeeds, the iOS plugin resolves through Swift Package Manager (no `Podfile` appears) and Android keeps `minSdk` 24
+
+## 2. Cloud-off signal
+
+- [x] 2.1 Add `cloudOffSignal` (`[0, 700, 300, 700]` / `[0, 255, 0, 255]`) to `app/lib/vibration/signal_pattern.dart` with a doc comment and diagram like the other signals; verify in `test/vibration/signal_selection_test.dart` that it is two 700 ms buzzes 300 ms apart (1700 ms), each more than twice a Morse dash, feels the same with and without intensities, and has a different number of buzzes from both error signals
+- [x] 2.2 Add `playCloudOff()` to `VibrationService` (next to `playTokens` and the other signals, with no Morse import), implement it in `DeviceVibrationService` through `_playSignal`, and record it in `MockVibrationService`, the integration tests' `RecordingVibrationService` (`VibrationCallType.playCloudOff`) and the recorded-sequence switch of `integration_test/vibration_sequence_test.dart`; verify in `test/vibration/device_vibration_service_test.dart` with the mocked `vibration` channel that the same pattern and intensities are sent with amplitude control, without it and when unknown, and that the call completes only after 1700 ms
+- [x] 2.3 Add the cloud-off row to the README's Signal Vibrations table (two 700 ms buzzes, 300 ms apart, 1.7 s, the same on every motor) and a sentence on why it can't be mistaken for Morse or the wrong signal; verify the README timings match `cloudOffSignal`
+
+## 3. Key value and masking
+
+- [x] 3.1 Add `app/lib/cloud/cloud_key.dart` with `CloudKey` (`tryParse` trims and accepts 1 to 512 characters in `!`…`~`, `parse` throws a `FormatException` without the input, `value`, `masked`, `==`/`hashCode` on the value, `toString` = `CloudKey(<masked>)`) and the pure `maskCloudKey`; add `app/lib/cloud/cloud.dart` exporting the area. Verify with `test/cloud/cloud_key_test.dart`: every scenario of *A cloud key is a single printable token* and *Masked form of the key* (OpenRouter key, the 16/15-character boundary, other key, short other key, `sk-or-` alone), and that `toString` and string interpolation never contain the raw key
+
+## 4. Key store and current key
+
+- [x] 4.1 Add `app/lib/cloud/cloud_key_store.dart` with the `CloudKeyStore` interface, `CloudKeyStoreException` (fixed message plus the platform error code), `InMemoryCloudKeyStore` and `SecureCloudKeyStore` (entry `cloud_api_key`; iOS `unlocked_this_device`, not synchronizable; Android default `AndroidOptions`; an invalid stored value reads as no key; platform errors rethrown as `CloudKeyStoreException`). Verify with `test/cloud/cloud_key_store_test.dart`: in-memory round trip; the secure store against a mocked `plugins.it_nomads.com/flutter_secure_storage` channel writes, reads and deletes `cloud_api_key`, sends `accessibility: unlocked_this_device` and `synchronizable: false` on iOS (`debugDefaultTargetPlatformOverride`) and `resetOnError: true` on Android, turns a `PlatformException` into a `CloudKeyStoreException` whose text has no key, and leaves `SharedPreferences` without any value containing the key
+- [x] 4.2 Add `cloudKeyStoreProvider` (default `InMemoryCloudKeyStore`) and `cloudKeyProvider` (`AsyncNotifier<CloudKey?>`: reads once, a read failure logs the error code and gives `null`; `save` and `delete` await the first read, write, then set the state; a store failure reaches the caller with the state unchanged; `delete` then plays `playCloudOff()`, logging and not throwing a vibration failure). Verify with `test/cloud/cloud_key_notifier_test.dart` using a fake store and `MockVibrationService`: initial key, read failure gives `null`, save updates the state, failed save and failed delete keep the state and play nothing, delete of a saved key and delete with no key each play exactly one cloud-off signal, and a save during the first read is not overwritten by it
+- [x] 4.3 Override `cloudKeyStoreProvider` with `SecureCloudKeyStore` in `app/lib/main.dart`; verify by reading `main.dart` and by the integration test in 7.1, which uses the same store; `grep -rn "print(\|debugPrint(" app/lib/cloud` shows no call that formats a key or a stored value
+
+## 5. Platform settings
+
+- [x] 5.1 Android: add `app/android/app/src/main/res/xml/backup_rules.xml` (full backup content) and `data_extraction_rules.xml` (cloud backup and device transfer), each excluding only `FlutterSecureStorage.xml`, `FlutterSecureKeyStorage.xml` and `FlutterSecureStorageConfiguration:FlutterSecureStorage.xml` in the `sharedpref` domain, and reference them from `<application>` with `android:fullBackupContent` and `android:dataExtractionRules`, leaving `allowBackup` unset. Verify with `test/cloud/android_backup_rules_test.dart` (both attributes, exactly the three excludes in each section, no include rule), and that `flutter build apk --debug` succeeds and the merged manifest (`build/app/intermediates/merged_manifests/debug/…/AndroidManifest.xml`) has both attributes
+- [x] 5.2 iOS: confirm no `Info.plist`, entitlement or project change is needed (the Keychain options are set in Dart and the plugin builds through Swift Package Manager); verify `flutter build ios --no-codesign --debug` succeeds and `git status` shows no unexpected tracked changes after both builds
+
+## 6. Companion overlay
+
+- [x] 6.1 Add `app/lib/ui/cloud_key_status.dart` (`describeCloudKey` and the bottom-right `CloudKeyStatus` line, styled like `VibrationDiagnostics`) and put it in the overlay's `Stack`. Verify with `test/ui/cloud_key_status_test.dart`: `Cloud key: none` with no key, `Cloud key: sk-or-...a1b2` for a saved key with no text containing the raw key, `Cloud key: checking…` while the store has not answered, and the line updating after a save and a delete without a rebuild of the app
+- [x] 6.2 Extend `companionOverlaySummary` with an optional `cloudKey` value appended last as `cloud key <value>`, and pass `describeCloudKey(...)` from the overlay. Verify in `test/ui/semantics_test.dart`: the exact summaries of the modified *Screen-reader summary of the lesson* scenarios (with a key, none, checking…), the summary never contains the raw key, and the existing summary expectations updated to end with `cloud key none`
+- [x] 6.3 Update the README's "For Sighted Helpers" section (the cloud key line, masked, and its place in the spoken summary); verify it matches what the overlay draws
+
+## 7. Integration, docs and checks
+
+- [x] 7.1 Add `app/integration_test/cloud_key_test.dart` on the `E2EApp` harness with the real `SecureCloudKeyStore`, as `main` injects it: with a `RecordingVibrationService`, save a key, read it back through a new store, see `Cloud key: sk-or-...` with its last 4 characters on the overlay and in the summary, find no `SharedPreferences` value containing the key, restart and see it again, delete it, see `playCloudOff` recorded once, `Cloud key: none` and a `null` read; with the app's own vibration service and `FakeVibrationPlatform`, once with and once without amplitude control, see `[0, 700, 300, 700]` / `[0, 255, 0, 255]` reach the plugin on deletion. Delete the Keychain item in `setUp` and `tearDown`. Verify `flutter test integration_test -d <simulator>` passes every integration test on the iOS simulator
+- [x] 7.2 Document what the app stores: README ("Almost no state" and a short section on the cloud key: where it is kept, not backed up, masked, the cloud-off signal on deletion, no screen yet), `store/privacy-policy.md` ("Data Storage"), `store/store-info.md` (data and encryption declarations), `app/README.md` (layout row for `lib/cloud/`), the project context in `openspec/config.yaml`, and a CHANGELOG line under `[Unreleased]`; verify none of them still says the language (and learned items) is the only thing stored
+- [x] 7.3 Run in `app/`: `dart format --output=none --set-exit-if-changed .`, `flutter analyze --no-fatal-infos` (no new warnings or errors, no infos in new files), `flutter test`, `flutter build apk --debug`, `flutter build ios --no-codesign --debug`, then `git status`; and `openspec validate add-secure-key-storage --strict`. Verify all pass and only intended files changed
+- [x] 7.4 Prove the archive applies: copy `openspec/` to a temporary directory, run `openspec archive add-secure-key-storage --yes` and `openspec validate --specs --strict` there; verify both pass and the worktree is untouched
+
+## Workflow follow-up
+
+- Feel the cloud-off signal on a real Android phone (with and, if available, without amplitude control) and an iPhone with Core Haptics, and write the result in the pull request. This needs a way to delete a key, which arrives with #63; until then it can be triggered from a debug build or a test.
+- Archive the change after the pull request is merged (CONTRIBUTING.md).

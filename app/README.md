@@ -70,5 +70,6 @@ The version is `version: X.Y.Z+N` in [`pubspec.yaml`](pubspec.yaml). `X.Y.Z` is 
 | `lib/session/` | Current language, level, position and phase |
 | `lib/vibration/` | Plays tactile tokens and the success, error and tap signals; device capability checks. Knows nothing about Morse |
 | `lib/settings/` | The saved language |
+| `lib/cloud/` | The cloud (OpenRouter) key: validation, masking and its store in the Keychain / Keystore |
 | `lib/ui/` | Language picker, lesson surface, helper overlay, no-vibration screen |
 | `test/`, `integration_test/` | Tests |

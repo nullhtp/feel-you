@@ -39,11 +39,11 @@ The app has no UI localisation: its text for sighted helpers (overlay labels, th
 
 - **Ads**: No — the app contains no advertising
 - **In-App Purchases**: No — the app is completely free with no IAP
-- **Data Collection**: No — the app does not collect or transmit any user data. The only thing it stores is the chosen lesson language, locally on the device
+- **Data Collection**: No — the app does not collect or transmit any user data. It stores the chosen lesson language and the learned items in the app preferences, and can keep an OpenRouter key for later cloud features in the Keychain / Android Keystore (no way to enter one yet), all locally on the device
 - **Internet Access**: Not required — the app works entirely offline
 - **Made for Kids**: No (but suitable for all ages)
 - **Government Apps**: No
-- **Encryption**: None — the app uses no encryption of its own and makes no network connections (exempt from export compliance)
+- **Encryption**: None of its own — the app makes no network connections. The OpenRouter key storage uses only the encryption built into the operating system (the iOS Keychain; on Android the Keystore and the system's AES), through `flutter_secure_storage` (exempt from export compliance)
 
 ## Device Requirements
 

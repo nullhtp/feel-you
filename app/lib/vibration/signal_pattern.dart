@@ -110,6 +110,29 @@ const durationOnlySuccessSignal = SignalPattern(
 /// Total duration: 700ms.
 const durationOnlyErrorSignal = SignalPattern([0, 700], [0, 255]);
 
+// ---------------------------------------------------------------------------
+// Signals that are the same on every motor
+// ---------------------------------------------------------------------------
+
+/// Cloud-off signal: two long buzzes — "buzz ... buzz".
+///
+/// Played when the cloud key is deleted, so the user feels that the cloud
+/// is off. Shaped like the duration-only signals (a 0ms off segment, then
+/// off/on at intensities of exactly 0 and 255), so it feels the same
+/// whether or not the platform honours the intensities, and every motor
+/// gets this one pattern. Unmistakably different from Morse and the other
+/// signals because:
+///   - Each 700ms buzz is more than twice the Morse dash (300ms).
+///   - Two buzzes, where the error signal has one, in both its versions.
+///
+/// ```text
+///   0ms  700ms                        300ms       700ms
+///        ███████████████████████████  ··········  ███████████████████████████
+/// ```
+///
+/// Total duration: 1700ms.
+const cloudOffSignal = SignalPattern([0, 700, 300, 700], [0, 255, 0, 255]);
+
 /// The success signal to play on a device with [capabilities].
 ///
 /// [successSignal] when amplitude control is present or unknown,

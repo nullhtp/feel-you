@@ -1,3 +1,4 @@
+import 'package:feel_you/cloud/cloud.dart';
 import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/morse/morse.dart';
@@ -29,6 +30,7 @@ Widget _buildApp({
   required FakeGestureClassifier classifier,
   MockVibrationService? vibration,
   SessionState? initialState,
+  CloudKeyStore? cloudKeyStore,
 }) {
   return ProviderScope(
     overrides: [
@@ -44,6 +46,8 @@ Widget _buildApp({
         sessionNotifierProvider.overrideWith(
           (ref) => _PresetSessionNotifier(initialState),
         ),
+      if (cloudKeyStore != null)
+        cloudKeyStoreProvider.overrideWithValue(cloudKeyStore),
     ],
     child: MaterialApp(home: home),
   );
@@ -298,11 +302,13 @@ void main() {
   // Companion overlay
   // -------------------------------------------------------------------------
   group('CompanionOverlay semantics', () {
-    /// Renders only the overlay (no teaching loop) on the letters level.
+    /// Renders only the overlay (no teaching loop) on the letters level, and
+    /// lets it read the cloud key from [cloudKeyStore] (none by default).
     Future<SessionNotifier> pumpOverlay(
       WidgetTester tester,
-      FakeGestureClassifier classifier,
-    ) async {
+      FakeGestureClassifier classifier, {
+      CloudKeyStore? cloudKeyStore,
+    }) async {
       await tester.pumpWidget(
         _buildApp(
           home: const CompanionOverlay(),
@@ -311,8 +317,11 @@ void main() {
             language: MorseLanguage.english,
             levelIndex: 1,
           ),
+          cloudKeyStore: cloudKeyStore,
         ),
       );
+      // One more frame, once the cloud key has been read.
+      await tester.pump();
       final container = ProviderScope.containerOf(
         tester.element(find.byType(CompanionOverlay)),
       );
@@ -329,7 +338,8 @@ void main() {
       await pumpOverlay(tester, classifier);
 
       const summary =
-          'Letters level, A, dot dash, 1 of 26, learned 0 of 26, playing';
+          'Letters level, A, dot dash, 1 of 26, learned 0 of 26, playing, '
+          'cloud key none';
       expect(find.bySemanticsLabel(summary), findsOneWidget);
       expect(
         overlayNode(tester),
@@ -393,14 +403,16 @@ void main() {
 
       expect(
         label(),
-        'Letters level, A, dot dash, 1 of 26, learned 0 of 26, playing',
+        'Letters level, A, dot dash, 1 of 26, learned 0 of 26, playing, '
+        'cloud key none',
       );
 
       notifier.nextPosition();
       await tester.pump();
       expect(
         label(),
-        'Letters level, B, dash dot dot dot, 2 of 26, learned 0 of 26, playing',
+        'Letters level, B, dash dot dot dot, 2 of 26, learned 0 of 26, '
+        'playing, cloud key none',
       );
 
       notifier.setPhase(SessionPhase.listening);
@@ -408,7 +420,7 @@ void main() {
       expect(
         label(),
         'Letters level, B, dash dot dot dot, 2 of 26, learned 0 of 26, '
-        'listening',
+        'listening, cloud key none',
       );
 
       classifier.inputBufferNotifier.value = const [_dash, _dot];
@@ -417,7 +429,7 @@ void main() {
         label(),
         'Letters level, B, dash dot dot dot, 2 of 26, learned 0 of 26, '
         'listening, '
-        'input dash dot',
+        'input dash dot, cloud key none',
       );
 
       classifier.inputBufferNotifier.value = const [];
@@ -426,7 +438,7 @@ void main() {
       expect(
         label(),
         'Words level, HI, dot dot dot dot gap dot dot, 1 of 20, '
-        'learned 0 of 20, playing',
+        'learned 0 of 20, playing, cloud key none',
       );
       expect(overlayNode(tester), isSemantics(isLiveRegion: true));
 
@@ -448,12 +460,74 @@ void main() {
       await tester.pump();
       final item = notifier.state.currentCharacter;
 
-      expect(label(), 'Letters level, quiz, learned 0 of 26, playing');
+      expect(
+        label(),
+        'Letters level, quiz, learned 0 of 26, playing, cloud key none',
+      );
 
       notifier.setPhase(SessionPhase.feedback);
       await tester.pump();
       expect(label(), startsWith('Letters level, $item, '));
-      expect(label(), endsWith(', quiz, learned 0 of 26, feedback'));
+      expect(
+        label(),
+        endsWith(', quiz, learned 0 of 26, feedback, cloud key none'),
+      );
+
+      await tester.pumpWidget(const SizedBox());
+      classifier.dispose();
+      handle.dispose();
+    });
+  });
+
+  group('CompanionOverlay semantics: cloud key', () {
+    final key = CloudKey.parse(
+      'sk-or-v1-${'0123456789abcdef' * 3}0123456789aba1b2',
+    );
+
+    testWidgets('the summary names the cloud key, masked, and follows a '
+        'deletion', (tester) async {
+      final handle = tester.ensureSemantics();
+      final classifier = FakeGestureClassifier();
+
+      await tester.pumpWidget(
+        _buildApp(
+          home: const CompanionOverlay(),
+          classifier: classifier,
+          initialState: const SessionState(
+            language: MorseLanguage.english,
+            levelIndex: 1,
+          ),
+          cloudKeyStore: InMemoryCloudKeyStore(key),
+        ),
+      );
+      final node = find.byType(CompanionOverlay);
+      expect(
+        tester.getSemantics(node).label,
+        endsWith(', playing, cloud key checking…'),
+      );
+
+      await tester.pump();
+      expect(
+        tester.getSemantics(node).label,
+        'Letters level, A, dot dash, 1 of 26, learned 0 of 26, playing, '
+        'cloud key sk-or-...a1b2',
+      );
+      expect(tester.getSemantics(node).label, isNot(contains(key.value)));
+      expect(
+        find.semantics.byPredicate(
+          (n) => n.label.contains('0123456789') || n.label.contains('v1-'),
+        ),
+        findsNothing,
+      );
+
+      final container = ProviderScope.containerOf(tester.element(node));
+      await tester.runAsync(container.read(cloudKeyProvider.notifier).delete);
+      await tester.pump();
+      expect(
+        tester.getSemantics(node).label,
+        endsWith(', playing, cloud key none'),
+      );
+      expect(tester.getSemantics(node), isSemantics(isLiveRegion: true));
 
       await tester.pumpWidget(const SizedBox());
       classifier.dispose();
@@ -545,6 +619,30 @@ void main() {
         'Arabic letters level, ب, dash dot dot, quiz, learned 2 of 2, '
         'feedback',
       );
+    });
+
+    test('appends the cloud key last, after the input', () {
+      String summary(String? cloudKey, [List<MorseToken> input = const []]) =>
+          companionOverlaySummary(
+            level: level,
+            character: 'ا',
+            pattern: const [_dot, _dash],
+            positionIndex: 0,
+            phase: SessionPhase.listening,
+            input: input,
+            cloudKey: cloudKey,
+          );
+
+      expect(
+        summary('sk-or-...a1b2'),
+        'Arabic letters level, ا, dot dash, 1 of 2, learned 0 of 2, '
+        'listening, cloud key sk-or-...a1b2',
+      );
+      expect(
+        summary('none', const [_dot]),
+        endsWith('listening, input dot, cloud key none'),
+      );
+      expect(summary(null), endsWith('learned 0 of 2, listening'));
     });
 
     test('omits an empty pattern', () {

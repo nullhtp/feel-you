@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Backup and device-transfer rules for Android 12 (API 31) and higher,
+    referenced by android:dataExtractionRules in AndroidManifest.xml.
+    Android 11 and lower read backup_rules.xml instead; keep the two in sync.
+
+    Everything is backed up and transferred as before (the saved language
+    and learned items in FlutterSharedPreferences.xml), except the files
+    flutter_secure_storage keeps the cloud key in. The key must stay on this
+    phone, and its Android Keystore key never leaves it, so a restored copy
+    could not be decrypted anyway. The file names are the plugin's defaults
+    (no storageNamespace); see SecureCloudKeyStore in lib/cloud/.
+
+    Only exclude rules: an include rule would stop everything else from
+    being backed up.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <!-- The encrypted values. -->
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml" />
+        <!-- The AES key, wrapped by the Keystore key. -->
+        <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml" />
+        <!-- The plugin's cipher and migration markers. -->
+        <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml" />
+    </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="FlutterSecureStorage.xml" />
+        <exclude domain="sharedpref" path="FlutterSecureKeyStorage.xml" />
+        <exclude domain="sharedpref" path="FlutterSecureStorageConfiguration:FlutterSecureStorage.xml" />
+    </device-transfer>
+</data-extraction-rules>

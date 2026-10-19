@@ -19,6 +19,7 @@ context: |
     - The user taps the item back; the answer is checked after 1 s without a tap, or at once with a bottom-strip tap.
     - Correct: five quick 50 ms taps. Wrong: one 500 ms buzz. Then the same item again; the app never moves on by itself.
     - The chosen language and the learned items (answered correctly once in the lessons) are saved. Level and position live in memory; every launch starts at digit 0.
+    - Phase 2 groundwork: the assistant's OpenRouter key can be kept in the Keychain / Android Keystore (this device only, never backed up or logged, shown masked); deleting it plays the cloud-off signal (two 700 ms buzzes). No screen to enter it yet.
     - Each level ends with a quiz (swipe right past the last item): Morse ? marks it, it plays random learned items, the user echoes them.
     - Design philosophy: closer to a musical instrument than a language app.
 

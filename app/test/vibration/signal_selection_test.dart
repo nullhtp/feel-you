@@ -154,4 +154,55 @@ void main() {
       expect(durationOnlyErrorSignal.totalDuration, 700);
     });
   });
+
+  group('cloud-off signal', () {
+    test('is two 700 ms buzzes, 300 ms apart (1700 ms)', () {
+      expect(cloudOffSignal.pattern, [0, 700, 300, 700]);
+      expect(cloudOffSignal.intensities, [0, 255, 0, 255]);
+      expect(_pulsesWithIntensities(cloudOffSignal), [700, 700]);
+      expect(_gapsWithIntensities(cloudOffSignal), [300]);
+      expect(cloudOffSignal.totalDuration, 1700);
+    });
+
+    test('alternates off and full, starting with off', () {
+      expect(cloudOffSignal.intensities, hasLength(4));
+      for (var i = 0; i < cloudOffSignal.intensities.length; i++) {
+        expect(cloudOffSignal.intensities[i], i.isEven ? 0 : 255);
+      }
+    });
+
+    test('feels the same whether or not intensities are honoured', () {
+      // On a motor without amplitude control Android reads the pattern as
+      // [wait, vibrate, wait, vibrate]: still two 700 ms buzzes.
+      expect(_pulsesWithoutIntensities(cloudOffSignal), [700, 700]);
+      expect(
+        _pulsesWithoutIntensities(cloudOffSignal),
+        _pulsesWithIntensities(cloudOffSignal),
+      );
+    });
+
+    test('each buzz is more than twice as long as a Morse dash', () {
+      for (final pulse in _pulsesWithIntensities(cloudOffSignal)) {
+        expect(pulse, greaterThan(2 * config.dashDuration));
+      }
+    });
+
+    test('has two buzzes where both error signals have one', () {
+      expect(_pulsesWithIntensities(cloudOffSignal), hasLength(2));
+      for (final error in [errorSignal, durationOnlyErrorSignal]) {
+        expect(_pulsesWithIntensities(error), hasLength(1));
+      }
+      expect(cloudOffSignal, isNot(errorSignal));
+      expect(cloudOffSignal, isNot(durationOnlyErrorSignal));
+    });
+
+    test('differs from the success signals', () {
+      expect(cloudOffSignal, isNot(successSignal));
+      expect(cloudOffSignal, isNot(durationOnlySuccessSignal));
+      expect(
+        _pulsesWithIntensities(cloudOffSignal).first,
+        greaterThan(_pulsesWithIntensities(successSignal).first),
+      );
+    });
+  });
 }

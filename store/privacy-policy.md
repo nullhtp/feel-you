@@ -50,6 +50,8 @@ Feel You stores two things on your device: the lesson language you chose (Englis
 
 The app never sends this data anywhere, and it is deleted when you uninstall the app. Like any app's settings, it may be included in your device's own backups (such as Android backup or iCloud backup) if you have turned them on; those backups are made by your device's operating system under your account, not by Feel You.
 
+The app can also keep one more thing for the cloud features planned for a later version: an OpenRouter key that the person assisting you enters. This version offers no way to enter one, so it stores no key. A key, once entered, is kept only in the platform's secure storage (the Keychain on iOS; on Android, encrypted with a key held in the Android Keystore), never in the app preferences above. It stays on this device: it is not synced through iCloud Keychain, not restored to another iPhone from a backup, and left out of Android backup and device-to-device transfer. The app never shows it in full (only its first and last characters, such as `sk-or-...a1b2`) and never writes it to a log. On Android it is deleted when you uninstall the app. iOS keeps Keychain items after an app is deleted, so reinstalling the app on the same iPhone finds the key again; deleting the key in the app, or erasing the iPhone, removes it.
+
 ## Children's Privacy
 
 Feel You does not collect any data from any users, including children. The app is suitable for users of all ages.

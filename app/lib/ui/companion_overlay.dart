@@ -1,7 +1,9 @@
+import 'package:feel_you/cloud/cloud.dart';
 import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/settings/learned_items.dart';
+import 'package:feel_you/ui/cloud_key_status.dart';
 import 'package:feel_you/ui/vibration_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,9 +11,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Visual companion overlay for sighted observers.
 ///
 /// Displays zone boundaries, labels, current symbol/word, Morse pattern,
-/// level, progress, learned count, input buffer, and session phase on top of
-/// the black touch surface. Wrapped in [IgnorePointer] so all touches pass
-/// through.
+/// level, progress, learned count, input buffer, session phase, the
+/// vibration readout and the masked cloud key on top of the black touch
+/// surface. Wrapped in [IgnorePointer] so all touches pass through.
 ///
 /// In the quiz, the item and its pattern stay hidden until the user has
 /// answered (they show during the feedback), so a user with some sight left
@@ -44,6 +46,8 @@ class CompanionOverlay extends ConsumerWidget {
     // letter boundaries on words.
     final codec = ref.watch(tactileCodecProvider(session.language));
     final shownPattern = hideItem ? '' : codec.describe(character);
+    // Masked, or `none` / `checking…`: never the key itself.
+    final cloudKey = describeCloudKey(ref.watch(cloudKeyProvider));
 
     // The screen-reader summary spells the level's Morse pattern, with the
     // CharGap tokens of a word.
@@ -257,6 +261,9 @@ class CompanionOverlay extends ConsumerWidget {
 
             // --- Vibration capabilities (bottom-left) ---
             const VibrationDiagnostics(),
+
+            // --- Cloud key, masked (bottom-right) ---
+            const CloudKeyStatus(),
           ],
         ),
       ),
@@ -279,6 +286,7 @@ class CompanionOverlay extends ConsumerWidget {
           input: buffer,
           isQuiz: session.isInQuiz,
           learnedCount: learnedCount,
+          cloudKey: cloudKey,
         ),
         excludeSemantics: true,
         child: child,
@@ -301,10 +309,11 @@ class CompanionOverlay extends ConsumerWidget {
 ///
 /// Uses the same values the overlay draws, in reading order: level,
 /// current character or word, its Morse pattern, position, the
-/// [learnedCount] of the level, phase and, when non-empty, the [input]
-/// entered so far. For example:
+/// [learnedCount] of the level, phase, when non-empty, the [input] entered
+/// so far and, when given, the [cloudKey] as [describeCloudKey] gives it
+/// (masked, never the key itself). For example:
 /// `Letters level, A, dot dash, 1 of 26, learned 3 of 26, listening, input
-/// dot`.
+/// dot, cloud key none`.
 ///
 /// In the quiz ([isQuiz]) it says `quiz` in place of the position, and, as
 /// the overlay does, leaves out the character and its pattern until the
@@ -318,6 +327,7 @@ String companionOverlaySummary({
   List<MorseToken> input = const [],
   bool isQuiz = false,
   int learnedCount = 0,
+  String? cloudKey,
 }) {
   // Level names are identifiers such as "arabic-letters".
   final levelName = level.name.replaceAll('-', ' ');
@@ -334,6 +344,7 @@ String companionOverlaySummary({
     'learned $learnedCount of $total',
     phase.name,
     if (input.isNotEmpty) 'input ${_describeTokens(input)}',
+    if (cloudKey != null) 'cloud key $cloudKey',
   ].join(', ');
 }
 

@@ -20,7 +20,8 @@ import 'test_helpers.dart';
 /// the pauses of the loop, which are not part of a pattern.
 const _deviceTiming = MorseTimingConfig();
 
-/// A recorded call: `play [ms...]`, `cancel`, `success`, `error` or `tap`.
+/// A recorded call: `play [ms...]`, `cancel`, `success`, `error`, `tap` or
+/// `cloud off`.
 String _event(VibrationCall call) => switch (call.type) {
   VibrationCallType.playMorsePattern ||
   VibrationCallType.playMorseTokenPattern => _play(
@@ -29,6 +30,7 @@ String _event(VibrationCall call) => switch (call.type) {
   VibrationCallType.playSuccess => _success,
   VibrationCallType.playError => _error,
   VibrationCallType.playTapFeedback => _tap,
+  VibrationCallType.playCloudOff => _cloudOff,
   VibrationCallType.cancel => _cancel,
 };
 
@@ -37,6 +39,7 @@ const _cancel = 'cancel';
 const _success = 'success';
 const _error = 'error';
 const _tap = 'tap';
+const _cloudOff = 'cloud off';
 
 // Patterns recorded before the refactor, `[wait, vibrate, wait, ...]` ms.
 final _digit0 = _play([0, 300, 100, 300, 100, 300, 100, 300, 100, 300]);

@@ -24,6 +24,7 @@ enum VibrationCallType {
   playMorseTokenPattern,
   playSuccess,
   playError,
+  playCloudOff,
   playTapFeedback,
   cancel,
 }
@@ -118,6 +119,11 @@ class RecordingVibrationService implements VibrationService {
   @override
   Future<void> playError() async {
     calls.add(const VibrationCall(VibrationCallType.playError));
+  }
+
+  @override
+  Future<void> playCloudOff() async {
+    calls.add(const VibrationCall(VibrationCallType.playCloudOff));
   }
 
   @override

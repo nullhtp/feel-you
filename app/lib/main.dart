@@ -1,4 +1,5 @@
 import 'package:feel_you/app.dart';
+import 'package:feel_you/cloud/cloud_key_store.dart';
 import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/settings/learned_items.dart';
 import 'package:flutter/material.dart';
@@ -28,6 +29,11 @@ Future<void> main() async {
       overrides: [
         languagePreferenceStoreProvider.overrideWithValue(languagePreference),
         learnedItemsStoreProvider.overrideWithValue(learnedItems),
+        // The cloud key lives in the Keychain / Keystore, never in the
+        // preferences above. Nothing is loaded here: the key is read when
+        // first needed (the helper overlay), so the first frame never waits
+        // for the secure storage.
+        cloudKeyStoreProvider.overrideWithValue(const SecureCloudKeyStore()),
       ],
       child: const FeelYouApp(),
     ),

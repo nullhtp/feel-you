@@ -34,10 +34,15 @@ List<Map<Object?, Object?>> _mockVibrationChannel(WidgetTester tester) {
   return vibrateCalls;
 }
 
-/// Plays [play] to completion, advancing fake time past its duration.
-Future<void> _playFully(WidgetTester tester, Future<void> Function() play) {
+/// Plays [play] to completion, advancing fake time past its duration
+/// ([duration], 1 s by default).
+Future<void> _playFully(
+  WidgetTester tester,
+  Future<void> Function() play, {
+  Duration duration = const Duration(seconds: 1),
+}) {
   final done = play();
-  return tester.pump(const Duration(seconds: 1)).then((_) => done);
+  return tester.pump(duration).then((_) => done);
 }
 
 void main() {
@@ -212,6 +217,47 @@ void main() {
 
       expect(calls[0]['pattern'], successSignal.pattern);
       expect(calls[1]['pattern'], errorSignal.pattern);
+    });
+
+    testWidgets('plays the same cloud-off signal on every motor', (
+      tester,
+    ) async {
+      final calls = _mockVibrationChannel(tester);
+      for (final amplitude in [true, false, null]) {
+        final service = DeviceVibrationService(
+          capabilities: () => VibrationCapabilities(
+            hasVibrator: true,
+            hasAmplitudeControl: amplitude,
+            hasCustomVibrationsSupport: true,
+          ),
+        );
+        await _playFully(
+          tester,
+          service.playCloudOff,
+          duration: const Duration(seconds: 2),
+        );
+      }
+
+      expect(calls, hasLength(3));
+      for (final call in calls) {
+        expect(call['pattern'], [0, 700, 300, 700]);
+        expect(call['intensities'], [0, 255, 0, 255]);
+      }
+    });
+
+    testWidgets('cloud-off completes only once the signal has played', (
+      tester,
+    ) async {
+      _mockVibrationChannel(tester);
+      final service = DeviceVibrationService();
+      var done = false;
+
+      unawaited(service.playCloudOff().then((_) => done = true));
+
+      await tester.pump(const Duration(milliseconds: 1699));
+      expect(done, isFalse);
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(done, isTrue);
     });
 
     testWidgets('provider switches to duration-only once detection reports '
