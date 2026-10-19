@@ -7,19 +7,19 @@ The supported languages, the language picker and the identifier vibrations that 
 ## Requirements
 
 ### Requirement: Language picker vibration identifiers
-Each language option SHALL have a unique vibration identifier pattern that plays when that option is highlighted. The identifier patterns SHALL be looked up from the `MorseAlphabetRegistry` using `encodeLetter` rather than hardcoded as raw signal lists.
+Each language option SHALL have a unique vibration identifier pattern that plays when that option is highlighted. The identifier SHALL be a letter of the language, encoded with that language's codec rather than hardcoded as a raw signal list.
 
 #### Scenario: English language identifier
 - **WHEN** English is the highlighted option
-- **THEN** the system SHALL vibrate the Morse pattern for the letter "E" obtained via `encodeLetter('E', MorseLanguage.english)` (which is `[MorseSignal.dot]`)
+- **THEN** the system SHALL vibrate the letter "E" encoded with the English codec (a short pulse, Morse `·`)
 
 #### Scenario: Arabic language identifier
 - **WHEN** Arabic is the highlighted option
-- **THEN** the system SHALL vibrate the Morse pattern for the letter "ع" (Ain) obtained via `encodeLetter('ع', MorseLanguage.arabic)` (which is `[MorseSignal.dot, MorseSignal.dash, MorseSignal.dot, MorseSignal.dash]`)
+- **THEN** the system SHALL vibrate the letter "ع" (Ain) encoded with the Arabic codec (short, long, short, long pulses, Morse `·−·−`)
 
 #### Scenario: Russian language identifier
 - **WHEN** Russian is the highlighted option
-- **THEN** the system SHALL vibrate the Morse pattern for the letter "Р" obtained via `encodeLetter('Р', MorseLanguage.russian)` (which is `[MorseSignal.dot, MorseSignal.dash, MorseSignal.dot]`)
+- **THEN** the system SHALL vibrate the letter "Р" encoded with the Russian codec (short, long, short pulses, Morse `·−·`)
 
 #### Scenario: Identifier plays on highlight change
 - **WHEN** the highlighted language changes (via tap or swipe)
@@ -27,7 +27,7 @@ Each language option SHALL have a unique vibration identifier pattern that plays
 
 #### Scenario: No hardcoded patterns in language picker
 - **WHEN** a developer inspects the language picker code
-- **THEN** identifier patterns SHALL be obtained from the registry, not defined as inline constant lists
+- **THEN** identifier patterns SHALL be obtained by encoding the identifier letters with the codec, not defined as inline constant lists
 
 #### Scenario: Russian language label
 - **WHEN** the language picker displays the Russian option

@@ -65,7 +65,7 @@ The overlay SHALL display the current character or word being taught in large, b
 - **THEN** the text "K" SHALL be displayed
 
 ### Requirement: Morse pattern display
-The overlay SHALL display the Morse code pattern for the current character below the symbol display, using dot (·) and dash (—) characters separated by spaces. For words, the pattern SHALL show the full word pattern with a slash (/) separating each letter's pattern. In the quiz the pattern SHALL be hidden, except during feedback.
+The overlay SHALL display the Morse code pattern for the current character below the symbol display, as the session language's codec describes it: dot (·) and dash (—) characters separated by spaces. For words, the pattern SHALL show the full word pattern with a slash (/) separating each letter's pattern. In the quiz the pattern SHALL be hidden, except during feedback.
 
 #### Scenario: Morse pattern for single character
 - **WHEN** the current character is "A" (dot dash)
@@ -82,6 +82,10 @@ The overlay SHALL display the Morse code pattern for the current character below
 #### Scenario: Quiz pattern hidden until answered
 - **WHEN** the session is in the quiz with quiz item "K" and the phase is `playing` or `listening`
 - **THEN** the pattern "— · —" SHALL NOT be displayed
+
+#### Scenario: Pattern line comes from the codec
+- **WHEN** the codec of the session language is replaced, for example by a test codec
+- **THEN** the pattern line SHALL show that codec's description of the current item
 
 ### Requirement: Level indicator
 The overlay SHALL display the name of the current level in the top-left corner of the screen. The level name SHALL be displayed in uppercase white text (e.g., "DIGITS", "LETTERS", "WORDS").
