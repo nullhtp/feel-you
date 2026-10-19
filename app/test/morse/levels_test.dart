@@ -3,8 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('morseRegistry levels', () {
-    test('contains exactly 7 levels', () {
-      expect(morseRegistry.all.expand((a) => a.levels).length, 7);
+    test('contains the digits level plus two levels per language', () {
+      expect(
+        morseRegistry.all.expand((a) => a.levels).length,
+        1 + 2 * MorseLanguage.values.length,
+      );
     });
 
     test('digits is at index 0 with null language', () {
@@ -70,6 +73,17 @@ void main() {
       },
     );
 
+    test(
+      'Spanish returns 3 levels: digits, spanish-letters, spanish-words',
+      () {
+        final spanish = morseRegistry.levelsForLanguage(MorseLanguage.spanish);
+        expect(spanish.length, 3);
+        expect(spanish[0].name, 'digits');
+        expect(spanish[1].name, 'spanish-letters');
+        expect(spanish[2].name, 'spanish-words');
+      },
+    );
+
     test('Russian levels list is unmodifiable', () {
       final russian = morseRegistry.levelsForLanguage(MorseLanguage.russian);
       expect(() => russian.add(russian[0]), throwsUnsupportedError);
@@ -81,6 +95,13 @@ void main() {
       final russian = morseRegistry.levelsForLanguage(MorseLanguage.russian);
       expect(english[0].name, arabic[0].name);
       expect(english[0].name, russian[0].name);
+      for (final language in MorseLanguage.values) {
+        expect(
+          morseRegistry.levelsForLanguage(language)[0],
+          same(english[0]),
+          reason: '$language',
+        );
+      }
     });
   });
 
@@ -353,6 +374,60 @@ void main() {
     });
   });
 
+  group('Spanish letters level', () {
+    late Level spanishLettersLevel;
+
+    setUp(() {
+      spanishLettersLevel = morseRegistry.levelsForLanguage(
+        MorseLanguage.spanish,
+      )[1];
+    });
+
+    test('has 27 characters (A-Z and Ñ)', () {
+      expect(spanishLettersLevel.characters.length, 27);
+      expect(spanishLettersLevel.patterns.length, 27);
+    });
+
+    test('characters start with A and end with Z', () {
+      expect(spanishLettersLevel.characters.first, 'A');
+      expect(spanishLettersLevel.characters.last, 'Z');
+    });
+
+    test('has patterns for all characters', () {
+      for (final char in spanishLettersLevel.characters) {
+        expect(
+          spanishLettersLevel.patterns.containsKey(char),
+          isTrue,
+          reason: 'Missing pattern for $char',
+        );
+      }
+    });
+  });
+
+  group('Spanish words level', () {
+    late Level spanishWordsLevel;
+
+    setUp(() {
+      spanishWordsLevel = morseRegistry.levelsForLanguage(
+        MorseLanguage.spanish,
+      )[2];
+    });
+
+    test('has 20 characters', () {
+      expect(spanishWordsLevel.characters.length, 20);
+    });
+
+    test('word patterns exist and are non-empty for all words', () {
+      for (final word in spanishWordsLevel.characters) {
+        expect(
+          spanishWordsLevel.wordPatterns![word],
+          isNotEmpty,
+          reason: 'Missing word pattern for $word',
+        );
+      }
+    });
+  });
+
   group('Level position resolution', () {
     test('position 0 in digits is character 0', () {
       final level = morseRegistry.levelsForLanguage(MorseLanguage.english)[0];
@@ -388,10 +463,27 @@ void main() {
         MorseSignal.dash,
       ]);
     });
+
+    test('position 14 in Spanish letters is character Ñ', () {
+      final level = morseRegistry.levelsForLanguage(MorseLanguage.spanish)[1];
+      expect(level.characters[14], 'Ñ');
+      expect(level.patterns[level.characters[14]], [
+        MorseSignal.dash,
+        MorseSignal.dash,
+        MorseSignal.dot,
+        MorseSignal.dash,
+        MorseSignal.dash,
+      ]);
+    });
   });
 
   group('level kind', () {
-    const wordLevelNames = {'words', 'arabic-words', 'russian-words'};
+    const wordLevelNames = {
+      'words',
+      'arabic-words',
+      'russian-words',
+      'spanish-words',
+    };
     final allLevels = morseRegistry.all.expand((a) => a.levels).toList();
 
     test('word levels have kind words, all others characters', () {
@@ -413,6 +505,20 @@ void main() {
           levels.where((l) => l.kind == LevelKind.words),
           hasLength(1),
           reason: 'Expected one words level for $language',
+        );
+      }
+    });
+
+    test('no two items of a characters level share a pattern', () {
+      for (final level in allLevels) {
+        if (level.kind != LevelKind.characters) continue;
+        final patterns = {
+          for (final item in level.characters) level.patterns[item]!.join(','),
+        };
+        expect(
+          patterns,
+          hasLength(level.characters.length),
+          reason: level.name,
         );
       }
     });

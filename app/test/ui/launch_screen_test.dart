@@ -216,6 +216,35 @@ void main() {
       await app.close(tester);
     });
 
+    testWidgets('keeps the learned Spanish words of an earlier run', (
+      tester,
+    ) async {
+      final languageStore = await _loadStore({
+        _key: 'spanish',
+        'learned_items.spanish.spanish-words': ['BAÑO', 'AGUA'],
+      });
+      final app = _App(
+        languageStore,
+        learnedItems: await loadLearnedItemsStore(),
+      );
+      await app.launch(tester);
+      await tester.pump();
+
+      final session = app.session(tester);
+      expect(session.language, MorseLanguage.spanish);
+      expect(session.levelIndex, 0);
+      expect(session.positionIndex, 0);
+      expect(
+        app
+            .container(tester)
+            .read(learnedItemsProvider)
+            .of(MorseLanguage.spanish, session.levels[2]),
+        {'BAÑO', 'AGUA'},
+      );
+
+      await app.close(tester);
+    });
+
     for (final language in MorseLanguage.values) {
       testWidgets('starts in ${language.name}', (tester) async {
         final app = _App(InMemoryLanguagePreferenceStore(language));

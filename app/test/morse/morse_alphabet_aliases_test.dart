@@ -19,9 +19,10 @@ void main() {
       expect(russianAlphabet.characters.containsKey('Ё'), isFalse);
     });
 
-    test('the digits and English alphabets have none', () {
+    test('the digits, English and Spanish alphabets have none', () {
       expect(digitAlphabet.aliases, isEmpty);
       expect(englishAlphabet.aliases, isEmpty);
+      expect(spanishAlphabet.aliases, isEmpty);
     });
 
     test('decoding gives the letter, never an alias', () {

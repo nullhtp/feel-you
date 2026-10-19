@@ -81,6 +81,7 @@ void main() {
       'English': 'English',
       'العربية': 'Arabic',
       'Русский': 'Russian',
+      'Español': 'Spanish',
     };
 
     testWidgets('each language is one button node with label and hint', (
@@ -93,6 +94,7 @@ void main() {
         _buildApp(home: const LanguagePickerSurface(), classifier: classifier),
       );
 
+      expect(buttons, hasLength(MorseLanguage.values.length));
       for (final MapEntry(key: label, value: englishName) in buttons.entries) {
         // Exactly one node carries the label: the inner Text is excluded,
         // so it is not announced a second time.
@@ -131,7 +133,7 @@ void main() {
         tester.getSemantics(find.bySemanticsLabel('English')),
         isSemantics(isSelected: true),
       );
-      for (final label in ['العربية', 'Русский']) {
+      for (final label in ['العربية', 'Русский', 'Español']) {
         expect(
           tester.getSemantics(find.bySemanticsLabel(label)),
           isSemantics(isSelected: false),
@@ -171,6 +173,7 @@ void main() {
         'English': Locale('en'),
         'العربية': Locale('ar'),
         'Русский': Locale('ru'),
+        'Español': Locale('es'),
       };
       for (final MapEntry(key: label, value: locale) in locales.entries) {
         final data = tester

@@ -26,7 +26,7 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause so the teaching loop never repeats during a test.
 const _testRepeatPause = Duration(seconds: 5);
 
-/// Identifier vibrations: Morse E, ع and Р.
+/// Identifier vibrations: Morse E, ع, Р and Ñ.
 const _english = [MorseSignal.dot];
 const _arabic = [
   MorseSignal.dot,
@@ -35,6 +35,33 @@ const _arabic = [
   MorseSignal.dash,
 ];
 const _russian = [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot];
+const _spanish = [
+  MorseSignal.dash,
+  MorseSignal.dash,
+  MorseSignal.dot,
+  MorseSignal.dash,
+  MorseSignal.dash,
+];
+
+/// Each language's column label, identifier letter and identifier
+/// vibration, in picker order.
+const _options = {
+  MorseLanguage.english: (label: 'English', letter: 'E', identifier: _english),
+  MorseLanguage.arabic: (label: 'العربية', letter: 'ع', identifier: _arabic),
+  MorseLanguage.russian: (label: 'Русский', letter: 'Р', identifier: _russian),
+  MorseLanguage.spanish: (label: 'Español', letter: 'Ñ', identifier: _spanish),
+};
+
+/// The language of the rightmost column, where a swipe left from English
+/// lands.
+final _last = MorseLanguage.values.last;
+
+/// The identifier vibration of [language].
+List<MorseSignal> _identifierOf(MorseLanguage language) =>
+    _options[language]!.identifier;
+
+/// The column label of [language].
+String _labelOf(MorseLanguage language) => _options[language]!.label;
 
 /// Visible hint for the sighted helper.
 const _helperHint = 'Tap a language, then hold anywhere for 1 second to start';
@@ -228,17 +255,18 @@ void main() {
       await t.pump(tester);
       t.vibration.reset();
 
-      // Top-right corner: the Russian column.
+      // Top-right corner: the last column.
       await tester.tapAt(const Offset(790, 10));
       await tester.pump();
-      // Bottom centre, under the hint line: the Arabic column.
-      await tester.tapAt(const Offset(400, 590));
+      // Bottom of the screen, under the hint line: the Arabic column.
+      final arabicX = tester.getCenter(find.text('العربية')).dx;
+      await tester.tapAt(Offset(arabicX, 590));
       await tester.pump();
       // Again on the highlighted column: plays it again.
-      await tester.tapAt(const Offset(400, 100));
+      await tester.tapAt(Offset(arabicX, 100));
       await tester.pump();
 
-      expect(t.identifiers, [_russian, _arabic, _arabic]);
+      expect(t.identifiers, [_identifierOf(_last), _arabic, _arabic]);
       expect(find.byType(TouchSurface), findsNothing);
 
       await t.dispose(tester);
@@ -263,6 +291,93 @@ void main() {
     });
   });
 
+  group('languages', () {
+    test('the table covers every language', () {
+      expect(_options.keys, MorseLanguage.values);
+    });
+
+    test('identifiers are the registry patterns of their letters, and '
+        'distinct', () {
+      for (final MapEntry(key: language, value: option) in _options.entries) {
+        expect(
+          encodeLetter(option.letter, language),
+          option.identifier,
+          reason: '$language',
+        );
+      }
+      final distinct = {for (final o in _options.values) o.identifier.join()};
+      expect(distinct, hasLength(_options.length));
+    });
+
+    testWidgets('one column per language, left to right in enum order', (
+      tester,
+    ) async {
+      final t = _Harness();
+      await t.pump(tester);
+
+      final xs = [
+        for (final language in MorseLanguage.values)
+          tester.getCenter(find.text(_labelOf(language))).dx,
+      ];
+      for (var i = 1; i < xs.length; i++) {
+        expect(xs[i], greaterThan(xs[i - 1]));
+      }
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('tapping each language plays its own identifier', (
+      tester,
+    ) async {
+      final t = _Harness();
+      await t.pump(tester);
+      t.vibration.reset();
+
+      for (final language in MorseLanguage.values) {
+        await tester.tap(find.text(_labelOf(language)));
+        await tester.pump();
+        expect(_isHighlighted(tester, _labelOf(language)), isTrue);
+      }
+
+      expect(t.identifiers, [
+        for (final language in MorseLanguage.values) _identifierOf(language),
+      ]);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('Español plays Ñ and starts Spanish', (tester) async {
+      final t = _Harness();
+      await t.pump(tester);
+      t.vibration.reset();
+
+      final spanish = tester.getCenter(find.text('Español'));
+      await tester.tapAt(spanish);
+      await tester.pump();
+      expect(t.identifiers, [_spanish]);
+
+      await _hold(tester, at: spanish);
+      await _waitForSession(tester);
+
+      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(_sessionLanguage(tester), MorseLanguage.spanish);
+      expect(t.store.read(), MorseLanguage.spanish);
+      expect(t.identifiers.take(2), [_spanish, _spanish]);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('a saved Spanish is highlighted and played', (tester) async {
+      final t = _Harness(saved: MorseLanguage.spanish);
+      await t.pump(tester);
+
+      expect(t.identifiers, [_spanish]);
+      expect(_isHighlighted(tester, 'Español'), isTrue);
+
+      await t.dispose(tester);
+    });
+  });
+
   group('swipe', () {
     testWidgets('right moves to the next language and plays it, wrapping', (
       tester,
@@ -271,19 +386,19 @@ void main() {
       await t.pump(tester);
       t.vibration.reset();
 
-      await _swipe(tester, 200);
-      expect(t.identifiers.last, _arabic);
-      expect(_isHighlighted(tester, 'العربية'), isTrue);
+      // Every language after English in turn, then back to English.
+      final order = [...MorseLanguage.values.skip(1), MorseLanguage.english];
+      for (final language in order) {
+        await _swipe(tester, 200);
+        expect(
+          t.identifiers.last,
+          _identifierOf(language),
+          reason: '$language',
+        );
+        expect(_isHighlighted(tester, _labelOf(language)), isTrue);
+      }
 
-      await _swipe(tester, 200);
-      expect(t.identifiers.last, _russian);
-      expect(_isHighlighted(tester, 'Русский'), isTrue);
-
-      await _swipe(tester, 200);
-      expect(t.identifiers.last, _english);
-      expect(_isHighlighted(tester, 'English'), isTrue);
-
-      expect(t.identifiers, [_arabic, _russian, _english]);
+      expect(t.identifiers, [for (final l in order) _identifierOf(l)]);
       expect(find.byType(TouchSurface), findsNothing);
 
       await t.dispose(tester);
@@ -296,12 +411,14 @@ void main() {
       await t.pump(tester);
       t.vibration.reset();
 
+      const languages = MorseLanguage.values;
+      final beforeLast = languages[languages.length - 2];
       await _swipe(tester, -200);
-      expect(_isHighlighted(tester, 'Русский'), isTrue);
+      expect(_isHighlighted(tester, _labelOf(_last)), isTrue);
       await _swipe(tester, -200);
-      expect(_isHighlighted(tester, 'العربية'), isTrue);
+      expect(_isHighlighted(tester, _labelOf(beforeLast)), isTrue);
 
-      expect(t.identifiers, [_russian, _arabic]);
+      expect(t.identifiers, [_identifierOf(_last), _identifierOf(beforeLast)]);
 
       await t.dispose(tester);
     });
@@ -313,8 +430,8 @@ void main() {
       await t.pump(tester);
       t.vibration.reset();
 
-      // Starts on the English column and ends on the Russian one, but is
-      // one swipe right: English -> Arabic.
+      // Starts on the English column and ends several columns further, but
+      // is one swipe right: English -> Arabic.
       await tester.dragFrom(const Offset(100, 300), const Offset(600, 0));
       await tester.pump();
 
@@ -364,16 +481,16 @@ void main() {
       final t = _Harness();
       await t.pump(tester);
 
-      // Swipe to Russian, then hold on the English column.
+      // Swipe left to the last language, then hold on the English column.
       await _swipe(tester, -200);
       t.vibration.reset();
       await _hold(tester, at: tester.getCenter(find.text('English')));
       await _waitForSession(tester);
 
       expect(find.byType(TouchSurface), findsOneWidget);
-      expect(_sessionLanguage(tester), MorseLanguage.russian);
-      expect(t.store.read(), MorseLanguage.russian);
-      expect(t.identifiers.first, _russian);
+      expect(_sessionLanguage(tester), _last);
+      expect(t.store.read(), _last);
+      expect(t.identifiers.first, _identifierOf(_last));
 
       await t.dispose(tester);
     });
@@ -492,11 +609,13 @@ void main() {
       );
       await t.pump(tester);
 
-      // Detection is slower than choosing Russian and holding to start it.
+      // Detection is slower than choosing the last language and holding to
+      // start it.
       await _swipe(tester, -200);
       t.vibration.holdNextPattern = true;
       await _hold(tester);
-      expect(t.identifiers, [_russian, _russian]);
+      final identifier = _identifierOf(_last);
+      expect(t.identifiers, [identifier, identifier]);
 
       gate.complete();
       await tester.pump();
@@ -511,7 +630,7 @@ void main() {
       expect(find.byType(TouchSurface), findsNothing);
       expect(t.store.read(), isNull);
       expect(_sessionLanguage(tester), MorseLanguage.english);
-      expect(t.identifiers, [_russian, _russian]);
+      expect(t.identifiers, [identifier, identifier]);
 
       await t.dispose(tester);
     });
@@ -525,7 +644,7 @@ void main() {
       await t.pump(tester);
 
       expect(find.text(_helperHint), findsOneWidget);
-      for (final label in ['English', 'العربية', 'Русский']) {
+      for (final (:label, letter: _, identifier: _) in _options.values) {
         expect(find.text(label), findsOneWidget, reason: label);
       }
       expect(_isHighlighted(tester, 'English'), isTrue);

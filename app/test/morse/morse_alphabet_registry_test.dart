@@ -87,6 +87,18 @@ void main() {
     });
   });
 
+  group('morseRegistry.all', () {
+    test('holds every alphabet in registration order', () {
+      expect(morseRegistry.all, [
+        digitAlphabet,
+        englishAlphabet,
+        arabicAlphabet,
+        russianAlphabet,
+        spanishAlphabet,
+      ]);
+    });
+  });
+
   group('MorseAlphabetRegistry.forLanguage', () {
     test('returns the registered alphabet for each language', () {
       expect(
@@ -101,6 +113,20 @@ void main() {
         morseRegistry.forLanguage(MorseLanguage.russian),
         same(russianAlphabet),
       );
+      expect(
+        morseRegistry.forLanguage(MorseLanguage.spanish),
+        same(spanishAlphabet),
+      );
+    });
+
+    test('every language has a registered alphabet', () {
+      for (final language in MorseLanguage.values) {
+        expect(
+          morseRegistry.forLanguage(language)?.language,
+          language,
+          reason: '$language',
+        );
+      }
     });
 
     test('returns null for an unregistered language', () {

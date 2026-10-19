@@ -73,6 +73,31 @@ void main() {
       );
     });
 
+    test('saves Spanish letters under their own key', () async {
+      SharedPreferences.setMockInitialValues({});
+      final spanishLetters = _level(MorseLanguage.spanish, 1);
+
+      await (await _launch()).write(MorseLanguage.spanish, spanishLetters, [
+        'Ñ',
+        'A',
+      ]);
+
+      final preferences = await SharedPreferences.getInstance();
+      expect(
+        preferences.getStringList('learned_items.spanish.spanish-letters'),
+        ['Ñ', 'A'],
+      );
+      expect((await _launch()).read(MorseLanguage.spanish, spanishLetters), [
+        'Ñ',
+        'A',
+      ]);
+      // English letters A-Z share the patterns, not the learned items.
+      expect(
+        (await _launch()).read(MorseLanguage.english, englishLetters),
+        isEmpty,
+      );
+    });
+
     test('keeps each language and level apart', () async {
       SharedPreferences.setMockInitialValues({});
 
