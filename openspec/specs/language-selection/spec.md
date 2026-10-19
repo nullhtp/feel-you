@@ -22,7 +22,7 @@ Each language option SHALL have a unique vibration identifier pattern that plays
 - **THEN** the system SHALL vibrate the Morse pattern for the letter "Р" obtained via `encodeLetter('Р', MorseLanguage.russian)` (which is `[MorseSignal.dot, MorseSignal.dash, MorseSignal.dot]`)
 
 #### Scenario: Identifier plays on highlight change
-- **WHEN** the highlighted language changes (via tap)
+- **WHEN** the highlighted language changes (via tap or swipe)
 - **THEN** the new language's identifier pattern SHALL vibrate immediately
 
 #### Scenario: No hardcoded patterns in language picker

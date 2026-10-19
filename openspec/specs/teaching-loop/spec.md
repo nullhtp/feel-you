@@ -85,14 +85,14 @@ The orchestrator SHALL compare the user's input pattern (from `InputComplete`) a
 
 ### Requirement: Correct answer plays success vibration and resumes loop
 
-On a correct answer, the orchestrator SHALL transition the session phase to `feedback`, play the success vibration signal, then transition back to `playing` and resume the repeat loop: on the same item in the lessons, and on a new quiz item in the quiz (see `quiz`).
+On a correct answer, the orchestrator SHALL transition the session phase to `feedback`, play the success vibration signal, wait the post-feedback pause (500 ms by default), then transition back to `playing` and resume the repeat loop: on the same item in the lessons, and on a new quiz item in the quiz (see `quiz`). The resumed loop SHALL NOT spell a word again.
 
 #### Scenario: Correct answer feedback sequence
 
 - **WHEN** the user's input matches the current letter
 - **THEN** the session phase transitions to `feedback`
-- **AND** the vibration service plays the success signal (3 quick pulses)
-- **AND** after the success signal completes, the session phase transitions to `playing`
+- **AND** the vibration service plays the success signal (five quick taps, see `vibration-engine`)
+- **AND** after the success signal completes and the post-feedback pause has passed, the session phase transitions to `playing`
 - **AND** the repeat loop resumes from the beginning of a cycle
 
 #### Scenario: Correct answer in the quiz
@@ -104,16 +104,16 @@ On a correct answer, the orchestrator SHALL transition the session phase to `fee
 
 ### Requirement: Wrong answer plays error vibration, replays pattern, and resumes loop
 
-On a wrong answer, the orchestrator SHALL transition the session phase to `feedback`, play the error vibration signal, then replay the correct Morse pattern for the current letter, then transition back to `playing` and resume the repeat loop.
+On a wrong answer, the orchestrator SHALL transition the session phase to `feedback`, play the error vibration signal, wait the post-feedback pause (500 ms by default), then transition back to `playing` and resume the repeat loop on the same item. The resumed loop's first playback is the replay of the correct pattern: nothing else is played during the feedback.
 
 #### Scenario: Wrong answer feedback sequence
 
 - **WHEN** the user's input does not match the current letter
 - **THEN** the session phase transitions to `feedback`
-- **AND** the vibration service plays the error signal (long buzz)
-- **AND** then the vibration service plays the current letter's correct Morse pattern
-- **AND** after both complete, the session phase transitions to `playing`
-- **AND** the repeat loop resumes from the beginning of a cycle
+- **AND** the vibration service plays the error signal (one long buzz, see `vibration-engine`)
+- **AND** after the error signal completes and the post-feedback pause has passed, the session phase transitions to `playing`
+- **AND** the vibration service plays the current letter's correct Morse pattern, as the first playback of the resumed loop
+- **AND** the repeat loop goes on from there
 
 ### Requirement: Navigation events update letter and restart loop
 
@@ -164,13 +164,18 @@ The orchestrator SHALL respond to `NavigateNext`, `NavigatePrevious`, and `Reset
 #### Scenario: Navigation during feedback interrupts feedback
 
 - **WHEN** the session phase is `feedback` (success or error vibration playing)
-- **AND** a navigation event is received (any of the six navigation types)
+- **AND** a navigation event is received that moves the session, or a `Reset` or `Home`
 - **THEN** the feedback vibration is cancelled
 - **AND** the orchestrator navigates and restarts the loop
 
+#### Scenario: Swipe that cannot move the session
+
+- **WHEN** a swipe arrives that cannot move the session (previous on the first item, level down on the first level, level up on the last level)
+- **THEN** it SHALL be handled as in *A swipe past the first or last item or level*
+
 ### Requirement: Gesture events are ignored when not applicable
 
-The orchestrator SHALL ignore `MorseInput` and `InputComplete` events when the session phase is `feedback`. Navigation events (`NavigateNext`, `NavigatePrevious`, `Reset`, `NavigateUp`, `NavigateDown`, `Home`) SHALL be processed in any phase.
+The orchestrator SHALL ignore `MorseInput`, `InputComplete` and `BottomZoneAction` events when the session phase is `feedback`. Navigation events (`NavigateNext`, `NavigatePrevious`, `Reset`, `NavigateUp`, `NavigateDown`, `Home`) SHALL be processed in any phase. While the loop is stopped (before `start()`, after `stop()` and after dispose) every event SHALL be ignored. `ChangeLanguage` SHALL never change the session: the lesson surface acts on it (see `touch-surface`).
 
 #### Scenario: Taps during feedback are ignored
 
@@ -183,6 +188,17 @@ The orchestrator SHALL ignore `MorseInput` and `InputComplete` events when the s
 - **WHEN** the session phase is `playing`, `listening`, or `feedback`
 - **AND** a `NavigateUp` event is received
 - **THEN** the navigation is processed normally
+
+#### Scenario: Events while the loop is stopped
+
+- **WHEN** the loop is stopped, for example while the app is in the background
+- **AND** a swipe, a reset, a shake (`Home`) or an `InputComplete` arrives
+- **THEN** the session SHALL NOT change, nothing SHALL vibrate and the loop SHALL stay stopped
+
+#### Scenario: ChangeLanguage leaves the session alone
+
+- **WHEN** the loop is running and a `ChangeLanguage` event arrives
+- **THEN** the orchestrator SHALL NOT change the session or restart the loop
 
 ### Requirement: Configurable teaching loop timing
 
@@ -226,7 +242,7 @@ The teaching loop orchestrator SHALL be exposed as a `StateNotifierProvider`. It
 
 ### Requirement: Orchestrator can be started and stopped
 
-The orchestrator SHALL provide `start()` and `stop()` methods. `start()` begins the play-wait-repeat loop. `stop()` cancels any running loop and vibration. The orchestrator SHALL not auto-start on creation — it waits for an explicit `start()` call.
+The orchestrator SHALL provide `start()` and `stop()` methods. `start()` begins the play-wait-repeat loop for the current item in the `playing` phase and resumes shake detection. `stop()` cancels any running loop, pause and vibration, discards a half-entered pattern without checking it, and pauses shake detection. Each SHALL do nothing when the loop is already started or stopped. The orchestrator SHALL not auto-start on creation — it waits for an explicit `start()` call.
 
 #### Scenario: Start begins the loop
 
@@ -244,6 +260,22 @@ The orchestrator SHALL provide `start()` and `stop()` methods. `start()` begins 
 
 - **WHEN** the orchestrator is created via its provider
 - **THEN** no vibration occurs until `start()` is explicitly called
+
+#### Scenario: Stop discards a half-entered pattern
+
+- **WHEN** the user has tapped a dot and `stop()` is called before the answer is checked
+- **THEN** the dot SHALL be discarded, and no success or error signal SHALL play, then or after a later `start()`
+
+#### Scenario: Stop and start pause and resume shake detection
+
+- **WHEN** `stop()` is called
+- **THEN** shake detection SHALL be paused (see `shake-gesture`)
+- **AND** a later `start()` SHALL resume it
+
+#### Scenario: Start after a stop during feedback
+
+- **WHEN** the loop was stopped while a success or error signal played, and `start()` is called
+- **THEN** the session phase SHALL be `playing` and the loop SHALL play the current item
 
 ### Requirement: Orchestrator subscribes to both touch and shake event streams
 
@@ -277,39 +309,6 @@ The orchestrator SHALL resolve the current character's Morse pattern through the
 
 - **WHEN** the current level is letters and position is 0
 - **THEN** the orchestrator looks up the pattern for "A" from the letters level's patterns map
-
-### Requirement: Gesture classifier emits charGap symbols for inter-character silence
-
-The `GestureClassifier` SHALL emit `charGap` symbols in the input sequence when a silence between taps exceeds the `charGapThreshold` but is less than the `silenceTimeout`. This allows users to input multi-character word patterns with explicit character boundaries.
-
-#### Scenario: Short silence is inter-symbol gap (no charGap emitted)
-
-- **WHEN** the user taps twice with a silence shorter than `charGapThreshold` (default 400ms)
-- **THEN** no `charGap` symbol is inserted between the taps in the input sequence
-
-#### Scenario: Medium silence produces charGap
-
-- **WHEN** the user taps, waits longer than `charGapThreshold` but less than `silenceTimeout`, then taps again
-- **THEN** a `charGap` symbol SHALL be inserted between the two taps in the input sequence
-
-#### Scenario: Long silence triggers InputComplete
-
-- **WHEN** the user taps, then waits longer than `silenceTimeout` (default 1000ms)
-- **THEN** an `InputComplete` event SHALL fire (no charGap — the sequence ends)
-
-### Requirement: Configurable charGap threshold
-
-The `GestureTimingConfig` SHALL include a `charGapThreshold` parameter (default: 400ms) that defines the minimum silence duration to classify as an inter-character gap during input.
-
-#### Scenario: Default charGapThreshold
-
-- **WHEN** a `GestureTimingConfig` is created with no arguments
-- **THEN** `charGapThreshold` SHALL be 400ms
-
-#### Scenario: Custom charGapThreshold
-
-- **WHEN** a `GestureTimingConfig` is created with `charGapThreshold: 500`
-- **THEN** the charGap threshold SHALL be 500ms
 
 ### Requirement: Words are spelled before they are drilled
 
@@ -373,3 +372,42 @@ The spelling SHALL be part of the `playing` phase. The first `MorseInput`, navig
 - **AND** a navigation event moves the session to another word
 - **THEN** none of the remaining letters of the first word is played
 - **AND** the new word is spelled
+
+### Requirement: A swipe past the first or last item or level
+A swipe that cannot move the session (previous on the first item, level down on the first level, level up on the last level) SHALL NOT interrupt anything that resumes the loop by itself. While the item plays it SHALL keep repeating, with no cancel. During feedback the feedback SHALL finish and resume the loop as usual. While listening, the classifier has already discarded the pending input for the swipe, so the loop SHALL restart on the same item.
+
+#### Scenario: Swipe left on the first item while it plays
+- **WHEN** the loop plays digit "0" and the user swipes left
+- **THEN** no vibration SHALL be cancelled
+- **AND** "0" SHALL keep repeating after each repeat pause, as before
+
+#### Scenario: Swipe down on the first level during feedback
+- **WHEN** the success signal for digit "0" plays and the user swipes down
+- **THEN** the success signal SHALL NOT be cancelled
+- **AND** after the post-feedback pause the loop SHALL resume on "0"
+
+#### Scenario: Swipe left on the first item while listening
+- **WHEN** the user has tapped a dot on digit "0" and swipes left
+- **THEN** the dot SHALL be discarded without being checked
+- **AND** the loop SHALL restart on "0" in the `playing` phase
+
+#### Scenario: Swipe up on the last level while it plays
+- **WHEN** the loop plays a word of the last level and the user swipes up
+- **THEN** the word SHALL keep repeating, with no cancel
+
+### Requirement: Input is discarded when the loop starts over
+Whenever the loop starts over, on `start()`, on a navigation and on the resume after feedback, the orchestrator SHALL discard the input the classifier has buffered, without checking it. Taps made while the loop was stopped, or ignored during feedback, SHALL never become the start of the next answer. A shake (`Home`) SHALL discard it too, although the shake detector, not the classifier, emits it.
+
+#### Scenario: Taps during feedback
+- **WHEN** the user taps a dot while the success or error signal plays
+- **THEN** the loop SHALL resume after the feedback with an empty input buffer
+- **AND** that dot SHALL NOT be part of the next answer
+
+#### Scenario: Shake with a half-entered answer
+- **WHEN** the user has tapped a dot and shakes the phone before the answer is checked
+- **THEN** the dot SHALL be discarded without being checked
+- **AND** the loop SHALL restart on digit "0"
+
+#### Scenario: Taps while stopped
+- **WHEN** the classifier buffered taps while the loop was stopped and `start()` is called
+- **THEN** the loop SHALL start with an empty input buffer
