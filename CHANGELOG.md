@@ -20,6 +20,7 @@ Notable changes to Feel You. The format follows [Keep a Changelog](https://keepa
 
 ### Changed
 
+- The behaviour specs in `openspec/specs/` now describe what earlier commits shipped without an OpenSpec change: the double shake, background suspension, the vibration gate and its debug bypass, screen-reader labels, and the exact timings of the success, error and tap-feedback signals. They also no longer contradict the app ([#32](https://github.com/nullhtp/feel-you/issues/32)).
 - Swiping right on the last item of a level opens the level's quiz instead of doing nothing.
 - iPhone only: the iOS build no longer installs on iPad, which has no vibration motor.
 - The minimum OS versions are now iOS 15 and Android 7.0 (API 24).
