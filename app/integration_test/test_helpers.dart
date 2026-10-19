@@ -129,9 +129,10 @@ const fastMorseTimingConfig = MorseTimingConfig(
   interSymbolGap: 1,
 );
 
-/// Teaching timing with minimal pause for fast tests.
+/// Teaching timing with minimal pauses for fast tests.
 const fastTeachingConfig = TeachingTimingConfig(
   repeatPause: Duration(milliseconds: 5),
+  postFeedbackPause: Duration(milliseconds: 5),
 );
 
 // ---------------------------------------------------------------------------
