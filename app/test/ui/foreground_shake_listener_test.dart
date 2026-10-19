@@ -38,18 +38,11 @@ Future<void> _bringToForeground(WidgetTester tester) async {
 class _Harness {
   _Harness({bool startPaused = true}) {
     if (startPaused) detector.pause();
-    listener = ForegroundShakeListener(
-      detector,
-      onEvent: events.add,
-      onBackground: () => backgroundCalls++,
-      onForeground: () => foregroundCalls++,
-    );
+    listener = ForegroundShakeListener(detector, onEvent: events.add);
   }
 
   final detector = FakeShakeDetector();
   final events = <GestureEvent>[];
-  int backgroundCalls = 0;
-  int foregroundCalls = 0;
   late final ForegroundShakeListener listener;
 
   void close() {
@@ -89,7 +82,6 @@ void main() {
 
     await _sendToBackground(tester);
     expect(h.detector.isPaused, isTrue);
-    expect(h.backgroundCalls, 1);
 
     // A shake still on its way is not forwarded.
     h.detector.addEvent(const ChangeLanguage());
@@ -106,8 +98,6 @@ void main() {
 
     await _bringToForeground(tester);
     expect(h.detector.isPaused, isFalse);
-    expect(h.foregroundCalls, 1);
-    expect(h.backgroundCalls, 1);
 
     h.detector.addEvent(const ChangeLanguage());
     await tester.pump();
@@ -119,13 +109,18 @@ void main() {
   testWidgets('a resume without a trip to the background changes nothing', (
     tester,
   ) async {
+    // The app is already inactive when the screen appears, so the listener
+    // sees a resume without the trip before it.
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     final h = _Harness();
+    // Detection paused by someone else meanwhile (the lessons, say): that
+    // resume must not resume it.
+    h.detector.pause();
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
 
-    expect(h.foregroundCalls, 0);
-    expect(h.backgroundCalls, 0);
+    expect(h.detector.isPaused, isTrue);
     h.close();
   });
 
@@ -143,7 +138,6 @@ void main() {
     await _bringToForeground(tester);
     // The next screen resumes detection, not this one.
     expect(h.detector.isPaused, isTrue);
-    expect(h.foregroundCalls, 0);
 
     h.close();
   });
@@ -177,8 +171,9 @@ void main() {
     await _bringToForeground(tester);
 
     expect(h.events, isEmpty);
-    expect(h.backgroundCalls, 0);
-    expect(h.foregroundCalls, 0);
+    // Disposed without a hand-over, it paused detection and never resumes
+    // it again.
+    expect(h.detector.isPaused, isTrue);
     h.detector.dispose();
   });
 }

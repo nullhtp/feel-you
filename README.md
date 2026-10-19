@@ -241,6 +241,8 @@ The language picker appears on the first launch (when no language is saved) and 
 
 Choosing a language plays its identifier, saves it for the next launch, sets the lessons to it (they start at the digits level, on 0) and opens the home menu: on **L** after the first launch, on **S** when the picker was opened from Settings. The menu opens only after the identifier has finished and half a second of silence has passed, so the menu's letter never cuts the identifier short or runs into it. Until then the picker ignores every gesture. A single shake does nothing in the picker. A double shake in the picker opened from Settings returns to the menu without changing the language; on the first launch there is no menu yet, so it does nothing.
 
+When the app leaves the foreground the picker stops vibrating (and the picker opened from Settings stops listening for shakes); when the user comes back it plays the highlighted language's identifier again. If a language was being chosen, it is still chosen, and the menu announces itself instead. Like the menu, the picker does not keep the screen on.
+
 For a sighted helper, the highlighted column is drawn inverted and a line at the bottom reads *"Tap a language, then hold anywhere for 1 second to choose it"*, followed by *"Double shake: back to the menu"* when the picker was opened from Settings. Screen readers see one button per language, spoken in that language; activating a button chooses that language directly.
 
 ### No Vibration Motor

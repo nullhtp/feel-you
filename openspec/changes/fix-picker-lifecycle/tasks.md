@@ -1,0 +1,24 @@
+# Tasks
+
+## 1. The shared chooser
+
+- [x] 1.1 Add `app/lib/ui/chooser.dart` (design decisions 1 and 2): the `Chooser` mixin on `ConsumerState` (options, initial option, identifier, `onChosen`; highlight, replay, choose with the identifier plus `postFeedbackPause` wait, `tryLeave`, the announce after detection, the busy flag, its own `AppLifecycleListener` that cancels once per trip and replays on return, `buildChooser` with `PopScope`, the black `Scaffold` and the drag and 1 s hold recognizers), `ChooserColumn`, `chooserHoldDuration` and `chooserMinSwipeDistance`. Verify `flutter analyze --no-fatal-infos` reports no new issue
+- [x] 1.2 Build `HomeMenuSurface` on the chooser: its modes, Morse letters through the English codec, `onChosen` hands shakes over and opens the mode, the double shake calls `replayHighlighted`, `ForegroundShakeListener` for shakes only; columns, hint, route name and semantics unchanged. Verify `flutter test test/ui/home_menu_surface_test.dart test/ui/home_menu_navigation_test.dart` passes unchanged, including its background tests (cancel, paused detection, replay on return, nothing more while a mode opens, no wakelock)
+- [x] 1.3 Remove `ForegroundShakeListener`'s `onBackground` / `onForeground` callbacks and their documentation, which have no caller left (design decision 2). Verify `app/test/ui/foreground_shake_listener_test.dart` passes without them, still checking that detection pauses in the background, resumes on return, is not resumed by a resume without a trip, after a hand-over or after dispose
+- [x] 1.4 Build `LanguagePickerSurface` on the chooser: its languages and identifiers through each language's codec, the saved or English start, `onChosen` saves, selects and opens the menu, the double shake back from Settings through `tryLeave`; labels, locales, hints and semantics unchanged; the first-launch picker still creates no shake listener. Verify `flutter test test/ui` passes with the existing picker, semantics, launch and no-vibration tests unchanged
+
+## 2. The picker in the background
+
+- [x] 2.1 Add widget tests to `app/test/ui/language_picker_non_visual_test.dart`, for the first-launch picker and the one from Settings: background while the announce is held open → exactly one `cancel` and nothing more while away (the first-launch picker leaves shake detection as it was); inactive only → `cancel`, then one replay; return → the highlighted identifier once per trip; a trip during the wait after a hold → the hold's identifier and a `cancel` only, then the menu with L or S and the language saved; no wakelock toggle; a trip after the double shake back from Settings → only the menu's S. Verify they pass, and fail with the chooser's lifecycle handler disabled (and the hold case with the replay's busy guard bypassed)
+- [x] 2.2 Document it: the picker's lifecycle in README's "Choosing a Language", the `lib/ui/` row of `app/README.md`, the picker's class documentation, and a `CHANGELOG.md` line under Fixed. Verify the README sentence matches the `language-selection` delta
+
+## 3. Integration checks
+
+- [x] 3.1 Add end-to-end tests to `app/integration_test/app_lifecycle_test.dart` for the first-launch picker, the picker from Settings and the menu, with a recording vibration service whose playbacks last 800 ms unless cancelled and the real lifecycle (`sendToBackground` / `bringToForeground`): leaving while an identifier plays → one cancel, nothing for 1.5 s, the same identifier on return; leaving during a 1.5 s silence after a hold → only the identifier and a cancel, then the next screen and its identifier alone (Russian saved after a picker). Verify `flutter test integration_test/app_lifecycle_test.dart -d <simulator>` passes on the iOS simulator, and the picker cases fail with the picker's lifecycle handling disabled
+- [x] 3.2 Run `dart format --output=none --set-exit-if-changed .`, `flutter analyze --no-fatal-infos`, `flutter test` and the full `flutter test integration_test -d <simulator>` in `app/`; `openspec validate fix-picker-lifecycle --strict`; in a scratch copy of `openspec/`, `openspec archive fix-picker-lifecycle --yes` and `openspec validate --specs --strict`. Verify all pass with no new analyzer warnings
+
+## Workflow follow-up
+
+- Feel it on real phones before review (CONTRIBUTING step 6): on the picker, start an identifier (Ñ is the longest, 1.7 s), press the home button or pull down Control Center (Android: the notification shade), and check that the motor stops at once; come back and feel the identifier again. iOS reports `inactive` for Control Center and calls, Android for the notification shade: both count as leaving.
+- Archive the change with `/opsx:archive` after the pull request is merged, then run `openspec validate --specs --strict`.
+- Follow-up (design, Risks): a screen that first appears while the app is only inactive does not know it, and the menu or the lessons may then vibrate before the app is resumed.

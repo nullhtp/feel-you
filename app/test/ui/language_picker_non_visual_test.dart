@@ -21,6 +21,7 @@ import '../test_doubles/fake_gesture_classifier.dart';
 import '../test_doubles/fake_shake_detector.dart';
 import '../test_doubles/fake_vibration_capability_probe.dart';
 import '../test_doubles/mock_vibration_service.dart';
+import '../test_doubles/mock_wakelock.dart';
 
 // The language picker must be usable without sight (issue #9): every
 // gesture answers with the highlighted language's identifier vibration.
@@ -910,6 +911,155 @@ void main() {
       await t.doubleShake(tester);
       await tester.pumpAndSettle();
       expect(find.byType(HomeMenuSurface), findsOneWidget);
+
+      await t.dispose(tester);
+    });
+  });
+
+  // Issue #98: like the home menu, the picker stops vibrating when the app
+  // leaves the foreground and says where the user is when it comes back.
+  for (final fromMenu in [false, true]) {
+    final picker = fromMenu
+        ? 'the picker opened from Settings'
+        : 'the first-launch picker';
+    // The menu the picker hands over to announces this mode.
+    final menuIdentifier = fromMenu ? _settings : _learn;
+
+    group('background, $picker', () {
+      testWidgets('leaving the foreground cancels the identifier in '
+          'progress, and nothing vibrates until the app comes back', (
+        tester,
+      ) async {
+        final t = _Harness(fromMenu: fromMenu);
+        // The identifier the picker announces itself with is still playing.
+        t.vibration.holdNextPattern = true;
+        await t.pump(tester);
+        expect(t.identifiers, [_english]);
+        final shakesPaused = t.shake.isPaused;
+        t.vibration.reset();
+
+        await _sendToBackground(tester);
+        // Once for the whole trip through inactive, hidden and paused.
+        expect(t.vibration.callLog, ['cancel']);
+
+        await tester.pump(_testRepeatPause);
+        expect(t.vibration.callLog, ['cancel']);
+        if (!fromMenu) {
+          // The first-launch picker never touches shake detection.
+          expect(t.shake.isPaused, shakesPaused);
+        }
+
+        t.vibration.release();
+        await _bringToForeground(tester);
+        await t.dispose(tester);
+      });
+
+      testWidgets('becoming inactive only (a call, Control Center) cancels '
+          'the identifier too', (tester) async {
+        final t = _Harness(fromMenu: fromMenu);
+        await t.pump(tester);
+        t.vibration.reset();
+
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.inactive,
+        );
+        await tester.pump();
+        expect(t.vibration.callLog, ['cancel']);
+
+        tester.binding.handleAppLifecycleStateChanged(
+          AppLifecycleState.resumed,
+        );
+        await tester.pump();
+        expect(t.identifiers, [_english]);
+
+        await t.dispose(tester);
+      });
+
+      testWidgets('coming back replays the highlighted language once', (
+        tester,
+      ) async {
+        final t = _Harness(saved: MorseLanguage.russian, fromMenu: fromMenu);
+        await t.pump(tester);
+        await _swipe(tester, -200);
+        await _sendToBackground(tester);
+        t.vibration.reset();
+
+        await _bringToForeground(tester);
+
+        expect(t.identifiers, [_arabic]);
+        expect(_isHighlighted(tester, 'العربية'), isTrue);
+        expect(find.byType(HomeMenuSurface), findsNothing);
+        expect(t.store.read(), MorseLanguage.russian);
+
+        // A second trip replays it again, once.
+        await _sendToBackground(tester);
+        await _bringToForeground(tester);
+        expect(t.identifiers, [_arabic, _arabic]);
+
+        await t.dispose(tester);
+      });
+
+      testWidgets('a trip during the wait after a hold cancels the '
+          'identifier, plays nothing more and still starts the language', (
+        tester,
+      ) async {
+        final t = _Harness(fromMenu: fromMenu);
+        await t.pump(tester);
+        await _swipe(tester, 200);
+        t.vibration
+          ..reset()
+          ..holdNextPattern = true;
+
+        await _hold(tester);
+        await _sendToBackground(tester);
+        await _bringToForeground(tester);
+
+        // The hold's identifier and its cancel; no replay while starting.
+        expect(t.vibration.callLog, ['playMorsePattern:$_arabic', 'cancel']);
+        expect(find.byType(HomeMenuSurface), findsNothing);
+
+        t.vibration.release();
+        await _waitForMenu(tester);
+        expect(find.byType(HomeMenuSurface), findsOneWidget);
+        expect(t.store.read(), MorseLanguage.arabic);
+        expect(_sessionLanguage(tester), MorseLanguage.arabic);
+        expect(t.identifiers, [_arabic, menuIdentifier]);
+
+        await t.dispose(tester);
+      });
+
+      testWidgets('the picker does not keep the screen on', (tester) async {
+        final wakelock = mockWakelock(tester);
+        final t = _Harness(fromMenu: fromMenu);
+        await t.pump(tester);
+        await _swipe(tester, 200);
+        await _sendToBackground(tester);
+        await _bringToForeground(tester);
+
+        expect(wakelock, isEmpty);
+
+        await t.dispose(tester);
+      });
+    });
+  }
+
+  group('background, the picker opened from Settings', () {
+    testWidgets('coming back after the double shake back to the menu plays '
+        'only the menu', (tester) async {
+      final t = _Harness(saved: MorseLanguage.arabic, fromMenu: true);
+      await t.pump(tester);
+      t.vibration.reset();
+
+      await t.doubleShake(tester);
+      await _sendToBackground(tester);
+      await _bringToForeground(tester);
+      await tester.pumpAndSettle();
+
+      // The menu appears and replays Settings on the return; the picker,
+      // already leaving, replays nothing.
+      expect(find.byType(HomeMenuSurface), findsOneWidget);
+      expect(t.identifiers, [_settings, _settings]);
+      expect(t.store.read(), MorseLanguage.arabic);
 
       await t.dispose(tester);
     });
