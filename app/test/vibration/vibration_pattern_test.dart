@@ -197,6 +197,64 @@ void main() {
       );
     });
 
+    test('a word gap is an inter-word silence in place of the gap', () {
+      // "E T": dot, word gap, dash.
+      final pattern = buildVibrationPattern([
+        TactileToken.shortPulse,
+        TactileToken.wordGap,
+        TactileToken.longPulse,
+      ], config);
+      expect(pattern, [0, 100, 700, 300]);
+    });
+
+    test('a word gap separates the words of a text', () {
+      // "IT IS": I T, word gap, I S.
+      final pattern = buildVibrationPattern([
+        TactileToken.shortPulse,
+        TactileToken.shortPulse,
+        TactileToken.characterGap,
+        TactileToken.longPulse,
+        TactileToken.wordGap,
+        TactileToken.shortPulse,
+        TactileToken.shortPulse,
+        TactileToken.characterGap,
+        TactileToken.shortPulse,
+        TactileToken.shortPulse,
+        TactileToken.shortPulse,
+      ], config);
+      expect(pattern, [
+        0, 100, 100, 100, 300, 300, // I T
+        700, // word gap
+        100, 100, 100, 300, // I
+        100, 100, 100, 100, 100, // S
+      ]);
+    });
+
+    test('a word gap uses the configured inter-word gap only', () {
+      const custom = MorseTimingConfig(interCharGap: 450, interWordGap: 1000);
+      expect(
+        buildVibrationPattern([
+          TactileToken.shortPulse,
+          TactileToken.characterGap,
+          TactileToken.shortPulse,
+          TactileToken.wordGap,
+          TactileToken.shortPulse,
+        ], custom),
+        [0, 100, 450, 100, 1000, 100],
+      );
+    });
+
+    test('a word gap alone produces an empty pattern', () {
+      expect(buildVibrationPattern([TactileToken.wordGap], config), isEmpty);
+      expect(
+        buildVibrationPattern([
+          TactileToken.wordGap,
+          TactileToken.characterGap,
+        ], config),
+        isEmpty,
+      );
+    });
+
     test('wait and vibrate segments always alternate', () {
       // Every vibrate segment is a pulse duration, every wait a sum of
       // silences: a pulse never lands on a wait index.

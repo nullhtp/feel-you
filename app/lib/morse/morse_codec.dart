@@ -9,9 +9,16 @@ import 'package:feel_you/tactile/tactile.dart';
 
 /// Punctuation that every language's Morse codec encodes.
 ///
-/// Only `?`, which marks the quiz. Other punctuation, and the space, are
-/// left to the text reader to decide.
+/// Only `?`, which marks the quiz. Other punctuation is left to the text
+/// reader to decide.
 const Map<String, List<MorseSignal>> _punctuation = {'?': questionMarkPattern};
+
+/// What separates two words: any run of whitespace (spaces, tabs, line
+/// breaks) is one word gap.
+final RegExp _wordSeparator = RegExp(r'\s+');
+
+/// How the description writes a word gap: two letter gaps' `/`.
+const String _wordGapNotation = '//';
 
 /// The Morse code as a [TactileCodec], for one [language].
 ///
@@ -19,14 +26,20 @@ const Map<String, List<MorseSignal>> _punctuation = {'?': questionMarkPattern};
 /// is looked up in the language's letters, ignoring case, and the digits
 /// (through [MorseAlphabetRegistry.encodeLetter]), then in the language
 /// alphabet's [MorseAlphabet.aliases], then in the punctuation (`?`).
-/// Consecutive characters are separated by a letter gap. A [Prosign] is
-/// encoded from [morseProsignPattern] instead, as one character, the same
-/// in every language.
+/// Consecutive characters of a word are separated by a letter gap.
+///
+/// Whitespace is not a character: any run of it between two words is one
+/// word gap, and whitespace before the first word or after the last is
+/// ignored. Each word is encoded as it would be on its own.
+///
+/// A [Prosign] is encoded from [morseProsignPattern] instead, as one
+/// character, the same in every language: pulses only, with neither a
+/// letter gap nor a word gap.
 ///
 /// A dot becomes [TactileToken.shortPulse], a dash
-/// [TactileToken.longPulse] and a letter gap [TactileToken.characterGap].
-/// The description uses the companion overlay's notation (see
-/// [formatMorseTokens]).
+/// [TactileToken.longPulse], a letter gap [TactileToken.characterGap] and a
+/// word gap [TactileToken.wordGap]. The description uses the companion
+/// overlay's notation (see [formatMorseTokens]), with `//` for a word gap.
 class MorseCodec implements TactileCodec {
   /// Creates the codec of [language], looking characters up in [registry]
   /// (the global [morseRegistry] by default).
@@ -41,14 +54,20 @@ class MorseCodec implements TactileCodec {
 
   @override
   List<TactileToken> encode(String text) => [
-    for (final token in _morseTokens(text)) _tactileToken(token),
+    for (final (index, word) in _words(text).indexed) ...[
+      if (index > 0) TactileToken.wordGap,
+      for (final token in _morseTokens(word)) _tactileToken(token),
+    ],
   ];
 
   @override
-  String describe(String text) => formatMorseTokens(_morseTokens(text));
+  String describe(String text) => _words(text)
+      .map((word) => formatMorseTokens(_morseTokens(word)))
+      .join(' $_wordGapNotation ');
 
   /// The [morseProsignPattern] of [prosign] as pulses, with no character
-  /// gap: the same in every language, whatever this codec's alphabet.
+  /// gap and no word gap: the same in every language, whatever this codec's
+  /// alphabet.
   @override
   List<TactileToken> encodeProsign(Prosign prosign) => [
     for (final token in _prosignTokens(prosign)) _tactileToken(token),
@@ -63,8 +82,12 @@ class MorseCodec implements TactileCodec {
     for (final signal in morseProsignPattern(prosign)) Signal(signal),
   ];
 
-  /// The Morse tokens of [text]: each character's signals, with a [CharGap]
-  /// between consecutive characters.
+  /// The words of [text], without the whitespace around and between them.
+  static Iterable<String> _words(String text) =>
+      text.split(_wordSeparator).where((word) => word.isNotEmpty);
+
+  /// The Morse tokens of [text], a single word: each character's signals,
+  /// with a [CharGap] between consecutive characters.
   List<MorseToken> _morseTokens(String text) {
     final tokens = <MorseToken>[];
     for (final rune in text.runes) {

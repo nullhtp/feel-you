@@ -14,7 +14,8 @@ import 'package:feel_you/vibration/morse_timing_config.dart';
 /// - two consecutive slots (pulses or empty slots) are separated by
 ///   [MorseTimingConfig.interSymbolGap];
 /// - [TactileToken.characterGap] is a silence of
-///   [MorseTimingConfig.interCharGap] in place of that gap.
+///   [MorseTimingConfig.interCharGap] in place of that gap, and
+///   [TactileToken.wordGap] a silence of [MorseTimingConfig.interWordGap].
 ///
 /// Consecutive silences merge into one wait, so wait and vibrate segments
 /// always alternate, and a trailing silence is kept, so playback lasts as
@@ -54,6 +55,9 @@ List<int> buildVibrationPattern(
         afterSlot = true;
       case TactileToken.characterGap:
         wait += config.interCharGap;
+        afterSlot = false;
+      case TactileToken.wordGap:
+        wait += config.interWordGap;
         afterSlot = false;
     }
   }

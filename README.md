@@ -210,7 +210,21 @@ Morse prosigns, the standard service signals of Morse, for the modes to come. No
 | **SOS** | `· · · − − − · · ·` | 2300 ms | Reserved for the emergency gesture ([#80](https://github.com/nullhtp/feel-you/issues/80)) |
 | **Error** (HH) | `· · · · · · · ·` eight dots | 1500 ms | Morse input: "I made a mistake" ([#53](https://github.com/nullhtp/feel-you/issues/53)) |
 
-Each prosign is one character: its dots and dashes are 100 ms apart, with no 300 ms letter gap inside, so SOS is felt as one sign and not as the word S-O-S. They follow the Morse timing above, so a speed setting will change them too. They are International Morse and the same in all six languages, and none has the pattern of a digit, a letter of any of the six alphabets or `?`: the nearest are AS, which is L with one more dot, and AR, which is ع, Я or Ä with one more dot. Their pulses are Morse dots and dashes, so none can be taken for the *correct* taps, the *wrong* or *cloud off* buzzes or the tap feedback. The quiz's `?` stays the character `?`, and *correct* and *wrong* stay deliberately non-Morse: the error prosign is not the *wrong* signal.
+Each prosign is one character: its dots and dashes are 100 ms apart, with no 300 ms letter gap inside, so SOS is felt as one sign and not as the word S-O-S. They follow the Morse timing above. The [reading speed](#reading-speed) stretches only the gaps between letters and between words, so a prosign, which has neither, lasts the same at every speed. They are International Morse and the same in all six languages, and none has the pattern of a digit, a letter of any of the six alphabets or `?`: the nearest are AS, which is L with one more dot, and AR, which is ع, Я or Ä with one more dot. Their pulses are Morse dots and dashes, so none can be taken for the *correct* taps, the *wrong* or *cloud off* buzzes or the tap feedback. The quiz's `?` stays the character `?`, and *correct* and *wrong* stay deliberately non-Morse: the error prosign is not the *wrong* signal.
+
+#### Reading speed
+
+The reading modes that come next (the text reader, [#44](https://github.com/nullhtp/feel-you/issues/44)) play text at a **reading speed**, saved on the phone like the language. It uses Farnsworth timing (the ARRL formula, with the characters sent at 12 words per minute, the speed of a 100 ms dot): the dots, the dashes and the 100 ms gaps inside a letter never change, only the silences between letters and between words grow, so a letter feels the same at every speed. Words are separated by a word gap. Prosigns have neither gap, so they last the same at every speed.
+
+| Speed (words per minute) | Gap between letters | Gap between words |
+|-------|--------|---------|
+| **12** (default, the lesson timing) | 300 ms | 700 ms |
+| 10 | 458 ms | 1068 ms |
+| 8 | 695 ms | 1621 ms |
+| 6 | 1089 ms | 2542 ms |
+| 5 | 1405 ms | 3279 ms |
+
+**The lessons do not use it:** whatever speed is saved, the lessons, the spelling, the quiz, the home menu and the picker keep the Morse timing at the top of this section (300 ms between the letters of a word, 1 s when spelling, 3 s before an item repeats). Changing the speed plays a sample word at the new speed, the same four-letter word of the user's language at every speed: GOOD, سعيد, ВОДА, BIEN (Spanish and French) or WARM. No screen changes the speed yet; the settings list ([#45](https://github.com/nullhtp/feel-you/issues/45)) will.
 
 ### The Home Menu
 
@@ -273,7 +287,7 @@ In the quiz the position reads `QUIZ`, and the item and its pattern are replaced
 Phase 2 adds cloud features (see the [roadmap](ROADMAP.md#the-road-ahead)): the assistant enters their own [OpenRouter](https://openrouter.ai) key once, and the app uses it. The app can already keep that key; the screen to enter or delete it comes with the assistant screen ([#63](https://github.com/nullhtp/feel-you/issues/63)), so for now the overlay reads `Cloud key: none`.
 
 - **Where:** in the phone's secure storage: the iOS Keychain, or on Android encrypted with a key held in the Android Keystore. Never in the app's preferences.
-- **On this phone only:** on iOS the Keychain item is "this device only" and not synchronized, so it is neither in iCloud Keychain nor restored to another iPhone. On Android it is left out of cloud backup and device-to-device transfer. The language and learned items are backed up as before.
+- **On this phone only:** on iOS the Keychain item is "this device only" and not synchronized, so it is neither in iCloud Keychain nor restored to another iPhone. On Android it is left out of cloud backup and device-to-device transfer. The language, the reading speed and the learned items are backed up as before.
 - **Never shown or logged in full:** the overlay shows `sk-or-` and the last 4 characters (`sk-or-...a1b2`), and only `sk-or-...` or `...` for a short key or one without the `sk-or-` prefix.
 - **Deleting it** plays the *cloud off* signal (two 700 ms buzzes), so the user knows the cloud is off.
 - iOS keeps Keychain items when an app is deleted, so reinstalling on the same iPhone finds the key again. Delete the key in the app, or erase the phone, to remove it.
@@ -283,7 +297,7 @@ Phase 2 adds cloud features (see the [roadmap](ROADMAP.md#the-road-ahead)): the 
 - **User controls the pace.** The app just repeats and listens. It never advances by itself: even the quiz moves on only after a correct answer or a swipe.
 - **Skip anything, anytime.** Swipe left or right to move between items, up or down to change level.
 - **Lost? Reset.** A 2-second hold goes back to the start of the level, a shake to the very start (digit 0), a double shake to the home menu from anywhere. You can always re-anchor.
-- **Almost no state.** The app saves only the language and the items the user has learned, and the assistant's [cloud key](#the-cloud-key) in the phone's secure storage. Level and position live in memory.
+- **Almost no state.** The app saves only the language, the [reading speed](#reading-speed) and the items the user has learned, and the assistant's [cloud key](#the-cloud-key) in the phone's secure storage. Level and position live in memory.
 - **Closer to a musical instrument than a language app.** Like a metronome that plays a note: you listen, you play along when ready, you move on when you decide.
 
 ## Future Phases

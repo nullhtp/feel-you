@@ -4,8 +4,10 @@
 /// The set is closed and the same in every language. Callers name a prosign
 /// and leave its pattern to the codec (see `TactileCodec.encodeProsign`),
 /// which plays it as one character: a run of pulses with no character gap
-/// inside. The Morse codec uses the International Morse prosigns named
-/// below, identical in all six languages, and timed like any character.
+/// or word gap inside. A reading speed stretches only those gaps, so a
+/// prosign lasts the same at every speed. The Morse codec uses the
+/// International Morse prosigns named below, identical in all six
+/// languages, and timed like any character.
 ///
 /// Nothing in the app plays a prosign yet; each value says which feature it
 /// is for.

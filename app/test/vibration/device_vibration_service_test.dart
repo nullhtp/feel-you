@@ -91,6 +91,27 @@ void main() {
       expect(calls.single['intensities'], [0, 255, 0, 255, 0, 255]);
     });
 
+    testWidgets('sends two words with a silent word gap', (tester) async {
+      final calls = _mockVibrationChannel(tester);
+      final service = DeviceVibrationService();
+
+      // "E T" = dot, word gap, dash.
+      await _playFully(
+        tester,
+        () => service.playTokens(const [
+          TactileToken.shortPulse,
+          TactileToken.wordGap,
+          TactileToken.longPulse,
+        ]),
+        duration: const Duration(milliseconds: 1100),
+      );
+
+      expect(calls, hasLength(1));
+      // wait(0) dot(100) wordGap(700) dash(300)
+      expect(calls.single['pattern'], [0, 100, 700, 300]);
+      expect(calls.single['intensities'], [0, 255, 0, 255]);
+    });
+
     testWidgets('sends intensities even without amplitude control', (
       tester,
     ) async {

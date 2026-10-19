@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 const _s = TactileToken.shortPulse;
 const _l = TactileToken.longPulse;
 const _gap = TactileToken.characterGap;
+const _wordGap = TactileToken.wordGap;
 
 /// The Morse tokens of a level item: a word's token pattern, or a
 /// character's signals.
@@ -146,9 +147,13 @@ void main() {
       );
     });
 
-    test('does not encode a space', () {
-      expect(() => english.encode('HI OK'), throwsArgumentError);
-      expect(() => english.encode(' '), throwsArgumentError);
+    test('a space gives no pulse of its own', () {
+      bool isPulse(TactileToken token) => token == _s || token == _l;
+      expect(english.encode(' '), isEmpty);
+      expect(english.encode('HI OK').where(isPulse), [
+        ...english.encode('HI').where(isPulse),
+        ...english.encode('OK').where(isPulse),
+      ]);
     });
 
     test('returns no tokens for an empty text', () {
@@ -166,6 +171,73 @@ void main() {
 
     test('knows its language', () {
       expect(arabic.language, MorseLanguage.arabic);
+    });
+  });
+
+  group('MorseCodec words', () {
+    test('separates two words with one word gap', () {
+      expect(english.encode('HI OK'), [
+        ...english.encode('HI'),
+        _wordGap,
+        ...english.encode('OK'),
+      ]);
+      // No character gap next to the word gap.
+      expect(english.encode('E T'), [_s, _wordGap, _l]);
+    });
+
+    test('a run of whitespace is one word gap', () {
+      final expected = english.encode('HI OK');
+      expect(english.encode('HI   OK'), expected);
+      expect(english.encode('HI\tOK'), expected);
+      expect(english.encode('HI\nOK'), expected);
+      expect(english.encode('HI \r\n OK'), expected);
+    });
+
+    test('ignores whitespace around the text', () {
+      expect(english.encode(' HI '), english.encode('HI'));
+      expect(english.encode('HI\n'), english.encode('HI'));
+      expect(english.encode('\t HI OK  '), english.encode('HI OK'));
+    });
+
+    test('a text of whitespace only gives no tokens', () {
+      expect(english.encode('   '), isEmpty);
+      expect(english.encode('\n\t'), isEmpty);
+      expect(english.describe('   '), '');
+    });
+
+    test('three words have two word gaps', () {
+      final tokens = english.encode('GO UP NO');
+      expect(tokens.where((t) => t == _wordGap), hasLength(2));
+      expect(tokens.where((t) => t == _gap), hasLength(3));
+    });
+
+    test('encodes the words of other languages', () {
+      expect(russian.encode('ДА НЕТ'), [
+        ...russian.encode('ДА'),
+        _wordGap,
+        ...russian.encode('НЕТ'),
+      ]);
+      expect(arabic.encode('لا نعم'), [
+        ...arabic.encode('لا'),
+        _wordGap,
+        ...arabic.encode('نعم'),
+      ]);
+    });
+
+    test('describes a word gap as //', () {
+      expect(english.describe('HI OK'), '· · · · / · · // — — — / — · —');
+      expect(english.describe('E  T'), '· // —');
+    });
+
+    test('throws for an unknown character in a later word', () {
+      for (final call in [english.encode, english.describe]) {
+        expect(
+          () => call('HI A!'),
+          throwsA(
+            isA<ArgumentError>().having((e) => e.invalidValue, 'value', '!'),
+          ),
+        );
+      }
     });
   });
 

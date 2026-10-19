@@ -1,5 +1,6 @@
 export 'device_vibration_service.dart';
 export 'morse_timing_config.dart';
+export 'reading_speed.dart';
 export 'signal_pattern.dart';
 export 'vibration_capabilities.dart';
 export 'vibration_capability_probe.dart';

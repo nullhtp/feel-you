@@ -91,6 +91,10 @@ MorseToken _morseToken(TactileToken token) => switch (token) {
   TactileToken.emptySlot => throw UnsupportedError(
     'An empty slot has no Morse equivalent',
   ),
+  // No lesson plays more than one word: a word gap is for reading modes.
+  TactileToken.wordGap => throw UnsupportedError(
+    'A word gap has no Morse lesson equivalent',
+  ),
 };
 
 /// The signal of a Morse [token] from a playback without a character gap.

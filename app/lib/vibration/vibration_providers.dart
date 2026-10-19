@@ -1,17 +1,35 @@
 import 'package:feel_you/vibration/device_vibration_service.dart';
 import 'package:feel_you/vibration/morse_timing_config.dart';
+import 'package:feel_you/vibration/reading_speed.dart';
 import 'package:feel_you/vibration/vibration_capabilities.dart';
 import 'package:feel_you/vibration/vibration_capability_probe.dart';
 import 'package:feel_you/vibration/vibration_service.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Provides the [MorseTimingConfig] used throughout the app.
+/// Provides the lesson timing: the [MorseTimingConfig] that
+/// [vibrationServiceProvider] plays with.
+///
+/// The lessons, the spelling, the quiz marker, the home menu and the
+/// language picker play with it, whatever reading speed is saved. It is also
+/// the base of every reading timing (see [readingTimingConfigProvider]).
 ///
 /// Override this provider in tests or to tune timing values.
 final morseTimingConfigProvider = Provider<MorseTimingConfig>(
   (ref) => const MorseTimingConfig(),
 );
+
+/// Provides the timing reading modes play with at a [ReadingSpeed]: the
+/// lesson timing ([morseTimingConfigProvider]) with its character and word
+/// gaps stretched to that speed (see [ReadingSpeed.timing]).
+///
+/// Keyed by the speed rather than watching the saved one, so the vibration
+/// engine stays unaware of the settings; read it with the saved speed,
+/// e.g. `readingTimingConfigProvider(ref.watch(readingSpeedProvider))`.
+final readingTimingConfigProvider =
+    Provider.family<MorseTimingConfig, ReadingSpeed>(
+      (ref, speed) => speed.timing(ref.watch(morseTimingConfigProvider)),
+    );
 
 /// Provides the [VibrationCapabilityProbe] used to query the device.
 ///
@@ -84,10 +102,42 @@ final effectiveVibrationCapabilitiesProvider = Provider<VibrationCapabilities>((
   return detected;
 });
 
-/// Provides the [VibrationService] for triggering haptic feedback.
+/// Provides the [VibrationService] for triggering haptic feedback, with the
+/// lesson timing ([morseTimingConfigProvider]).
+///
+/// Everything but reading modes plays through it: the lessons, the home
+/// menu, the language picker and the signals. The saved reading speed never
+/// reaches it; reading modes use [readingVibrationServiceProvider].
 ///
 /// Override this provider in tests to inject a mock service.
-final vibrationServiceProvider = Provider<VibrationService>((ref) {
+final vibrationServiceProvider = Provider<VibrationService>(
+  (ref) => _deviceVibrationService(ref, ref.watch(morseTimingConfigProvider)),
+);
+
+/// Provides the [VibrationService] reading modes play text with at a
+/// [ReadingSpeed]: tokens are timed with that speed's
+/// [readingTimingConfigProvider]; the signals are the same as
+/// [vibrationServiceProvider]'s.
+///
+/// Read it with the saved speed, e.g.
+/// `readingVibrationServiceProvider(ref.watch(readingSpeedProvider))`.
+/// Its [VibrationService.cancel] stops the motor like any other's.
+///
+/// Override this provider in tests to inject a mock service.
+final readingVibrationServiceProvider =
+    Provider.family<VibrationService, ReadingSpeed>(
+      (ref, speed) => _deviceVibrationService(
+        ref,
+        ref.watch(readingTimingConfigProvider(speed)),
+      ),
+    );
+
+/// A [DeviceVibrationService] that times tactile tokens with [config] and
+/// reads the effective capabilities whenever it plays a signal.
+DeviceVibrationService _deviceVibrationService(
+  Ref ref,
+  MorseTimingConfig config,
+) {
   // Listen rather than watch: the service, and the teaching orchestrator
   // that watches it, must not be rebuilt when detection completes. The
   // service reads the latest value whenever it plays a signal.
@@ -98,7 +148,7 @@ final vibrationServiceProvider = Provider<VibrationService>((ref) {
     fireImmediately: true,
   );
   return DeviceVibrationService(
-    config: ref.watch(morseTimingConfigProvider),
+    config: config,
     capabilities: () => capabilities,
   );
-});
+}
