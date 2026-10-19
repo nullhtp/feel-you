@@ -236,11 +236,15 @@ Phase 1 teaches the language. Future phases use it:
 - Morse-to-Text (type by tapping Morse)
 - Real-time conversation
 
-See [ROADMAP.md](ROADMAP.md) for what is done and what is open.
+See [ROADMAP.md](ROADMAP.md) for the full plan: seven phases, each a GitHub milestone with a tracking issue, from the text reader and face-to-face conversation to cloud features and safety.
 
 ## Development
 
 The Flutter app lives in [`app/`](app/). See [app/README.md](app/README.md) for how to build, run and test it.
+
+## Contributing
+
+Issues, pull requests and accessibility feedback are welcome: see [CONTRIBUTING.md](CONTRIBUTING.md), the [Code of Conduct](CODE_OF_CONDUCT.md) and the [good first issues](https://github.com/nullhtp/feel-you/issues?q=is%3Aissue%20is%3Aopen%20label%3A%22good%20first%20issue%22). Security problems: [SECURITY.md](SECURITY.md).
 
 ## License
 

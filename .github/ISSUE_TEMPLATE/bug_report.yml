@@ -1,0 +1,42 @@
+name: Bug report
+description: Something does not work as the README says
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected to feel, what you felt instead.
+    validations:
+      required: true
+  - type: input
+    id: device
+    attributes:
+      label: Phone and OS
+      placeholder: Pixel 7, Android 15 / iPhone 13, iOS 18
+    validations:
+      required: true
+  - type: input
+    id: vibration
+    attributes:
+      label: Vibration line from the helper overlay
+      description: Bottom-left corner of the lesson screen.
+      placeholder: "Vibration: OK · amplitude: yes · custom: yes"
+  - type: input
+    id: version
+    attributes:
+      label: App version
+      placeholder: 0.0.2 (build 1), or a commit hash for a local build
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      options: [Language picker, Lessons, Quiz, Helper overlay, Build or CI, Other]
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open the app with English saved
+        2. Swipe right past Z
+        3. ...

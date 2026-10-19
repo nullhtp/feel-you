@@ -1,6 +1,6 @@
 # Roadmap
 
-The first part of this file is the original Phase 1 plan (*Learn Vibro Morse*), kept as history. Later changes replaced parts of it: dots and dashes are now told apart by where the tap lands (left half = dot, right half = dash), not by how long it lasts, and there are digits and words levels and three languages. See [After Phase 1](#after-phase-1-complete) for what changed, [Next](#next) for open work, and the [README](README.md) for how the app works today.
+The first part of this file is the original Phase 1 plan (*Learn Vibro Morse*), kept as history. Later changes replaced parts of it: dots and dashes are now told apart by where the tap lands (left half = dot, right half = dash), not by how long it lasts, and there are digits and words levels and three languages. See [After Phase 1](#after-phase-1-complete) for what changed, [The road ahead](#the-road-ahead) for the plan, and the [README](README.md) for how the app works today.
 
 ## Foundation (Complete)
 
@@ -96,9 +96,35 @@ Later commits, without an OpenSpec change:
 - [x] Main specs repaired: all 29 pass `openspec validate --specs --strict`, requirements lost when deltas were copied over main specs are restored or recorded as dropped, and stale requirements found on the way are brought up to date (Arabic letter patterns, word lists, the placeholder screen, the touch surface) ([#31](https://github.com/nullhtp/feel-you/issues/31), `repair-main-specs`). Behaviour still missing from the specs: [#32](https://github.com/nullhtp/feel-you/issues/32).
 - [x] A quiz at the end of every level, so the user practises recognising Morse they did not choose: swipe right past the last item, Morse `?` announces it, and it plays random learned items for the user to echo. Learned items (answered correctly once in the lessons) are saved per language and level; every launch still starts at 0 (`add-quiz-slot`).
 
-## Next
+## The road ahead
 
-Open work that already exists. No dates have been set.
+Feel You today teaches the language. The phases below build everything the language is for: reading any text, talking face to face, hearing and seeing the world through the cloud, everyday information and safety. Each phase is a [milestone](https://github.com/nullhtp/feel-you/milestones) with a tracking issue (epic) that lists its tasks; tasks carry `Depends on` / `Blocks` links and the milestone's gate says when the phase is done. No dates are set: every phase delivers something usable on its own.
 
-- **Open bugs**: see the [open `bug` issues](https://github.com/nullhtp/feel-you/issues?q=is%3Aissue%20is%3Aopen%20label%3Abug).
-- **Future phases**: the README's [Future Phases](README.md#future-phases) (words and sentences, speech-to-Morse, text-to-Morse, Morse-to-text, real-time conversation) have no plan yet.
+Principles that hold in every phase:
+
+- **The offline core always works.** Learning, talking to a sighted person, quick phrases and the emergency gesture need no network, no keys and no downloaded models. The cloud only adds.
+- **The user sets the pace.** The app repeats and waits; it never moves on by itself. Long text is read word by word on a swipe, not as a stream.
+- **Every action is confirmed by vibration.** Settings opened, a request sent to the cloud, the key out of credit, no network: each has its own signal, distinct from Morse.
+- **One input channel, one output channel.** Tap, swipe, hold and shake in; vibration timing out. Amplitude never carries meaning, because some motors have none.
+- **The sighted helper sees, the user does not.** Any screen someone has to look at (settings, overlay, the key) is for the assistant and comes with a tactile signal to the user.
+- **AI answers fit the channel.** Morse reads at about 12 words per minute, so an answer is tens of characters, not paragraphs; more detail on request, by gesture.
+
+| Phase | Milestone | Epic | What it delivers | Gate |
+|-------|-----------|------|------------------|------|
+| 0 | [Foundation](https://github.com/nullhtp/feel-you/milestone/1) | #33 | `TactileCodec`, word-by-word text reader, tactile home menu, settings without sight, prosigns, speed | A blindfolded developer with earplugs reads a 20-word text and returns to the menu without help |
+| 1 | [Face-to-face conversation](https://github.com/nullhtp/feel-you/milestone/2) | #34 | Talk mode (a sighted person types, the user feels Morse), Morse-to-text, TTS, quick phrases, assistant screen. All offline | Two people, one blindfolded, agree on a time and place through Talk in five minutes; first external test |
+| 2 | [Cloud via OpenRouter](https://github.com/nullhtp/feel-you/milestone/3) | #35 | The assistant enters their own OpenRouter key once; Listen, Look and Ask stream model answers into Morse with tactile network statuses. No server | First word of a photo description within 3 s on LTE; losing the network gives a signal, never silence |
+| 3 | [Offline fallbacks](https://github.com/nullhtp/feel-you/milestone/4) | #36 | Backend router, ML Kit OCR and labels, raw speech, answer cache | In airplane mode every mode still answers, with the right source signal |
+| 4 | [Everyday life and safety](https://github.com/nullhtp/feel-you/milestone/5) | #37 | Time and battery by gesture, incoming messages, emergency gesture, vibration alarm. All offline | Emergency flow passes on Android and iPhone; zero false triggers in a day |
+| 5 | [Dialogue, live mode, translation, documents](https://github.com/nullhtp/feel-you/milestone/6) | #38 | Follow-up questions with context, live Look, translation, structured documents, in-app messages | Five deafblind users use the app for a week |
+| 6 | [Extensions](https://github.com/nullhtp/feel-you/milestone/7) | #39 | Braille codec, optional on-device LLM, wearables, more languages, community sharing | Ordered by the Phase 5 pilot |
+
+Phases 0, 1, 3, 4 and 6 work without network or keys; phases 2 and 5 add cloud features on top of them, never instead of them.
+
+Work that runs alongside the phases, labelled by track:
+
+- `track: users` - user research, pilot users, the blindfold self-test protocol (#49, #50, #58, #87). The team has no deafblind testers yet; this track is the most urgent.
+- `track: content` - phrase sets, prompts and their evaluation set, store texts, privacy policy (#59, #70, #71).
+- `track: devices` - device matrix and vibration timing measurements, store releases (#48, #60).
+
+Open bugs: see the [open `bug` issues](https://github.com/nullhtp/feel-you/issues?q=is%3Aissue%20is%3Aopen%20label%3Abug). How to pick up a task: [CONTRIBUTING.md](CONTRIBUTING.md).

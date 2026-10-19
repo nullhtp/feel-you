@@ -1,0 +1,29 @@
+name: Feature request
+description: Something the app should do
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What situation is this for
+      description: A moment in a deaf-blind person's day where the app falls short. Situations beat solutions.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What the app should do
+      description: Gestures in, vibration out. How would the user know it worked?
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Roadmap phase it belongs to (if you know)
+      options: ["Not sure", "0 Foundation", "1 Face-to-face conversation", "2 Cloud via OpenRouter", "3 Offline fallbacks", "4 Everyday life and safety", "5 Dialogue and live mode", "6 Extensions"]
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Checks
+      options:
+        - label: Works without sight and without hearing
+        - label: Works offline (or clearly marked as a cloud feature)
+        - label: Does not change a gesture, signal or level users have already learned

@@ -1,0 +1,30 @@
+name: Accessibility feedback
+description: You are deaf-blind, or work with deaf-blind people, and tried the app
+labels: ["accessibility", "track: users"]
+body:
+  - type: markdown
+    attributes:
+      value: Thank you. This is the feedback the project needs most. Write as much or as little as you like, in any language.
+  - type: dropdown
+    id: who
+    attributes:
+      label: Who is giving the feedback
+      options: ["A deaf-blind user", "An interpreter-guide or family member, on behalf of a user", "A teacher or organisation", "Other"]
+    validations:
+      required: true
+  - type: textarea
+    id: today
+    attributes:
+      label: How do you communicate today
+      description: Tactile sign language, Protactile, braille display, print on palm, something else. Any residual sight or hearing?
+  - type: textarea
+    id: experience
+    attributes:
+      label: What happened when you tried the app
+      description: Where did it make sense, where did you get lost, what did you want to do that was not possible?
+    validations:
+      required: true
+  - type: textarea
+    id: wish
+    attributes:
+      label: The one thing that would help most
