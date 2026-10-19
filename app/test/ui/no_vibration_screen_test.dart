@@ -1,4 +1,7 @@
+import 'package:feel_you/app.dart';
 import 'package:feel_you/gestures/gesture_providers.dart';
+import 'package:feel_you/morse/morse.dart';
+import 'package:feel_you/settings/language_preference.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/companion_overlay.dart';
@@ -31,6 +34,22 @@ final _startPause = const TeachingTimingConfig().postFeedbackPause;
 final _bypassButton = find.widgetWithText(
   OutlinedButton,
   noVibrationBypassLabel,
+);
+
+/// The bypass button's screen-reader hint (#95). It names no screen: the
+/// app starts over from the picker or from the home menu.
+const _bypassHint = 'Continues into the app although nothing will vibrate';
+
+/// The semantics of the bypass button: a button with its label and hint.
+Matcher get _isBypassButton => matchesSemantics(
+  isButton: true,
+  label: noVibrationBypassLabel,
+  hint: _bypassHint,
+  hasEnabledState: true,
+  isEnabled: true,
+  isFocusable: true,
+  hasTapAction: true,
+  hasFocusAction: true,
 );
 
 /// Pumps the [LanguagePickerSurface] behind the app's [VibrationGate] on a
@@ -92,23 +111,65 @@ void main() {
 
       expect(find.byType(NoVibrationScreen), findsOneWidget);
       expect(_bypassButton, findsOneWidget);
-      expect(
-        tester.getSemantics(_bypassButton),
-        matchesSemantics(
-          isButton: true,
-          label: noVibrationBypassLabel,
-          hint: 'Opens the language picker although nothing will vibrate',
-          hasEnabledState: true,
-          isEnabled: true,
-          isFocusable: true,
-          hasTapAction: true,
-          hasFocusAction: true,
-        ),
-      );
+      expect(tester.getSemantics(_bypassButton), _isBypassButton);
 
       await _cleanUp(tester);
       classifier.dispose();
     });
+
+    // Issue #95: the hint must hold on both launch paths, since the bypass
+    // starts the app over from its first screen.
+    for (final saved in [null, MorseLanguage.russian]) {
+      final path = saved == null ? 'no saved language' : 'a saved language';
+      final firstScreen = saved == null
+          ? LanguagePickerSurface
+          : HomeMenuSurface;
+      final otherScreen = saved == null
+          ? HomeMenuSurface
+          : LanguagePickerSurface;
+
+      testWidgets('with $path, the hint says the button continues into the '
+          'app, and it opens $firstScreen', (tester) async {
+        final classifier = FakeGestureClassifier();
+        final shake = FakeShakeDetector();
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              languagePreferenceStoreProvider.overrideWithValue(
+                InMemoryLanguagePreferenceStore(saved),
+              ),
+              gestureClassifierProvider.overrideWithValue(classifier),
+              vibrationServiceProvider.overrideWithValue(
+                MockVibrationService(),
+              ),
+              shakeDetectorProvider.overrideWithValue(shake),
+              teachingTimingConfigProvider.overrideWithValue(
+                const TeachingTimingConfig(repeatPause: _testRepeatPause),
+              ),
+              vibrationCapabilityProbeProvider.overrideWithValue(
+                FakeVibrationCapabilityProbe(vibrator: false),
+              ),
+            ],
+            child: const FeelYouApp(),
+          ),
+        );
+        await tester.pump();
+
+        expect(find.byType(NoVibrationScreen), findsOneWidget);
+        expect(tester.getSemantics(_bypassButton), _isBypassButton);
+
+        await tester.tap(_bypassButton);
+        await tester.pump();
+
+        expect(find.byType(NoVibrationScreen), findsNothing);
+        expect(find.byType(firstScreen), findsOneWidget);
+        expect(find.byType(otherScreen), findsNothing);
+
+        await _cleanUp(tester);
+        classifier.dispose();
+        shake.dispose();
+      });
+    }
 
     testWidgets('keeps the gate closed until the button is tapped', (
       tester,

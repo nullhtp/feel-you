@@ -91,16 +91,29 @@ void main() {
       await app.close(tester);
     });
 
-    testWidgets('the debug button on the No vibration screen opens $firstScreen'
+    testWidgets('the debug button on the No vibration screen, whose hint '
+        'names no screen, opens $firstScreen'
         '${savedLanguage == null ? '' : ', and the menu the lessons'}', (
       tester,
     ) async {
+      final semantics = tester.ensureSemantics();
       FakeVibrationPlatform(hasVibrator: false).install(tester);
       await launch(tester, savedLanguage);
       await waitUntil(
         tester,
         () => shown(NoVibrationScreen),
         reason: 'the No vibration screen is shown',
+      );
+
+      // What a screen reader hears about the button (#95): it continues
+      // into the app, whichever screen comes first.
+      expect(
+        tester.getSemantics(find.bySemanticsLabel(noVibrationBypassLabel)),
+        isSemantics(
+          isButton: true,
+          label: noVibrationBypassLabel,
+          hint: 'Continues into the app although nothing will vibrate',
+        ),
       );
 
       await tester.tap(find.text(noVibrationBypassLabel));
@@ -124,6 +137,7 @@ void main() {
       }
 
       await app.close(tester);
+      semantics.dispose();
     }, skip: !kDebugMode);
   }
 

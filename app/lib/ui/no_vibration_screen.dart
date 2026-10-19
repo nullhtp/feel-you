@@ -6,6 +6,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Label of the debug-only button that bypasses the vibration gate.
 const noVibrationBypassLabel = 'Continue anyway (debug build)';
 
+/// Screen-reader hint of the bypass button. It names no screen, because
+/// the app starts over from its first one: the language picker when no
+/// language is saved, the home menu otherwise.
+const noVibrationBypassHint =
+    'Continues into the app although nothing will vibrate';
+
 /// Shown instead of every other screen on a device without a vibration
 /// motor (see `VibrationGate`).
 ///
@@ -68,9 +74,7 @@ class NoVibrationScreen extends ConsumerWidget {
                     ),
                     // The button node takes this label and hint.
                     child: Semantics(
-                      hint:
-                          'Opens the language picker although nothing '
-                          'will vibrate',
+                      hint: noVibrationBypassHint,
                       child: const Text(
                         noVibrationBypassLabel,
                         style: TextStyle(fontSize: 20),

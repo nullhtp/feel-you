@@ -35,6 +35,7 @@ Notable changes to Feel You. The format follows [Keep a Changelog](https://keepa
 ### Fixed
 
 - The language picker went on vibrating an identifier when the app left the foreground, and played nothing when the user came back. Like the home menu, it now stops in the background and plays the highlighted language again on return; the picker and the menu now share one touch chooser ([#98](https://github.com/nullhtp/feel-you/issues/98)).
+- Debug builds: the screen-reader hint of the *Continue anyway* button on the No vibration screen said it opens the language picker, but with a saved language it opens the home menu. It now reads "Continues into the app although nothing will vibrate" ([#95](https://github.com/nullhtp/feel-you/issues/95)).
 - On iOS, the pauses inside a Morse pattern vibrated too, so a letter or word felt like one continuous buzz.
 - The teaching loop kept vibrating while the app was in the background.
 - On some Android devices every tap counted as a dash, and the dot/dash halves didn't follow split screen or display size changes.
