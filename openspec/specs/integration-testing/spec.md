@@ -152,15 +152,16 @@ An end-to-end test SHALL run the app with its real vibration service, catch what
 - **THEN** the success signal SHALL be sent as `[0, 50, 60, 50, 60, 50, 60, 50, 60, 50]` ms and the error signal as `[0, 700]` ms
 
 ### Requirement: Vibration gate end-to-end test
-An end-to-end test SHALL check `vibration-capability-gate` on the device: with the device's own answers on the iOS simulator, which has no motor, the No vibration screen replaces the picker and the home menu, and the debug button opens the first screen. With a detection that ends late, the No vibration screen SHALL replace a route opened after launch and stop its loop.
+An end-to-end test SHALL check `vibration-capability-gate` on the device: with the device's own answers on the iOS simulator, which has no motor, the No vibration screen replaces the picker and the home menu, and the debug button, whose screen-reader hint names no screen, opens the first screen. With a detection that ends late, the No vibration screen SHALL replace a route opened after launch and stop its loop.
 
 #### Scenario: iOS simulator
 - **WHEN** the app is launched on the iOS simulator, with or without a saved language
 - **THEN** the No vibration screen SHALL be shown, and neither the picker, the menu nor the lessons, and no identifier SHALL be played
 
 #### Scenario: Debug bypass
-- **WHEN** the debug button is tapped on the No vibration screen
-- **THEN** the app's first screen SHALL be shown, and with a saved language the menu's Learn SHALL open the lessons
+- **WHEN** the No vibration screen is shown, with or without a saved language, and the debug button is tapped
+- **THEN** the button SHALL have been a screen-reader button with the hint "Continues into the app although nothing will vibrate"
+- **AND** the app's first screen SHALL be shown, and with a saved language the menu's Learn SHALL open the lessons
 
 #### Scenario: Late detection after a route change
 - **WHEN** a language is started in the picker and Learn entered on the menu before detection ends, and detection then reports no motor
@@ -232,3 +233,18 @@ An end-to-end test SHALL launch the app on the end-to-end harness (real screens,
 - **WHEN** the app is launched with no saved language and the user holds on the picker
 - **THEN** the vibrations SHALL be, in order: E (picker appears), E (hold), L (menu appears)
 - **AND** English SHALL be saved and the menu SHALL show Learn highlighted
+
+### Requirement: Language picker background end-to-end test
+An end-to-end test SHALL send the app to the background and back through the real lifecycle notifications on the first-launch picker, on the picker opened from Settings and, for comparison, on the home menu, with each identifier lasting until it ends or is cancelled, as on a motor. It SHALL check that leaving cancels a playing identifier, that nothing vibrates while away, that the return replays it, and what a trip during the wait after a hold does.
+
+#### Scenario: Leaving while an identifier plays
+- **WHEN** Russian (on the menu, Settings) has just been highlighted, its identifier is still playing, and the app goes to the background for 1.5 s
+- **THEN** one cancel SHALL be recorded, and nothing else while the app is away
+- **WHEN** the app returns to the foreground
+- **THEN** that identifier SHALL be played once, and the screen SHALL stay
+
+#### Scenario: Leaving during the wait after a hold
+- **WHEN** the user holds on Russian (on the menu, Settings), its identifier ends, and the app goes to the background during the silence before the next screen, for longer than that silence
+- **THEN** only the identifier and one cancel SHALL be recorded
+- **WHEN** the app returns to the foreground
+- **THEN** the next screen SHALL replace it and play only its own identifier: L after the first-launch picker, S after the picker from Settings, with Russian saved and selected, and E (the saved English) after the menu
