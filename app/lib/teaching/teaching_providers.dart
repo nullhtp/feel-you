@@ -1,5 +1,6 @@
 import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/session/session.dart';
+import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/vibration/vibration.dart';
@@ -15,7 +16,8 @@ final teachingTimingConfigProvider = Provider<TeachingTimingConfig>(
 /// Provides the [TeachingOrchestrator] that drives the learning loop.
 ///
 /// Depends on the gesture classifier, vibration service, session notifier,
-/// and timing config. Disposes the orchestrator when the provider is disposed.
+/// learned items and timing config. Disposes the orchestrator when the
+/// provider is disposed.
 final teachingOrchestratorProvider =
     StateNotifierProvider<TeachingOrchestrator, TeachingOrchestratorState>((
       ref,
@@ -25,6 +27,7 @@ final teachingOrchestratorProvider =
       final sessionNotifier = ref.watch(sessionNotifierProvider.notifier);
       final config = ref.watch(teachingTimingConfigProvider);
       final shakeDetector = ref.watch(shakeDetectorProvider);
+      final learnedItems = ref.watch(learnedItemsProvider.notifier);
 
       final orchestrator = TeachingOrchestrator(
         gestureClassifier: gestureClassifier,
@@ -32,6 +35,7 @@ final teachingOrchestratorProvider =
         sessionNotifier: sessionNotifier,
         config: config,
         shakeDetector: shakeDetector,
+        learnedItems: learnedItems,
       );
 
       // Note: StateNotifierProvider automatically calls dispose() on the

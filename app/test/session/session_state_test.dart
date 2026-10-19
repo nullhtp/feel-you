@@ -204,6 +204,59 @@ void main() {
       });
     });
 
+    group('quiz', () {
+      const inQuiz = SessionState(
+        language: MorseLanguage.english,
+        levelIndex: 1,
+        positionIndex: 25,
+        quizItem: 'K',
+      );
+
+      test('is not in the quiz by default', () {
+        const state = SessionState(language: MorseLanguage.english);
+        expect(state.isInQuiz, isFalse);
+        expect(state.quizItem, isNull);
+      });
+
+      test('the current character is the quiz item', () {
+        expect(inQuiz.isInQuiz, isTrue);
+        expect(inQuiz.currentCharacter, 'K');
+        // The position stays on the last letter.
+        expect(inQuiz.positionIndex, 25);
+        expect(inQuiz.currentLevel.characters[inQuiz.positionIndex], 'Z');
+      });
+
+      test('copyWith keeps the quiz item', () {
+        final copy = inQuiz.copyWith(phase: SessionPhase.listening);
+        expect(copy.quizItem, 'K');
+        expect(copy.phase, SessionPhase.listening);
+      });
+
+      test('copyWith replaces the quiz item', () {
+        expect(inQuiz.copyWith(quizItem: 'B').currentCharacter, 'B');
+      });
+
+      test('copyWith with leaveQuiz leaves the quiz', () {
+        final copy = inQuiz.copyWith(leaveQuiz: true);
+        expect(copy.isInQuiz, isFalse);
+        expect(copy.currentCharacter, 'Z');
+      });
+
+      test('states with different quiz items are not equal', () {
+        expect(inQuiz, isNot(inQuiz.copyWith(quizItem: 'B')));
+        expect(inQuiz, isNot(inQuiz.copyWith(leaveQuiz: true)));
+        expect(inQuiz, inQuiz.copyWith(quizItem: 'K'));
+      });
+
+      test('toString says the session is in the quiz', () {
+        expect(inQuiz.toString(), contains('in the quiz'));
+        expect(
+          inQuiz.copyWith(leaveQuiz: true).toString(),
+          isNot(contains('quiz')),
+        );
+      });
+    });
+
     group('Arabic language', () {
       test('initial state with Arabic', () {
         const state = SessionState(language: MorseLanguage.arabic);

@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:feel_you/morse/morse.dart';
+import 'package:feel_you/session/quiz_item_picker.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/session/session_state.dart';
@@ -53,20 +56,24 @@ void main() {
         expect(notifier.state.currentCharacter, '6');
       });
 
-      test('clamps at last digit (9) — boundary', () {
+      test('enters the quiz after the last digit (9)', () {
         // Navigate to 9 (index 9)
         for (var i = 0; i < 9; i++) {
           notifier.nextPosition();
         }
         expect(notifier.state.currentCharacter, '9');
+        expect(notifier.state.isInQuiz, isFalse);
 
-        final stateBeforeExtraNext = notifier.state;
         notifier.nextPosition();
-        expect(notifier.state, stateBeforeExtraNext);
-        expect(notifier.state.currentCharacter, '9');
+        expect(notifier.state.isInQuiz, isTrue);
+        expect(notifier.state.positionIndex, 9);
+        expect(
+          notifier.state.currentLevel.characters,
+          contains(notifier.state.currentCharacter),
+        );
       });
 
-      test('clamps at last letter (Z) in letters level', () {
+      test('enters the quiz after the last letter (Z)', () {
         notifier.nextLevel(); // switch to letters
         // Navigate to Z (index 25)
         for (var i = 0; i < 25; i++) {
@@ -74,10 +81,10 @@ void main() {
         }
         expect(notifier.state.currentCharacter, 'Z');
 
-        final stateBeforeExtraNext = notifier.state;
         notifier.nextPosition();
-        expect(notifier.state, stateBeforeExtraNext);
-        expect(notifier.state.currentCharacter, 'Z');
+        expect(notifier.state.isInQuiz, isTrue);
+        expect(notifier.state.positionIndex, 25);
+        expect(notifier.state.currentLevel.name, 'letters');
       });
 
       test('resets phase to playing', () {
@@ -358,16 +365,17 @@ void main() {
     // Boundary no-ops preserve state
     // -----------------------------------------------------------------------
     group('boundary no-ops preserve state', () {
-      test('nextPosition at last digit does not change state', () {
+      test('nextPosition at last digit is not a no-op: it enters the quiz', () {
         // Navigate to 9
         for (var i = 0; i < 9; i++) {
           notifier.nextPosition();
         }
-        notifier.setPhase(SessionPhase.feedback);
-        final stateAt9 = notifier.state;
+        notifier
+          ..setPhase(SessionPhase.feedback)
+          ..nextPosition();
 
-        notifier.nextPosition();
-        expect(notifier.state, stateAt9);
+        expect(notifier.state.isInQuiz, isTrue);
+        expect(notifier.state.phase, SessionPhase.playing);
       });
 
       test('previousPosition at first position does not change state', () {
@@ -480,6 +488,190 @@ void main() {
         expect(notifier.state.language, MorseLanguage.arabic);
         expect(notifier.state.levelIndex, 0);
       });
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // The quiz after the last item of every level
+  // -------------------------------------------------------------------------
+  group('quiz', () {
+    late SessionNotifier quiz;
+
+    /// Moves [quiz] to the last item of the current level and past it.
+    void enterQuiz() {
+      final last = quiz.state.currentLevel.characters.length - 1;
+      while (quiz.state.positionIndex < last) {
+        quiz.nextPosition();
+      }
+      quiz.nextPosition();
+      expect(quiz.state.isInQuiz, isTrue);
+    }
+
+    setUp(() {
+      quiz = SessionNotifier(
+        MorseLanguage.english,
+        quizItemPicker: QuizItemPicker(random: Random(3)),
+      );
+      addTearDown(quiz.dispose);
+    });
+
+    test('entering keeps the position on the last item and plays', () {
+      quiz.nextLevel(); // letters
+      for (var i = 0; i < 25; i++) {
+        quiz.nextPosition();
+      }
+      quiz
+        ..setPhase(SessionPhase.listening)
+        ..nextPosition();
+
+      expect(quiz.state.isInQuiz, isTrue);
+      expect(quiz.state.positionIndex, 25);
+      expect(quiz.state.phase, SessionPhase.playing);
+      expect(quiz.state.currentLevel.characters, contains(quiz.state.quizItem));
+    });
+
+    test('every level of every language has a quiz', () {
+      for (final language in MorseLanguage.values) {
+        quiz.selectLanguage(language);
+        for (var level = 0; level < quiz.state.levels.length; level++) {
+          enterQuiz();
+          expect(quiz.state.levelIndex, level);
+          quiz.nextLevel();
+        }
+      }
+    });
+
+    test('next in the quiz draws a new item and stays in the quiz', () {
+      enterQuiz();
+      for (var i = 0; i < 50; i++) {
+        final before = quiz.state.quizItem;
+        quiz.nextPosition();
+        expect(quiz.state.isInQuiz, isTrue);
+        expect(quiz.state.quizItem, isNot(before));
+        expect(quiz.state.positionIndex, 9);
+      }
+    });
+
+    test('draws from the items the picker is given as learned', () {
+      final learned = SessionNotifier(
+        MorseLanguage.english,
+        quizItemPicker: QuizItemPicker(
+          learnedItemsOf: (language, level) => {'3', '7'},
+          random: Random(3),
+        ),
+      );
+      addTearDown(learned.dispose);
+      for (var i = 0; i < 9; i++) {
+        learned.nextPosition();
+      }
+
+      final drawn = <String>{};
+      for (var i = 0; i < 20; i++) {
+        learned.nextPosition();
+        drawn.add(learned.state.currentCharacter);
+      }
+      expect(drawn, {'3', '7'});
+    });
+
+    test('previous leaves the quiz to the last item', () {
+      enterQuiz();
+      quiz
+        ..setPhase(SessionPhase.feedback)
+        ..previousPosition();
+
+      expect(quiz.state.isInQuiz, isFalse);
+      expect(quiz.state.currentCharacter, '9');
+      expect(quiz.state.phase, SessionPhase.playing);
+    });
+
+    test('reset leaves the quiz to the first item of the level', () {
+      quiz.nextLevel();
+      enterQuiz();
+      quiz.reset();
+
+      expect(quiz.state.isInQuiz, isFalse);
+      expect(quiz.state.currentCharacter, 'A');
+    });
+
+    test('level up from the quiz goes to the next level, outside the quiz', () {
+      enterQuiz();
+      quiz.nextLevel();
+
+      expect(quiz.state.isInQuiz, isFalse);
+      expect(quiz.state.levelIndex, 1);
+      expect(quiz.state.currentCharacter, 'A');
+    });
+
+    test('level down from the quiz goes to the previous level', () {
+      quiz.nextLevel();
+      enterQuiz();
+      quiz.previousLevel();
+
+      expect(quiz.state.isInQuiz, isFalse);
+      expect(quiz.state.levelIndex, 0);
+      expect(quiz.state.currentCharacter, '0');
+    });
+
+    test('level up in the quiz of the last level keeps the quiz item', () {
+      quiz
+        ..nextLevel()
+        ..nextLevel();
+      enterQuiz();
+      final before = quiz.state;
+
+      quiz.nextLevel();
+
+      expect(quiz.state, before);
+    });
+
+    test('level down in the quiz of the first level keeps the quiz item', () {
+      enterQuiz();
+      final before = quiz.state;
+
+      quiz.previousLevel();
+
+      expect(quiz.state, before);
+    });
+
+    test('home leaves the quiz to digit 0', () {
+      quiz
+        ..nextLevel()
+        ..nextLevel();
+      enterQuiz();
+      quiz.home();
+
+      expect(quiz.state.isInQuiz, isFalse);
+      expect(quiz.state.levelIndex, 0);
+      expect(quiz.state.currentCharacter, '0');
+    });
+
+    test('selecting a language leaves the quiz', () {
+      enterQuiz();
+      quiz.selectLanguage(MorseLanguage.russian);
+
+      expect(quiz.state.isInQuiz, isFalse);
+      expect(quiz.state.currentCharacter, '0');
+    });
+
+    test('nextQuizItem draws another item and plays it', () {
+      enterQuiz();
+      final before = quiz.state.quizItem;
+      quiz
+        ..setPhase(SessionPhase.feedback)
+        ..nextQuizItem();
+
+      expect(quiz.state.isInQuiz, isTrue);
+      expect(quiz.state.quizItem, isNot(before));
+      expect(quiz.state.phase, SessionPhase.playing);
+    });
+
+    test('nextQuizItem is a no-op outside the quiz', () {
+      quiz.setPhase(SessionPhase.feedback);
+      final before = quiz.state;
+
+      quiz.nextQuizItem();
+
+      expect(quiz.state, before);
     });
   });
 }

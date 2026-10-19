@@ -1,7 +1,9 @@
 import 'package:feel_you/gestures/gesture_classifier.dart';
+import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
+import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/companion_overlay.dart';
@@ -64,6 +66,150 @@ Future<void> cleanUp(WidgetTester tester) async {
 
 void main() {
   group('CompanionOverlay', () {
+    // -----------------------------------------------------------------------
+    // The quiz and the learned count
+    // -----------------------------------------------------------------------
+    group('quiz', () {
+      /// The quiz of the digits level, playing "4".
+      const inQuiz = SessionState(
+        language: MorseLanguage.english,
+        positionIndex: 9,
+        quizItem: '4',
+      );
+
+      ProviderContainer containerOf(WidgetTester tester) =>
+          ProviderScope.containerOf(tester.element(find.byType(TouchSurface)));
+
+      Future<void> setPhase(WidgetTester tester, SessionPhase phase) async {
+        containerOf(
+          tester,
+        ).read(sessionNotifierProvider.notifier).setPhase(phase);
+        await tester.pump();
+      }
+
+      testWidgets('hides the item and its pattern while it plays and while '
+          'the user answers', (tester) async {
+        await tester.pumpWidget(
+          buildTestWidget(
+            classifier: FakeGestureClassifier(),
+            vibration: MockVibrationService(),
+            initialState: inQuiz,
+          ),
+        );
+        await tester.pump();
+
+        for (final phase in [SessionPhase.playing, SessionPhase.listening]) {
+          await setPhase(tester, phase);
+          expect(find.text('?'), findsOneWidget, reason: '$phase');
+          expect(find.text('4'), findsNothing, reason: '$phase');
+          expect(find.text('· · · · —'), findsNothing, reason: '$phase');
+        }
+
+        await cleanUp(tester);
+      });
+
+      testWidgets('shows the item and its pattern during feedback', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          buildTestWidget(
+            classifier: FakeGestureClassifier(),
+            vibration: MockVibrationService(),
+            initialState: inQuiz,
+          ),
+        );
+        await tester.pump();
+
+        await setPhase(tester, SessionPhase.feedback);
+
+        expect(find.text('4'), findsOneWidget);
+        expect(find.text('· · · · —'), findsOneWidget);
+        expect(find.text('?'), findsNothing);
+
+        await cleanUp(tester);
+      });
+
+      testWidgets('shows QUIZ instead of the position', (tester) async {
+        await tester.pumpWidget(
+          buildTestWidget(
+            classifier: FakeGestureClassifier(),
+            vibration: MockVibrationService(),
+            initialState: inQuiz,
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('QUIZ'), findsOneWidget);
+        expect(find.text('10/10'), findsNothing);
+
+        await cleanUp(tester);
+      });
+
+      testWidgets('shows the learned count of the level', (tester) async {
+        await tester.pumpWidget(
+          buildTestWidget(
+            classifier: FakeGestureClassifier(),
+            vibration: MockVibrationService(),
+            initialState: inQuiz,
+          ),
+        );
+        await tester.pump();
+        expect(find.text('learned 0/10'), findsOneWidget);
+
+        final digits = containerOf(
+          tester,
+        ).read(sessionNotifierProvider).currentLevel;
+        containerOf(tester).read(learnedItemsProvider.notifier)
+          ..add(MorseLanguage.english, digits, '1')
+          ..add(MorseLanguage.english, digits, '2');
+        await tester.pump();
+
+        expect(find.text('learned 2/10'), findsOneWidget);
+
+        await cleanUp(tester);
+      });
+
+      testWidgets('the learned count rises after a correct lesson answer', (
+        tester,
+      ) async {
+        final classifier = FakeGestureClassifier();
+        await tester.pumpWidget(
+          buildTestWidget(
+            classifier: classifier,
+            vibration: MockVibrationService(),
+            initialState: const SessionState(
+              language: MorseLanguage.english,
+              positionIndex: 3,
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(find.text('4/10'), findsOneWidget);
+        expect(find.text('learned 0/10'), findsOneWidget);
+
+        // "3" is · · · − −.
+        classifier
+          ..addEvent(const MorseInput(MorseSignal.dot))
+          ..addEvent(
+            const InputComplete([
+              Signal(MorseSignal.dot),
+              Signal(MorseSignal.dot),
+              Signal(MorseSignal.dot),
+              Signal(MorseSignal.dash),
+              Signal(MorseSignal.dash),
+            ]),
+          );
+        await tester.pump();
+        // The answer is judged during that frame; the overlay shows it in
+        // the next one.
+        await tester.pump();
+
+        expect(find.text('learned 1/10'), findsOneWidget);
+
+        await cleanUp(tester);
+      });
+    });
+
     // -----------------------------------------------------------------------
     // 4.1 Verify text elements for known session state
     // -----------------------------------------------------------------------

@@ -6,6 +6,9 @@ Notable changes to Feel You. The format follows [Keep a Changelog](https://keepa
 
 ### Added
 
+- A quiz at the end of every level, one swipe right past its last item. It is announced with Morse `?`, plays random items the user has learned, and moves to a new item after each correct answer, so the user practises recognising Morse they did not choose.
+- Learned items (each item answered correctly once in the lessons) are saved per language and level, so the quiz grows from one launch to the next. Every launch still starts at digit 0.
+- The helper overlay shows how many items of the level are learned, and hides the quiz item until the user has answered.
 - Each word is spelled letter by letter before it is drilled, so the user knows which word they are on without counting ([#8](https://github.com/nullhtp/feel-you/issues/8)).
 - The chosen language is saved, so later launches skip the picker and go straight to the lessons.
 - The language picker can be used without sight: it vibrates the highlighted language's identifier, and the user moves and chooses by touch.
@@ -16,6 +19,7 @@ Notable changes to Feel You. The format follows [Keep a Changelog](https://keepa
 
 ### Changed
 
+- Swiping right on the last item of a level opens the level's quiz instead of doing nothing.
 - iPhone only: the iOS build no longer installs on iPad, which has no vibration motor.
 - The minimum OS versions are now iOS 15 and Android 7.0 (API 24).
 - Licensed under the MIT licence.

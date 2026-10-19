@@ -1,6 +1,7 @@
 import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
+import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/ui/vibration_diagnostics.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,8 +9,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Visual companion overlay for sighted observers.
 ///
 /// Displays zone boundaries, labels, current symbol/word, Morse pattern,
-/// level, progress, input buffer, and session phase on top of the black
-/// touch surface. Wrapped in [IgnorePointer] so all touches pass through.
+/// level, progress, learned count, input buffer, and session phase on top of
+/// the black touch surface. Wrapped in [IgnorePointer] so all touches pass
+/// through.
+///
+/// In the quiz, the item and its pattern stay hidden until the user has
+/// answered (they show during the feedback), so a user with some sight left
+/// cannot read the answer off the screen.
 ///
 /// Screen readers see a single live-region node whose label is
 /// [companionOverlaySummary]; the visual fragments are excluded.
@@ -28,6 +34,12 @@ class CompanionOverlay extends ConsumerWidget {
     final character = session.currentCharacter;
     final level = session.currentLevel;
     final isWordsLevel = level.kind == LevelKind.words;
+    final hideItem = session.isInQuiz && session.phase != SessionPhase.feedback;
+    final learnedCount = ref
+        .watch(learnedItemsProvider)
+        .of(session.language, level)
+        .length;
+    final shownCharacter = hideItem ? '?' : character;
 
     // For word levels, use the token pattern (with CharGap) from the
     // level so the display shows letter boundaries.
@@ -129,18 +141,18 @@ class CompanionOverlay extends ConsumerWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      character,
+                      shownCharacter,
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: _symbolFontSize(character),
+                        fontSize: _symbolFontSize(shownCharacter),
                         fontWeight: FontWeight.bold,
-                        letterSpacing: character.length > 1 ? 4 : 0,
+                        letterSpacing: shownCharacter.length > 1 ? 4 : 0,
                       ),
                     ),
                     const SizedBox(height: 8),
-                    // --- Morse pattern display ---
+                    // --- Morse pattern display (hidden with the item) ---
                     Text(
-                      _formatTokenPattern(tokenPattern),
+                      hideItem ? '' : _formatTokenPattern(tokenPattern),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -167,17 +179,34 @@ class CompanionOverlay extends ConsumerWidget {
               ),
             ),
 
-            // --- Position progress (top-right) ---
+            // --- Position progress and learned count (top-right) ---
             Positioned(
               right: 16,
               top: 12,
-              child: Text(
-                '${session.positionIndex + 1}/${level.characters.length}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w400,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text(
+                    session.isInQuiz
+                        ? 'QUIZ'
+                        : '${session.positionIndex + 1}/'
+                              '${level.characters.length}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'learned $learnedCount/${level.characters.length}',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.6),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
               ),
             ),
 
@@ -244,6 +273,8 @@ class CompanionOverlay extends ConsumerWidget {
           positionIndex: session.positionIndex,
           phase: session.phase,
           input: buffer,
+          isQuiz: session.isInQuiz,
+          learnedCount: learnedCount,
         ),
         excludeSemantics: true,
         child: child,
@@ -279,9 +310,15 @@ class CompanionOverlay extends ConsumerWidget {
 /// Builds the spoken summary of what the [CompanionOverlay] shows.
 ///
 /// Uses the same values the overlay draws, in reading order: level,
-/// current character or word, its Morse pattern, position, phase and, when
-/// non-empty, the [input] entered so far. For example:
-/// `Letters level, A, dot dash, 1 of 26, listening, input dot`.
+/// current character or word, its Morse pattern, position, the
+/// [learnedCount] of the level, phase and, when non-empty, the [input]
+/// entered so far. For example:
+/// `Letters level, A, dot dash, 1 of 26, learned 3 of 26, listening, input
+/// dot`.
+///
+/// In the quiz ([isQuiz]) it says `quiz` in place of the position, and, as
+/// the overlay does, leaves out the character and its pattern until the
+/// feedback phase: `Letters level, quiz, learned 3 of 26, playing`.
 String companionOverlaySummary({
   required Level level,
   required String character,
@@ -289,17 +326,22 @@ String companionOverlaySummary({
   required int positionIndex,
   required SessionPhase phase,
   List<MorseToken> input = const [],
+  bool isQuiz = false,
+  int learnedCount = 0,
 }) {
   // Level names are identifiers such as "arabic-letters".
   final levelName = level.name.replaceAll('-', ' ');
+  final total = level.characters.length;
+  final hideItem = isQuiz && phase != SessionPhase.feedback;
   return [
     if (levelName.isEmpty)
       'Level'
     else
       '${levelName[0].toUpperCase()}${levelName.substring(1)} level',
-    character,
-    if (pattern.isNotEmpty) _describeTokens(pattern),
-    '${positionIndex + 1} of ${level.characters.length}',
+    if (!hideItem) character,
+    if (!hideItem && pattern.isNotEmpty) _describeTokens(pattern),
+    if (isQuiz) 'quiz' else '${positionIndex + 1} of $total',
+    'learned $learnedCount of $total',
     phase.name,
     if (input.isNotEmpty) 'input ${_describeTokens(input)}',
   ].join(', ');

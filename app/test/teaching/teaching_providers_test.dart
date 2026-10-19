@@ -1,4 +1,5 @@
 import 'package:feel_you/gestures/gesture_providers.dart';
+import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
@@ -48,6 +49,25 @@ void main() {
       expect(state, isA<TeachingOrchestratorState>());
       expect(state.isRunning, false);
       expect(state.isInterrupted, false);
+    });
+
+    test('records learned items in learnedItemsProvider', () {
+      final container = ProviderContainer(
+        overrides: [
+          vibrationServiceProvider.overrideWithValue(MockVibrationService()),
+          screenWidthProvider.overrideWithValue(800),
+          shakeDetectorProvider.overrideWithValue(FakeShakeDetector()),
+        ],
+      );
+      addTearDown(container.dispose);
+
+      final orchestrator = container.read(
+        teachingOrchestratorProvider.notifier,
+      );
+      expect(
+        orchestrator.learnedItems,
+        same(container.read(learnedItemsProvider.notifier)),
+      );
     });
 
     test('disposes orchestrator on container disposal', () async {

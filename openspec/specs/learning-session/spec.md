@@ -7,7 +7,7 @@ The session state (language, level, position and phase) and the transitions that
 ## Requirements
 
 ### Requirement: Session state tracks current letter
-The session state SHALL hold the selected `language` (`MorseLanguage`), a `levelIndex` into that language's level list and a `positionIndex` into the current level. A session SHALL start at level 0 (digits), position 0, in the saved language, or English when none is saved, until the picker selects one. A `currentLevel` getter SHALL return the current `Level` from the language's list, and a `currentCharacter` getter the item at the current position.
+The session state SHALL hold the selected `language` (`MorseLanguage`), a `levelIndex` into that language's level list, a `positionIndex` into the current level and, in the quiz, the quiz item. A session SHALL start at level 0 (digits), position 0, outside the quiz, in the saved language, or English when none is saved, until the picker selects one. A `currentLevel` getter SHALL return the current `Level`, and `currentCharacter` the quiz item in the quiz, else the item at the position.
 
 #### Scenario: Initial state after selecting English
 - **WHEN** a new session state is created with language `MorseLanguage.english`
@@ -25,6 +25,12 @@ The session state SHALL hold the selected `language` (`MorseLanguage`), a `level
 - **WHEN** the session language is `MorseLanguage.arabic`
 - **AND** the user navigates to level index 1
 - **THEN** the current level SHALL be the Arabic letters level (not English letters)
+
+#### Scenario: Current character in the quiz
+- **WHEN** the session is in the quiz of the English letters level with quiz item "K"
+- **THEN** the current character SHALL be "K"
+- **AND** the position index SHALL be 25, the last letter "Z"
+- **AND** the state SHALL report that it is in the quiz
 
 ### Requirement: Navigate to next level
 The system SHALL advance the `levelIndex` to the next level within the language-filtered level list when a level-up navigation is requested. The `positionIndex` SHALL reset to 0 for the new level. The phase SHALL reset to `playing`. If already at the last level in the filtered list, the request SHALL be a no-op.
@@ -90,23 +96,8 @@ The system SHALL maintain a session phase enum with exactly three values: `playi
 - **THEN** the session phase SHALL update to the requested value
 - **AND** the level and position SHALL NOT change
 
-### Requirement: Navigate to next item
-The system SHALL advance the current position to the next item in the current level when a next navigation is requested, and reset the phase to `playing`. At the last item of the level the request SHALL be a no-op: there is no wrap-around.
-
-#### Scenario: Advance from 0 to 1 in digits
-- **WHEN** the current level is digits and position is 0
-- **AND** next navigation is requested
-- **THEN** the current character SHALL be "1"
-- **AND** the phase SHALL be `playing`
-
-#### Scenario: Clamp at last position (boundary)
-- **WHEN** the current position is at the last item in the level (e.g., "9" for digits, "Z" for English letters)
-- **AND** next navigation is requested
-- **THEN** the position SHALL remain unchanged
-- **AND** the phase SHALL remain unchanged
-
 ### Requirement: Navigate to previous item
-The system SHALL move the current position to the previous item in the current level when a previous navigation is requested, and reset the phase to `playing`. At the first item of the level the request SHALL be a no-op: there is no wrap-around.
+The system SHALL move the current position to the previous item in the current level when a previous navigation is requested, and reset the phase to `playing`. At the first item of the level the request SHALL be a no-op: there is no wrap-around. In the quiz the request SHALL leave the quiz and return to the last item of the level.
 
 #### Scenario: Go back from 1 to 0 in digits
 - **WHEN** the current level is digits and position is 1
@@ -119,6 +110,13 @@ The system SHALL move the current position to the previous item in the current l
 - **AND** previous navigation is requested
 - **THEN** the position SHALL remain unchanged
 - **AND** the phase SHALL remain unchanged
+
+#### Scenario: Leave the quiz to the last item
+- **WHEN** the session is in the quiz of the digits level
+- **AND** previous navigation is requested
+- **THEN** the session SHALL no longer be in the quiz
+- **AND** the current character SHALL be "9"
+- **AND** the phase SHALL be `playing`
 
 ### Requirement: Reset to the first item of the level
 The system SHALL reset the position to 0 within the current level and the phase to `playing` when a reset is requested. The level and the language SHALL NOT change.
@@ -157,8 +155,58 @@ The session state SHALL be exposed as `sessionNotifierProvider`, a `StateNotifie
 - **THEN** the session language SHALL be `MorseLanguage.english`
 
 ### Requirement: Level, position and phase are not saved
-The session's level, position and phase SHALL live in memory only. Every launch SHALL start at the digits level, position 0, phase `playing`. The language is the only part of the session kept across launches (see *The chosen language is saved* in `language-selection`).
+The session's level, position, phase and quiz item SHALL live in memory only. Every launch SHALL start at the digits level, position 0, outside the quiz, phase `playing`. The language and the learned items are the only data kept across launches (see *The chosen language is saved* in `language-selection`, and `learned-items`).
 
 #### Scenario: Restart returns to the first item
 - **WHEN** the user is on the letters level at position 5 and the app is restarted
 - **THEN** the session SHALL start at the digits level, position 0, in the saved language
+
+#### Scenario: Restart from the quiz
+- **WHEN** the user is in the quiz of the letters level and the app is restarted
+- **THEN** the session SHALL start at the digits level, position 0, outside the quiz
+
+### Requirement: Navigate to next item or into the quiz
+The system SHALL advance the position to the next item of the current level when a next navigation is requested, and reset the phase to `playing`. On the last item it SHALL enter the level's quiz with a quiz item drawn as described in `quiz`, keeping the position on the last item. In the quiz it SHALL draw a new quiz item. There is no wrap-around.
+
+#### Scenario: Advance from 0 to 1 in digits
+- **WHEN** the current level is digits and position is 0
+- **AND** next navigation is requested
+- **THEN** the current character SHALL be "1"
+- **AND** the phase SHALL be `playing`
+
+#### Scenario: Enter the quiz from the last item
+- **WHEN** the current position is the last item of the level (e.g., "9" for digits, "Z" for English letters)
+- **AND** next navigation is requested
+- **THEN** the session SHALL be in the quiz of that level
+- **AND** the position SHALL remain on the last item
+- **AND** the phase SHALL be `playing`
+
+#### Scenario: Next in the quiz draws a new item
+- **WHEN** the session is in the quiz with quiz item "3"
+- **AND** next navigation is requested
+- **THEN** the session SHALL still be in the quiz
+- **AND** the quiz item SHALL NOT be "3"
+
+### Requirement: Other navigation leaves the quiz
+Reset, level navigation, home and selecting a language SHALL leave the quiz and then act as they do outside it. A level navigation that is a no-op at the first or last level SHALL leave the session in the quiz with the same quiz item.
+
+#### Scenario: Reset from the quiz
+- **WHEN** the session is in the quiz of the English letters level
+- **AND** a reset is requested
+- **THEN** the session SHALL no longer be in the quiz
+- **AND** the current character SHALL be "A"
+
+#### Scenario: Level up from the quiz
+- **WHEN** the session is in the quiz of the digits level
+- **AND** level-up navigation is requested
+- **THEN** the session SHALL be on the first item of the letters level, outside the quiz
+
+#### Scenario: Level up from the quiz of the last level
+- **WHEN** the session is in the quiz of the words level with quiz item "HI"
+- **AND** level-up navigation is requested
+- **THEN** the session SHALL still be in the quiz with quiz item "HI"
+
+#### Scenario: Home from the quiz
+- **WHEN** the session is in the quiz of the words level
+- **AND** home is requested
+- **THEN** the session SHALL be on digit "0", outside the quiz

@@ -262,6 +262,7 @@ void main() {
           contains('bottom strip to submit'),
           contains('letter gap'),
           contains('Swipe'),
+          contains('past the last character for a quiz'),
         ),
       );
 
@@ -327,7 +328,8 @@ void main() {
 
       await pumpOverlay(tester, classifier);
 
-      const summary = 'Letters level, A, dot dash, 1 of 26, playing';
+      const summary =
+          'Letters level, A, dot dash, 1 of 26, learned 0 of 26, playing';
       expect(find.bySemanticsLabel(summary), findsOneWidget);
       expect(
         overlayNode(tester),
@@ -389,21 +391,32 @@ void main() {
       final notifier = await pumpOverlay(tester, classifier);
       String label() => overlayNode(tester).label;
 
-      expect(label(), 'Letters level, A, dot dash, 1 of 26, playing');
+      expect(
+        label(),
+        'Letters level, A, dot dash, 1 of 26, learned 0 of 26, playing',
+      );
 
       notifier.nextPosition();
       await tester.pump();
-      expect(label(), 'Letters level, B, dash dot dot dot, 2 of 26, playing');
+      expect(
+        label(),
+        'Letters level, B, dash dot dot dot, 2 of 26, learned 0 of 26, playing',
+      );
 
       notifier.setPhase(SessionPhase.listening);
       await tester.pump();
-      expect(label(), 'Letters level, B, dash dot dot dot, 2 of 26, listening');
+      expect(
+        label(),
+        'Letters level, B, dash dot dot dot, 2 of 26, learned 0 of 26, '
+        'listening',
+      );
 
       classifier.inputBufferNotifier.value = const [_dash, _dot];
       await tester.pump();
       expect(
         label(),
-        'Letters level, B, dash dot dot dot, 2 of 26, listening, '
+        'Letters level, B, dash dot dot dot, 2 of 26, learned 0 of 26, '
+        'listening, '
         'input dash dot',
       );
 
@@ -412,9 +425,35 @@ void main() {
       await tester.pump();
       expect(
         label(),
-        'Words level, HI, dot dot dot dot gap dot dot, 1 of 20, playing',
+        'Words level, HI, dot dot dot dot gap dot dot, 1 of 20, '
+        'learned 0 of 20, playing',
       );
       expect(overlayNode(tester), isSemantics(isLiveRegion: true));
+
+      await tester.pumpWidget(const SizedBox());
+      classifier.dispose();
+      handle.dispose();
+    });
+
+    testWidgets('in the quiz, the summary names the item only during the '
+        'feedback', (tester) async {
+      final handle = tester.ensureSemantics();
+      final classifier = FakeGestureClassifier();
+
+      final notifier = await pumpOverlay(tester, classifier);
+      String label() => overlayNode(tester).label;
+      while (!notifier.state.isInQuiz) {
+        notifier.nextPosition();
+      }
+      await tester.pump();
+      final item = notifier.state.currentCharacter;
+
+      expect(label(), 'Letters level, quiz, learned 0 of 26, playing');
+
+      notifier.setPhase(SessionPhase.feedback);
+      await tester.pump();
+      expect(label(), startsWith('Letters level, $item, '));
+      expect(label(), endsWith(', quiz, learned 0 of 26, feedback'));
 
       await tester.pumpWidget(const SizedBox());
       classifier.dispose();
@@ -444,7 +483,8 @@ void main() {
           positionIndex: 1,
           phase: SessionPhase.feedback,
         ),
-        'Arabic letters level, ب, dash dot dot, 2 of 2, feedback',
+        'Arabic letters level, ب, dash dot dot, 2 of 2, learned 0 of 2, '
+        'feedback',
       );
     });
 
@@ -458,10 +498,52 @@ void main() {
         input: input,
       );
 
-      expect(summary(const []), endsWith('1 of 2, listening'));
+      expect(summary(const []), endsWith('1 of 2, learned 0 of 2, listening'));
       expect(
         summary(const [_dot, CharGap(), _dash]),
-        endsWith('1 of 2, listening, input dot gap dash'),
+        endsWith('1 of 2, learned 0 of 2, listening, input dot gap dash'),
+      );
+    });
+
+    test('reads the learned count of the level', () {
+      expect(
+        companionOverlaySummary(
+          level: level,
+          character: 'ا',
+          pattern: const [_dot, _dash],
+          positionIndex: 0,
+          phase: SessionPhase.playing,
+          learnedCount: 1,
+        ),
+        'Arabic letters level, ا, dot dash, 1 of 2, learned 1 of 2, playing',
+      );
+    });
+
+    test('in the quiz, says quiz and hides the item until the feedback', () {
+      String summary(SessionPhase phase, [List<MorseToken> input = const []]) =>
+          companionOverlaySummary(
+            level: level,
+            character: 'ب',
+            pattern: const [_dash, _dot, _dot],
+            positionIndex: 1,
+            phase: phase,
+            input: input,
+            isQuiz: true,
+            learnedCount: 2,
+          );
+
+      expect(
+        summary(SessionPhase.playing),
+        'Arabic letters level, quiz, learned 2 of 2, playing',
+      );
+      expect(
+        summary(SessionPhase.listening, const [_dot]),
+        'Arabic letters level, quiz, learned 2 of 2, listening, input dot',
+      );
+      expect(
+        summary(SessionPhase.feedback),
+        'Arabic letters level, ب, dash dot dot, quiz, learned 2 of 2, '
+        'feedback',
       );
     });
 
@@ -474,7 +556,7 @@ void main() {
           positionIndex: 0,
           phase: SessionPhase.playing,
         ),
-        'Arabic letters level, ا, 1 of 2, playing',
+        'Arabic letters level, ا, 1 of 2, learned 0 of 2, playing',
       );
     });
   });

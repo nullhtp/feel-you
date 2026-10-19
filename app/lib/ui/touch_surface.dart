@@ -257,7 +257,8 @@ class _TouchSurfaceState extends ConsumerState<TouchSurface> {
                     'Tap the left half for a dot and the right half for a '
                     'dash. Tap the bottom strip to submit, or to add a letter '
                     'gap on word levels. Swipe left or right to change '
-                    'character, up or down to change level.',
+                    'character, up or down to change level. Swipe right '
+                    'past the last character for a quiz.',
                 child: const SizedBox.expand(),
               ),
             ),

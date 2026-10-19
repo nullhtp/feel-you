@@ -30,5 +30,17 @@ void main() {
       expect(config.spellingLetterGap, greaterThan(drilledLetterGap * 2));
       expect(config.spellingLetterGap * 2, lessThan(config.repeatPause));
     });
+
+    test('default quizMarkerGap is 1000ms', () {
+      const config = TeachingTimingConfig();
+      expect(config.quizMarkerGap, const Duration(milliseconds: 1000));
+    });
+
+    test('custom quizMarkerGap is accepted', () {
+      const config = TeachingTimingConfig(
+        quizMarkerGap: Duration(milliseconds: 1500),
+      );
+      expect(config.quizMarkerGap, const Duration(milliseconds: 1500));
+    });
   });
 }

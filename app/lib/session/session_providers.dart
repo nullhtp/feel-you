@@ -1,8 +1,12 @@
+import 'dart:math';
+
 import 'package:feel_you/morse/morse_language.dart';
 import 'package:feel_you/morse/morse_providers.dart';
+import 'package:feel_you/session/quiz_item_picker.dart';
 import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_state.dart';
 import 'package:feel_you/settings/language_preference.dart';
+import 'package:feel_you/settings/learned_items.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Provides the [SessionNotifier] and its current [SessionState].
@@ -15,7 +19,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// ([launchLanguageProvider]), so a launch that skips the picker starts in
 /// it; [MorseLanguage.english] when none is saved. The language picker
 /// calls [SessionNotifier.selectLanguage] to set the user's choice.
-/// Levels are resolved from [morseRegistryProvider].
+/// Levels are resolved from [morseRegistryProvider], and quiz items are
+/// drawn with [quizItemPickerProvider].
 ///
 /// Override in tests to inject a custom notifier or initial state, or
 /// override [morseRegistryProvider] to substitute the registry.
@@ -24,5 +29,23 @@ final sessionNotifierProvider =
       (ref) => SessionNotifier(
         ref.watch(launchLanguageProvider) ?? MorseLanguage.english,
         registry: ref.watch(morseRegistryProvider),
+        quizItemPicker: ref.watch(quizItemPickerProvider),
       ),
     );
+
+/// Provides the [Random] the quiz draws its items with.
+///
+/// Override in tests with a seeded [Random] to make the draws repeatable.
+final quizRandomProvider = Provider<Random>((ref) => Random());
+
+/// Provides the [QuizItemPicker] the session draws quiz items with.
+///
+/// It looks learned items up in [learnedItemsProvider] on every draw, so an
+/// item learned a moment ago already counts.
+final quizItemPickerProvider = Provider<QuizItemPicker>(
+  (ref) => QuizItemPicker(
+    learnedItemsOf: (language, level) =>
+        ref.read(learnedItemsProvider).of(language, level),
+    random: ref.watch(quizRandomProvider),
+  ),
+);

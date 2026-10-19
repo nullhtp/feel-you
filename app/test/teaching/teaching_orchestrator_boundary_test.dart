@@ -26,6 +26,9 @@ const _spellingLetterGap = Duration(milliseconds: 10);
 /// Pause between feedback and the loop resuming.
 const _postFeedbackPause = Duration(milliseconds: 50);
 
+/// Silence after the quiz's `?` marker. Short to keep the tests fast.
+const _quizMarkerGap = Duration(milliseconds: 10);
+
 /// Long enough for the loop to have started and played once.
 const _loopStarted = Duration(milliseconds: 20);
 
@@ -96,6 +99,7 @@ class _Harness {
         repeatPause: _repeatPause,
         postFeedbackPause: _postFeedbackPause,
         spellingLetterGap: _spellingLetterGap,
+        quizMarkerGap: _quizMarkerGap,
       ),
     );
   }
@@ -105,24 +109,35 @@ class _Harness {
   factory _Harness.firstDigit({GestureClassifier? classifier}) =>
       _Harness(SessionNotifier(MorseLanguage.english), classifier: classifier);
 
-  /// A harness on the last digit, `9`.
-  factory _Harness.lastDigit({GestureClassifier? classifier}) {
-    final session = SessionNotifier(MorseLanguage.english);
-    while (session.state.positionIndex <
-        session.state.currentLevel.characters.length - 1) {
-      session.nextPosition();
-    }
-    return _Harness(session, classifier: classifier);
-  }
+  /// A harness in the quiz of the digits level, the first level.
+  factory _Harness.firstLevelQuiz({GestureClassifier? classifier}) => _Harness(
+    _enterQuiz(SessionNotifier(MorseLanguage.english)),
+    classifier: classifier,
+  );
 
   /// A harness on the first word of the words level, the last level.
-  factory _Harness.lastLevel({GestureClassifier? classifier}) {
+  factory _Harness.lastLevel({GestureClassifier? classifier}) =>
+      _Harness(_lastLevel(), classifier: classifier);
+
+  /// A harness in the quiz of the words level, the last level.
+  factory _Harness.lastLevelQuiz({GestureClassifier? classifier}) =>
+      _Harness(_enterQuiz(_lastLevel()), classifier: classifier);
+
+  static SessionNotifier _lastLevel() {
     final session = SessionNotifier(MorseLanguage.english);
     while (session.state.levelIndex < session.state.levels.length - 1) {
       session.nextLevel();
     }
     expect(session.state.currentLevel.kind, LevelKind.words);
-    return _Harness(session, classifier: classifier);
+    return session;
+  }
+
+  /// Moves [session] past the last item of its level, into the quiz.
+  static SessionNotifier _enterQuiz(SessionNotifier session) {
+    while (!session.state.isInQuiz) {
+      session.nextPosition();
+    }
+    return session;
   }
 
   final SessionNotifier session;
@@ -203,9 +218,11 @@ void main() {
       harness: _Harness.firstDigit,
       swipe: const NavigatePrevious(),
     ),
-    'NavigateNext on the last item': (
-      harness: _Harness.lastDigit,
-      swipe: const NavigateNext(),
+    // Swiping right on the last item enters the quiz, so it is no boundary;
+    // the quiz has its own at the first and last level.
+    'NavigateDown in the quiz of the first level': (
+      harness: _Harness.firstLevelQuiz,
+      swipe: const NavigateDown(),
     ),
     'NavigateDown on the first level': (
       harness: _Harness.firstDigit,
@@ -213,6 +230,10 @@ void main() {
     ),
     'NavigateUp on the last level': (
       harness: _Harness.lastLevel,
+      swipe: const NavigateUp(),
+    ),
+    'NavigateUp in the quiz of the last level': (
+      harness: _Harness.lastLevelQuiz,
       swipe: const NavigateUp(),
     ),
   };
@@ -319,7 +340,14 @@ void main() {
         expect(t.phase, SessionPhase.feedback);
         expect(t.playbacks, 0);
         await settle(_postFeedbackPause + _loopStarted);
-        await t.expectLoopRepeating(character);
+        final resumedOn = t.session.state.currentCharacter;
+        if (t.session.state.isInQuiz) {
+          // A correct quiz answer moves on to a new quiz item.
+          expect(resumedOn, isNot(character));
+        } else {
+          expect(resumedOn, character);
+        }
+        await t.expectLoopRepeating(resumedOn);
 
         await t.tearDown();
       });

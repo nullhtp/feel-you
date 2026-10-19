@@ -18,7 +18,8 @@ context: |
     - The app plays the current item, pauses 3 s and repeats it forever. Words are spelled letter by letter before they are drilled.
     - The user taps the item back; the answer is checked after 1 s without a tap, or at once with a bottom-strip tap.
     - Correct: five quick 50 ms taps. Wrong: one 500 ms buzz. Then the same item again; the app never moves on by itself.
-    - Only the chosen language is saved. Level and position live in memory; every launch starts at digit 0.
+    - The chosen language and the learned items (answered correctly once in the lessons) are saved. Level and position live in memory; every launch starts at digit 0.
+    - Each level ends with a quiz (swipe right past the last item): Morse ? marks it, it plays random learned items, the user echoes them.
     - Design philosophy: closer to a musical instrument than a language app.
 
   Lesson screen (black, landscape): the left half is a dot and the right half a dash, decided by where a press starts, not how long it lasts.

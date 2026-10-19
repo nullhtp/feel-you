@@ -45,7 +45,7 @@ The digits use the same International Morse patterns in every language. Each wor
 | Arabic | كل لا نم هل حر · نعم ألم برد شكر قلب · سعيد شراب وقوف مريض جالس · مساعد عطشان جوعان تعبان سلامك |
 | Russian | ДА НЕ ОН НУ УЖ · НЕТ ЕДА СОН ДОМ ПИЛ · БОЛЬ СТОП ВОДА ХОЧУ ЖАРА · СПАТЬ УСТАЛ ЖАРКО ХОЛОД ПУСТЬ |
 
-A session starts at the digits level, on 0. Only the language is saved; the level and position are not, so every launch starts at 0 again.
+A session starts at the digits level, on 0. The level and position are not saved, so every launch starts at 0 again. The language is saved, and so are the items the user has learned, which [the quiz](#the-quiz) draws from.
 
 #### The learning loop
 
@@ -86,6 +86,31 @@ Phone:  · −        (here it is again, keep trying)
 
 On a words level the answer must also have the letter boundaries in the right places: the user taps the bottom strip once between letters. For `HI` that is `· · · ·`, a bottom-strip tap, then `· ·`. On digits and letters levels only the dots and dashes count.
 
+#### The quiz
+
+In the lessons the user always knows which item is playing: they counted their way to it. To read Morse they must also recognise an item they did not choose. That is what the quiz is for.
+
+Every level ends with a quiz, one swipe right past its last item (after 9, after Z, after the last word). The app announces it with Morse `?` (`· · − − · ·`), waits 1 second and plays a random item of the level, which repeats like a lesson item. The user taps back what they felt, and the answer is checked as in the lessons.
+
+- **Correct:** the *correct* signal, half a second, then a **new** random item. The quiz moves on only after a correct answer.
+- **Wrong:** the *wrong* signal, half a second, then the same item again.
+- **Swipe right:** skip to another item. **Swipe left:** back to the last item of the level. Hold, swipe up or down and shake leave the quiz as usual.
+
+```
+Phone:  · · − − · ·  ...1 s...  · · · · −   (?, then a random digit: 4)
+        ...3 s pause...
+Phone:  · · · · −                           (repeats)
+User:   · · · · −
+        ...1 s without a tap: the answer is checked...
+Phone:  ·····                               (correct)
+        ...0.5 s...
+Phone:  − − · · ·                           (a new item: 7, without ?)
+```
+
+The quiz draws from the items the user has **learned**: an item is learned the first time it is answered correctly in the lessons, and it stays learned. While fewer than two items of the level are learned, the quiz draws from the whole level. It never plays the same item twice in a row. Words are not spelled first in the quiz: working out which word it is, is the exercise. Answers in the quiz do not change what is learned.
+
+Learned items are saved on the phone for each language and level, so the quiz grows from one day to the next even though every launch starts at 0.
+
 ### The Screen
 
 The phone is held in landscape. The screen is black. It is split by where a press *starts*:
@@ -115,11 +140,25 @@ How long a tap lasts does not matter, only where it starts: the left half is alw
 | **Tap** | Right half | Dash |
 | **Tap** | Bottom strip | Digits and letters: check the answer now instead of waiting 1 s. Words: add a letter gap after the dots and dashes tapped so far. Confirmed with a short buzz. Ignored until the first dot or dash, so a stray touch never stops the item playing. |
 | *(no tap for 1 s)* | | The answer is checked |
-| **Swipe right / left** | Anywhere | Next / previous item in the level. Stops at the first and last item (no wrap-around). |
+| **Swipe right / left** | Anywhere | Next / previous item in the level. Swipe right on the last item opens the level's [quiz](#the-quiz); in the quiz, swipe right plays another item and swipe left goes back to the last item. Stops at the first item (no wrap-around). |
 | **Swipe up / down** | Anywhere | Next / previous level (digits → letters → words), starting at its first item. Stops at digits and at words. |
 | **Hold 2 seconds** | Anywhere | Back to the first item of the current level (0, A, ا or А, or the first word). Triggers while the finger is still down. |
 | **Shake** | | Home: the digits level, on 0. The language stays. |
 | **Double shake** | | Back to the language picker (shake, stop for about a second, shake again). |
+
+Where the swipes lead (English shown; every language has the same layout):
+
+```
+              swipe left <--      --> swipe right
+
+  words       HI    OK    ...   THANK    [?]      ^ swipe up
+  letters     A     B     ...   Z        [?]      |
+  digits      0     1     ...   9        [?]      v swipe down
+              ^
+            shake: digits, on 0
+```
+
+`[?]` is the level's quiz: it comes after the last item, so swiping right until the Morse `?` is felt always reaches it, without counting. Hold, swipe up or down, shake and double shake leave it as they leave any item. At the top and bottom levels, swipe up or down does nothing, so the quiz stays.
 
 Details, with the values from the code:
 
@@ -151,8 +190,9 @@ Distinct patterns the app uses that are separate from Morse:
 | `━━━━━` one 500 ms buzz | Wrong, try again |
 | One 50 ms buzz | Bottom-strip tap accepted (answer submitted, or letter gap added) |
 | `·` / `· − · −` / `· − ·` | Language identifiers in the picker: Morse E (English), ع (Arabic), Р (Russian) |
+| `· · − − · ·` Morse `?` (1500 ms), then 1 s of silence | Entering a level's quiz |
 
-The correct taps are shorter than a dot with gaps shorter than any Morse gap, and the wrong buzz is longer than a dash, so neither can be mistaken for Morse. On a phone whose motor reports no amplitude control, the app uses duration-only versions: the five taps are 60 ms apart (490 ms) and the wrong buzz lasts 700 ms. After either signal the app waits 0.5 s before repeating the item.
+The correct taps are shorter than a dot with gaps shorter than any Morse gap, and the wrong buzz is longer than a dash, so neither can be mistaken for Morse. On a phone whose motor reports no amplitude control, the app uses duration-only versions: the five taps are 60 ms apart (490 ms) and the wrong buzz lasts 700 ms. After either signal the app waits 0.5 s before repeating the item (in the quiz, before a new item after a correct answer). The `?` has 6 elements, more than any digit or letter (5 at most), so it cannot be mistaken for an item.
 
 ### Choosing a Language
 
@@ -174,14 +214,16 @@ On an iPhone without Core Haptics (iPhone 7 and older) every vibration is the sa
 
 ### For Sighted Helpers
 
-The lesson screen is black for the user, with a dim overlay for anyone watching: the zone lines and labels (`DOT`, `DASH`, `SUBMIT` or `GAP`), the current item in large type with its Morse pattern, the level name, the position (e.g. `3/26`), the phase (`PLAYING`, `LISTENING`, `FEEDBACK`), the dots and dashes tapped so far, and a vibration readout in the bottom-left corner (e.g. `Vibration: OK · amplitude: yes · custom: yes`, amber when something is missing). Screen readers get a spoken summary instead: level, item, pattern, position, phase and the input so far.
+The lesson screen is black for the user, with a dim overlay for anyone watching: the zone lines and labels (`DOT`, `DASH`, `SUBMIT` or `GAP`), the current item in large type with its Morse pattern, the level name, the position (e.g. `3/26`) with the number of learned items of the level under it (e.g. `learned 11/26`), the phase (`PLAYING`, `LISTENING`, `FEEDBACK`), the dots and dashes tapped so far, and a vibration readout in the bottom-left corner (e.g. `Vibration: OK · amplitude: yes · custom: yes`, amber when something is missing). Screen readers get a spoken summary instead: level, item, pattern, position, learned count, phase and the input so far.
+
+In the quiz the position reads `QUIZ`, and the item and its pattern are replaced by `?` until the user has answered: they appear during the *correct* or *wrong* signal. A user with some sight left cannot read the answer off the screen, and a helper still sees what it was. The spoken summary says "quiz" and leaves the item out in the same way.
 
 ### Design Principles
 
-- **User controls the pace.** The app just repeats and listens. It never advances by itself.
+- **User controls the pace.** The app just repeats and listens. It never advances by itself: even the quiz moves on only after a correct answer or a swipe.
 - **Skip anything, anytime.** Swipe left or right to move between items, up or down to change level.
 - **Lost? Reset.** A 2-second hold goes back to the start of the level, a shake to the very start (digit 0). You can always re-anchor.
-- **Almost no state.** The app saves only the language. Level and position live in memory.
+- **Almost no state.** The app saves only the language and the items the user has learned. Level and position live in memory.
 - **Closer to a musical instrument than a language app.** Like a metronome that plays a note: you listen, you play along when ready, you move on when you decide.
 
 ## Future Phases

@@ -7,6 +7,7 @@ class TeachingTimingConfig {
     this.repeatPause = const Duration(milliseconds: 3000),
     this.postFeedbackPause = const Duration(milliseconds: 500),
     this.spellingLetterGap = const Duration(milliseconds: 1000),
+    this.quizMarkerGap = const Duration(milliseconds: 1000),
   });
 
   /// Pause between pattern repetitions in the play-wait-repeat loop.
@@ -29,4 +30,11 @@ class TeachingTimingConfig {
   /// between the letters of a drilled word, and clearly shorter than
   /// [repeatPause], so the spelled letters still belong together.
   final Duration spellingLetterGap;
+
+  /// Silence between the `?` marker and the first quiz item.
+  ///
+  /// When the user enters a level's quiz, the orchestrator plays Morse `?`
+  /// to tell them where they are, waits this long, then plays the quiz
+  /// item. The gap keeps the marker from running into the item.
+  final Duration quizMarkerGap;
 }

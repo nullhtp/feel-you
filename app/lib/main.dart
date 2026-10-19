@@ -1,5 +1,6 @@
 import 'package:feel_you/app.dart';
 import 'package:feel_you/settings/language_preference.dart';
+import 'package:feel_you/settings/learned_items.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,7 +14,10 @@ Future<void> main() async {
 
   // Load the saved language before the first frame, so a returning user
   // goes straight to the lessons without the picker flashing up first.
+  // Learned items are loaded with it, so the quiz and the overlay's count
+  // never start empty.
   final languagePreference = await loadLanguagePreferenceStore();
+  final learnedItems = await loadLearnedItemsStore();
 
   // The dot/dash midpoint is not read here: before the first frame the view
   // can still report a zero size, and the width changes with split-screen,
@@ -23,6 +27,7 @@ Future<void> main() async {
     ProviderScope(
       overrides: [
         languagePreferenceStoreProvider.overrideWithValue(languagePreference),
+        learnedItemsStoreProvider.overrideWithValue(learnedItems),
       ],
       child: const FeelYouApp(),
     ),

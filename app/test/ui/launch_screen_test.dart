@@ -5,6 +5,7 @@ import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/settings/language_preference.dart';
+import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/ui/language_picker_surface.dart';
@@ -41,10 +42,15 @@ Future<LanguagePreferenceStore> _loadStore(Map<String, Object> stored) {
 
 /// The whole app with test doubles, launched with [store].
 class _App {
-  _App(this.store, {VibrationCapabilityProbe? probe})
-    : probe = probe ?? FakeVibrationCapabilityProbe();
+  _App(
+    this.store, {
+    VibrationCapabilityProbe? probe,
+    LearnedItemsStore? learnedItems,
+  }) : probe = probe ?? FakeVibrationCapabilityProbe(),
+       learnedItems = learnedItems ?? InMemoryLearnedItemsStore();
 
   final LanguagePreferenceStore store;
+  final LearnedItemsStore learnedItems;
   final VibrationCapabilityProbe probe;
   final classifier = FakeGestureClassifier();
   final vibration = MockVibrationService();
@@ -56,6 +62,7 @@ class _App {
       ProviderScope(
         overrides: [
           languagePreferenceStoreProvider.overrideWithValue(store),
+          learnedItemsStoreProvider.overrideWithValue(learnedItems),
           gestureClassifierProvider.overrideWithValue(classifier),
           vibrationServiceProvider.overrideWithValue(vibration),
           shakeDetectorProvider.overrideWithValue(shake),
@@ -178,6 +185,33 @@ void main() {
       ]);
       // No language identifier was played.
       expect(app.vibration.patterns, isNot(contains([MorseSignal.dot])));
+
+      await app.close(tester);
+    });
+
+    testWidgets('keeps the learned items of an earlier run and still opens '
+        'on digit 0', (tester) async {
+      final languageStore = await _loadStore({
+        _key: 'russian',
+        'learned_items.russian.russian-letters': ['А', 'Б'],
+      });
+      final app = _App(
+        languageStore,
+        learnedItems: await loadLearnedItemsStore(),
+      );
+      await app.launch(tester);
+      await tester.pump();
+
+      final session = app.session(tester);
+      expect(session.levelIndex, 0);
+      expect(session.positionIndex, 0);
+      expect(
+        app
+            .container(tester)
+            .read(learnedItemsProvider)
+            .of(MorseLanguage.russian, session.levels[1]),
+        {'А', 'Б'},
+      );
 
       await app.close(tester);
     });

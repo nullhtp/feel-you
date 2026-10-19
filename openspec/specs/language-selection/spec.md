@@ -89,7 +89,7 @@ The system SHALL show a full-screen language picker on launch when no language i
 - **THEN** the highlighted column SHALL be drawn inverted and a line at the bottom SHALL read "Tap a language, then hold anywhere for 1 second to start"
 
 ### Requirement: The chosen language is saved
-Starting a language in the picker SHALL save it on the device (`SharedPreferences`, key `selected_language`) for the next launch. A launch that finds a saved language SHALL skip the picker and start the session in that language. The language SHALL be the only setting saved. Saving is best effort: when the storage cannot be loaded or written, the app SHALL still run, and the picker SHALL appear again on the next launch.
+Starting a language in the picker SHALL save it on the device (`SharedPreferences`, key `selected_language`) for the next launch. A launch that finds a saved language SHALL skip the picker and start the session in that language. Apart from the learned items (see `learned-items`), the language SHALL be the only setting saved. Saving is best effort: when the storage cannot be loaded or written, the app SHALL still run, and the picker SHALL appear again on the next launch.
 
 #### Scenario: Next launch skips the picker
 - **WHEN** the user started Arabic in the picker and the app is restarted

@@ -235,7 +235,7 @@ void main() {
   // -------------------------------------------------------------------------
   // 3.8 Navigate next at letter Z
   // -------------------------------------------------------------------------
-  test('navigate next at letter Z stays on Z', () async {
+  test('navigate next at letter Z enters the quiz', () async {
     // Switch to letters level and advance to Z (index 25).
     final session = h.container.read(sessionNotifierProvider.notifier);
     session.nextLevel();
@@ -256,15 +256,13 @@ void main() {
     );
     await Future<void>.delayed(const Duration(milliseconds: 30));
 
-    // Should stay on Z.
-    expect(h.currentLetter, 'Z');
-    expect(
-      h.container.read(sessionNotifierProvider).phase,
-      SessionPhase.playing,
-    );
+    // In the letters quiz, still on Z's position.
+    final state = h.container.read(sessionNotifierProvider);
+    expect(state.isInQuiz, isTrue);
+    expect(state.positionIndex, 25);
+    expect(state.phase, SessionPhase.playing);
 
-    // Should still be playing Z's pattern.
-    final zPattern = encodeLetter('Z', MorseLanguage.english)!;
-    expect(h.vibration.hasPattern(zPattern), isTrue);
+    // The quiz is announced with Morse ?.
+    expect(h.vibration.hasPattern(questionMarkPattern), isTrue);
   });
 }

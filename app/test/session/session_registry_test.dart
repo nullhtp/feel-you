@@ -217,17 +217,20 @@ void main() {
       expect(notifier.state.currentCharacter, '0');
     });
 
-    test('nextPosition clamps at the end of the injected level', () {
-      notifier
-        ..nextPosition()
-        ..nextPosition();
-      expect(notifier.state.currentCharacter, '2');
+    test(
+      'nextPosition after the end of the injected level enters its quiz',
+      () {
+        notifier
+          ..nextPosition()
+          ..nextPosition();
+        expect(notifier.state.currentCharacter, '2');
 
-      final before = notifier.state;
-      notifier.nextPosition();
-      expect(notifier.state, before);
-      expect(notifier.state.positionIndex, 2);
-    });
+        notifier.nextPosition();
+        expect(notifier.state.isInQuiz, isTrue);
+        expect(notifier.state.positionIndex, 2);
+        expect(notifier.state.currentCharacter, isIn(['0', '1', '2']));
+      },
+    );
 
     test('nextLevel stops at the last level of the injected registry', () {
       notifier.nextLevel();

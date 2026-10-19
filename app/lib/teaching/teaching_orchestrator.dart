@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
+import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/foundation.dart' show immutable;
@@ -61,8 +62,11 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     required this.sessionNotifier,
     this.config = const TeachingTimingConfig(),
     ShakeDetector? shakeDetector,
+    LearnedItemsNotifier? learnedItems,
   }) : _gestureClassifier = gestureClassifier,
        _shakeDetector = shakeDetector,
+       learnedItems =
+           learnedItems ?? LearnedItemsNotifier(InMemoryLearnedItemsStore()),
        super(const TeachingOrchestratorState()) {
     _gestureSubscription = gestureClassifier.events.listen(_onGestureEvent);
     _shakeSubscription = shakeDetector?.events.listen(_onGestureEvent);
@@ -73,6 +77,10 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   final VibrationService vibrationService;
   final SessionNotifier sessionNotifier;
   final TeachingTimingConfig config;
+
+  /// Where a correct answer in the lessons marks the item as learned, so the
+  /// quiz can draw it. Defaults to a store that lasts for this run only.
+  final LearnedItemsNotifier learnedItems;
 
   late final StreamSubscription<GestureEvent> _gestureSubscription;
   StreamSubscription<GestureEvent>? _shakeSubscription;
@@ -105,7 +113,8 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   bool get _isInterrupted => _disposed || !mounted || state.isInterrupted;
 
   /// Starts the play-wait-repeat loop for the current character, spelling
-  /// it first if it is a word (see [_runLoop]).
+  /// it first if it is a word, or announcing the quiz first in the quiz (see
+  /// [_runLoop]).
   ///
   /// Resumes shake detection and discards any input the classifier buffered
   /// while the loop was stopped: those taps were ignored, so they must not
@@ -119,7 +128,7 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     state = state.copyWith(isRunning: true, isInterrupted: false);
     _gestureClassifier.clearInput();
     _shakeDetector?.resume();
-    unawaited(_runLoop(spellWord: true));
+    unawaited(_runLoop(spellWord: true, announceQuiz: true));
   }
 
   /// Stops the play-wait-repeat loop and cancels any ongoing vibration.
@@ -192,8 +201,18 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// on a word ([start] and navigation), but not when it resumes after
   /// feedback: the user stays on the same word and already knows it.
   /// [spellWord] has no effect on a characters level, where the position
-  /// already tells the user which character is playing.
-  Future<void> _runLoop({bool spellWord = false}) async {
+  /// already tells the user which character is playing, nor in the quiz,
+  /// where telling which word it is, is the exercise.
+  ///
+  /// With [announceQuiz], a loop that starts in the quiz first plays Morse
+  /// `?` (see [_announceQuiz]). The loop is started this way by [start] and
+  /// by a navigation into the quiz from outside it, but not after a skip,
+  /// after feedback or by a restart in place: the user is already in the
+  /// quiz and knows it.
+  Future<void> _runLoop({
+    bool spellWord = false,
+    bool announceQuiz = false,
+  }) async {
     if (_disposed) return;
 
     // Capture the generation so this loop can detect if a newer loop
@@ -202,7 +221,13 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
     sessionNotifier.setPhase(SessionPhase.playing);
 
-    var spell = spellWord;
+    final inQuiz = sessionNotifier.state.isInQuiz;
+    if (announceQuiz && inQuiz) {
+      await _announceQuiz(gen);
+      if (!_shouldRun || _isInterrupted || gen != _loopGeneration) return;
+    }
+
+    var spell = spellWord && !inQuiz;
     while (_shouldRun && !_isInterrupted && gen == _loopGeneration) {
       // Look up the current character's Morse pattern from the level.
       final character = sessionNotifier.state.currentCharacter;
@@ -257,6 +282,18 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
       await vibrationService.playMorsePattern(letters[i]);
       if (!_shouldRun || _isInterrupted || gen != _loopGeneration) return;
     }
+  }
+
+  /// Tells the user they are in the quiz: plays Morse `?`, then waits
+  /// [TeachingTimingConfig.quizMarkerGap] so the marker does not run into
+  /// the first quiz item.
+  ///
+  /// Interrupted like [_spellWord]: a tap during the marker or the gap ends
+  /// it, and the answer is checked against the quiz item.
+  Future<void> _announceQuiz(int gen) async {
+    await vibrationService.playMorsePattern(questionMarkPattern);
+    if (!_shouldRun || _isInterrupted || gen != _loopGeneration) return;
+    await _pause(config.quizMarkerGap);
   }
 
   /// Waits for [duration], or until [_cancelPause] ends the wait early.
@@ -331,8 +368,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     // Only evaluate input during listening phase.
     if (phase != SessionPhase.listening) return;
 
-    final character = sessionNotifier.state.currentCharacter;
-    final level = sessionNotifier.state.currentLevel;
+    final session = sessionNotifier.state;
+    final character = session.currentCharacter;
+    final level = session.currentLevel;
     final isWordsLevel = level.kind == LevelKind.words;
 
     final bool isCorrect;
@@ -352,7 +390,13 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     }
 
     if (isCorrect) {
-      _handleFeedback(vibrationService.playSuccess);
+      // Learned on the first correct answer in the lessons, before the
+      // feedback, so a swipe during the success signal cannot lose it. A
+      // quiz answer never changes what is learned.
+      if (!session.isInQuiz) {
+        learnedItems.add(session.language, level, character);
+      }
+      _handleFeedback(vibrationService.playSuccess, wasCorrect: true);
     } else {
       _handleFeedback(vibrationService.playError);
     }
@@ -392,7 +436,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// Plays feedback (success or error), pauses briefly, then resumes the loop.
   ///
   /// The loop resumes without spelling the word again: the user has not
-  /// moved, so they already know which word it is.
+  /// moved, so they already know which word it is. In the quiz, an answer
+  /// that [wasCorrect] resumes on a new quiz item instead, without the `?`
+  /// marker; a wrong one resumes on the same item, as in the lessons.
   ///
   /// Resuming discards any input the classifier buffered during feedback:
   /// those taps were ignored, so they must not become the start of the next
@@ -403,7 +449,10 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
   /// the feedback phase and [start] resets it to playing. A swipe past the
   /// first or last item or level does not navigate, so it leaves the
   /// sequence alone (see [_onNavigate]).
-  Future<void> _handleFeedback(Future<void> Function() playFeedback) async {
+  Future<void> _handleFeedback(
+    Future<void> Function() playFeedback, {
+    bool wasCorrect = false,
+  }) async {
     if (_disposed) return;
     final gen = _loopGeneration;
     sessionNotifier.setPhase(SessionPhase.feedback);
@@ -419,6 +468,10 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     if (!_shouldRun || gen != _loopGeneration) return;
     if (sessionNotifier.state.phase != SessionPhase.feedback) return;
 
+    // A correct quiz answer moves on to a new quiz item (a no-op outside
+    // the quiz).
+    if (wasCorrect) sessionNotifier.nextQuizItem();
+
     // Resume the loop (fire-and-forget — the loop manages its own lifecycle).
     _loopGeneration++;
     state = state.copyWith(isInterrupted: false);
@@ -428,6 +481,9 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
   /// Moves the session with [navigationAction] and restarts the loop for the
   /// character it lands on.
+  ///
+  /// A move into the quiz from outside it announces the quiz with Morse `?`.
+  /// A move within the quiz (a skip) does not.
   ///
   /// Navigation works in any phase. Restarting cuts short whatever is
   /// vibrating and abandons any feedback sequence or bottom-zone action in
@@ -471,10 +527,16 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     _gestureClassifier.clearInput();
 
     // Restart the loop for the new (or same) character, spelling it first
-    // if it is a word. Navigation is only handled while running (see
-    // _onGestureEvent), so it never starts a stopped loop.
+    // if it is a word, or announcing the quiz if the move entered it.
+    // Navigation is only handled while running (see _onGestureEvent), so it
+    // never starts a stopped loop.
     _loopGeneration++;
     state = state.copyWith(isInterrupted: false);
-    unawaited(_runLoop(spellWord: true));
+    unawaited(
+      _runLoop(
+        spellWord: true,
+        announceQuiz: !stateBefore.isInQuiz && sessionNotifier.state.isInQuiz,
+      ),
+    );
   }
 }

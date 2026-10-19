@@ -199,12 +199,13 @@ void main() {
       }
       expect(notifier.state.currentCharacter, '9');
 
-      // nextPosition is a no-op at boundary.
+      // nextPosition past the last digit enters the quiz.
       notifier.nextPosition();
-      expect(notifier.state.currentCharacter, '9');
+      expect(notifier.state.isInQuiz, isTrue);
 
-      // Switch to letters.
+      // Switch to letters, which leaves the quiz.
       notifier.nextLevel();
+      expect(notifier.state.isInQuiz, isFalse);
       expect(notifier.state.currentCharacter, 'A');
       expect(notifier.state.positionIndex, 0);
 

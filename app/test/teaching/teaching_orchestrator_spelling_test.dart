@@ -242,8 +242,10 @@ void main() {
       });
     }
 
-    test('a swipe past the last word while listening spells it '
+    test('a swipe up on the last level while listening spells the word '
         'again', () async {
+      // Swiping right on the last word enters the quiz, so the restart in
+      // place is a swipe up: the words level is the last level.
       final t = _Harness.word(position: 19);
       expect(t.session.state.currentCharacter, 'THANK');
       t.orchestrator.start();
@@ -253,7 +255,7 @@ void main() {
       expect(t.phase, SessionPhase.listening);
       t.vibration.reset();
 
-      t.gestures.addEvent(const NavigateNext());
+      t.gestures.addEvent(const NavigateUp());
       await settle(_severalRepeatCycles);
 
       expect(t.session.state.currentCharacter, 'THANK');

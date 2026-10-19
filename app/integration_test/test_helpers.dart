@@ -133,6 +133,7 @@ const fastMorseTimingConfig = MorseTimingConfig(
 const fastTeachingConfig = TeachingTimingConfig(
   repeatPause: Duration(milliseconds: 5),
   postFeedbackPause: Duration(milliseconds: 5),
+  quizMarkerGap: Duration(milliseconds: 5),
 );
 
 // ---------------------------------------------------------------------------
@@ -287,7 +288,10 @@ class TestHarness {
 }
 
 /// Creates a fully wired [TestHarness] with real providers and mocked vibration.
-TestHarness createTestHarness() {
+///
+/// [overrides] are added to the defaults, e.g. a learned-items store shared
+/// by two harnesses to stand for an app restart.
+TestHarness createTestHarness({List<Override> overrides = const []}) {
   final vibration = RecordingVibrationService();
 
   final container = ProviderContainer(
@@ -297,6 +301,7 @@ TestHarness createTestHarness() {
       screenWidthProvider.overrideWithValue(800),
       morseTimingConfigProvider.overrideWithValue(fastMorseTimingConfig),
       teachingTimingConfigProvider.overrideWithValue(fastTeachingConfig),
+      ...overrides,
     ],
   );
 
