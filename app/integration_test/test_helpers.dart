@@ -6,6 +6,7 @@ import 'package:feel_you/gestures/gesture_providers.dart';
 import 'package:feel_you/gestures/gesture_timing_config.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_providers.dart';
+import 'package:feel_you/tactile/tactile.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
@@ -29,7 +30,7 @@ enum VibrationCallType {
 
 /// A single recorded call to [RecordingVibrationService].
 class VibrationCall {
-  const VibrationCall(this.type, {this.signals, this.tokens});
+  const VibrationCall(this.type, {this.signals, this.tokens, this.played});
 
   final VibrationCallType type;
 
@@ -38,6 +39,12 @@ class VibrationCall {
 
   /// Non-null only for [VibrationCallType.playMorseTokenPattern].
   final List<MorseToken>? tokens;
+
+  /// The tactile tokens the service was asked to play, as they were passed
+  /// to [RecordingVibrationService.playTokens].
+  ///
+  /// Non-null for both playback types.
+  final List<TactileToken>? played;
 
   @override
   String toString() {
@@ -50,19 +57,30 @@ class VibrationCall {
 /// A [VibrationService] that records all calls for test assertions.
 ///
 /// All methods complete immediately with no delay.
+///
+/// Playbacks are recorded in Morse terms, because the lessons are Morse and
+/// the tests are written in dots and dashes: a playback with a character
+/// gap (a word) as [VibrationCallType.playMorseTokenPattern] with its
+/// [VibrationCall.tokens], one without (a digit, a letter, a spelled letter,
+/// `?`) as [VibrationCallType.playMorsePattern] with its
+/// [VibrationCall.signals]. Every lesson word has at least two letters, so a
+/// gap reliably marks a word. [VibrationCall.played] keeps the tactile
+/// tokens themselves.
 class RecordingVibrationService implements VibrationService {
   final List<VibrationCall> calls = [];
 
   /// Returns all recorded call types in order.
   List<VibrationCallType> get callTypes => calls.map((c) => c.type).toList();
 
-  /// Returns the signals from all [playMorsePattern] calls.
+  /// Returns the signals of all [VibrationCallType.playMorsePattern]
+  /// playbacks.
   List<List<MorseSignal>> get patterns => calls
       .where((c) => c.type == VibrationCallType.playMorsePattern)
       .map((c) => c.signals!)
       .toList();
 
-  /// Whether any [playMorsePattern] call matches [expected] (element-wise).
+  /// Whether any [VibrationCallType.playMorsePattern] playback matches
+  /// [expected] (element-wise).
   bool hasPattern(List<MorseSignal> expected) =>
       patterns.any((p) => listEquals(p, expected));
 
@@ -70,23 +88,26 @@ class RecordingVibrationService implements VibrationService {
   void reset() => calls.clear();
 
   @override
-  Future<void> playMorsePattern(List<MorseSignal> signals) async {
-    calls.add(
-      VibrationCall(
-        VibrationCallType.playMorsePattern,
-        signals: List.of(signals),
-      ),
-    );
-  }
-
-  @override
-  Future<void> playMorseTokenPattern(List<MorseToken> tokens) async {
-    calls.add(
-      VibrationCall(
-        VibrationCallType.playMorseTokenPattern,
-        tokens: List.of(tokens),
-      ),
-    );
+  Future<void> playTokens(List<TactileToken> tokens) async {
+    final played = List<TactileToken>.unmodifiable(tokens);
+    final morse = [for (final token in tokens) _morseToken(token)];
+    if (morse.contains(const CharGap())) {
+      calls.add(
+        VibrationCall(
+          VibrationCallType.playMorseTokenPattern,
+          tokens: morse,
+          played: played,
+        ),
+      );
+    } else {
+      calls.add(
+        VibrationCall(
+          VibrationCallType.playMorsePattern,
+          signals: [for (final token in morse) (token as Signal).signal],
+          played: played,
+        ),
+      );
+    }
   }
 
   @override
@@ -109,6 +130,16 @@ class RecordingVibrationService implements VibrationService {
     calls.add(const VibrationCall(VibrationCallType.cancel));
   }
 }
+
+/// The Morse token a tactile [token] stands for in a Morse playback.
+MorseToken _morseToken(TactileToken token) => switch (token) {
+  TactileToken.shortPulse => const Signal(MorseSignal.dot),
+  TactileToken.longPulse => const Signal(MorseSignal.dash),
+  TactileToken.characterGap => const CharGap(),
+  TactileToken.emptySlot => throw UnsupportedError(
+    'An empty slot has no Morse equivalent',
+  ),
+};
 
 // ---------------------------------------------------------------------------
 // Fast timing configs for tests

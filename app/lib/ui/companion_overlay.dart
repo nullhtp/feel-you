@@ -40,9 +40,13 @@ class CompanionOverlay extends ConsumerWidget {
         .of(session.language, level)
         .length;
     final shownCharacter = hideItem ? '?' : character;
+    // The item's pattern as the session language's codec writes it, with
+    // letter boundaries on words.
+    final codec = ref.watch(tactileCodecProvider(session.language));
+    final shownPattern = hideItem ? '' : codec.describe(character);
 
-    // For word levels, use the token pattern (with CharGap) from the
-    // level so the display shows letter boundaries.
+    // The screen-reader summary spells the level's Morse pattern, with the
+    // CharGap tokens of a word.
     final List<MorseToken> tokenPattern;
     if (isWordsLevel) {
       tokenPattern = level.wordPatterns?[character] ?? [];
@@ -152,7 +156,7 @@ class CompanionOverlay extends ConsumerWidget {
                     const SizedBox(height: 8),
                     // --- Morse pattern display (hidden with the item) ---
                     Text(
-                      hideItem ? '' : _formatTokenPattern(tokenPattern),
+                      shownPattern,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 24,
@@ -238,7 +242,7 @@ class CompanionOverlay extends ConsumerWidget {
                   if (buffer.isEmpty) return const SizedBox.shrink();
                   return Center(
                     child: Text(
-                      _formatTokenPattern(buffer),
+                      formatMorseTokens(buffer),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -290,20 +294,6 @@ class CompanionOverlay extends ConsumerWidget {
     if (character.length <= 3) return 56;
     if (character.length <= 5) return 48;
     return 40;
-  }
-
-  /// Formats a token pattern as readable notation.
-  /// Dots -> "·", dashes -> "—", CharGap -> "/".
-  static String _formatTokenPattern(List<MorseToken> tokens) {
-    return tokens
-        .map((t) {
-          return switch (t) {
-            Signal(signal: MorseSignal.dot) => '\u00B7',
-            Signal(signal: MorseSignal.dash) => '\u2014',
-            CharGap() => '/',
-          };
-        })
-        .join(' ');
   }
 }
 

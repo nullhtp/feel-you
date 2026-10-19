@@ -1,4 +1,5 @@
 import 'package:feel_you/gestures/gestures.dart';
+import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/settings/learned_items.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
@@ -16,8 +17,9 @@ final teachingTimingConfigProvider = Provider<TeachingTimingConfig>(
 /// Provides the [TeachingOrchestrator] that drives the learning loop.
 ///
 /// Depends on the gesture classifier, vibration service, session notifier,
-/// learned items and timing config. Disposes the orchestrator when the
-/// provider is disposed.
+/// learned items and timing config, and looks the codec of the session
+/// language up in [tactileCodecProvider] on every playback. Disposes the
+/// orchestrator when the provider is disposed.
 final teachingOrchestratorProvider =
     StateNotifierProvider<TeachingOrchestrator, TeachingOrchestratorState>((
       ref,
@@ -36,6 +38,9 @@ final teachingOrchestratorProvider =
         config: config,
         shakeDetector: shakeDetector,
         learnedItems: learnedItems,
+        // Read, not watched: the session language changes while the
+        // orchestrator lives, and the orchestrator must not be rebuilt.
+        codecFor: (language) => ref.read(tactileCodecProvider(language)),
       );
 
       // Note: StateNotifierProvider automatically calls dispose() on the

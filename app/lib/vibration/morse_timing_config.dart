@@ -3,6 +3,12 @@
 /// All durations are in milliseconds. Every value has a sensible default
 /// and can be overridden at construction time for tuning or testing.
 ///
+/// The vibration engine times every tactile token with these values, for
+/// any codec (see `buildVibrationPattern`): a short pulse lasts
+/// [dotDuration], a long pulse [dashDuration], an empty slot is silent for
+/// [dotDuration], consecutive slots are [interSymbolGap] apart, and a
+/// character gap is [interCharGap] of silence.
+///
 /// Note: the success and error signals are fixed patterns in
 /// `signal_pattern.dart` (see `successSignalFor` and `errorSignalFor`)
 /// because their rhythmic structure doesn't decompose into simple

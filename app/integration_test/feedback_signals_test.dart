@@ -1,5 +1,6 @@
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
+import 'package:feel_you/tactile/tactile.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -56,10 +57,13 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   /// What digit "0" is sent as with the test's Morse timing.
-  final zeroSegments = buildMorseVibrationPatternFromSignals(
-    digitZero,
-    fastMorseTimingConfig,
-  );
+  final zeroSegments = buildVibrationPattern([
+    for (final signal in digitZero)
+      if (signal == MorseSignal.dot)
+        TactileToken.shortPulse
+      else
+        TactileToken.longPulse,
+  ], fastMorseTimingConfig);
 
   late FakeVibrationPlatform platform;
   late E2EApp app;

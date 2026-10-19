@@ -5,6 +5,7 @@ export 'russian_alphabet.dart';
 export 'level.dart';
 export 'morse_alphabet_data.dart';
 export 'morse_alphabet_registry.dart';
+export 'morse_codec.dart';
 export 'morse_encoder.dart';
 export 'morse_language.dart';
 export 'morse_pattern.dart';

@@ -34,25 +34,6 @@ List<MorseToken> composeWordPattern(
   return result;
 }
 
-/// Splits a word [pattern] at its [CharGap]s into the signals of each letter,
-/// in order. The inverse of [composeWordPattern].
-///
-/// A pattern without [CharGap] is a single letter. Returns an empty list for
-/// an empty pattern.
-List<List<MorseSignal>> splitWordPattern(List<MorseToken> pattern) {
-  if (pattern.isEmpty) return const [];
-  final letters = <List<MorseSignal>>[[]];
-  for (final token in pattern) {
-    switch (token) {
-      case Signal(signal: final s):
-        letters.last.add(s);
-      case CharGap():
-        letters.add([]);
-    }
-  }
-  return letters;
-}
-
 /// Builds a word-to-token-pattern map by calling [composeWordPattern] for
 /// each word in [words] using the given [alphabet].
 Map<String, List<MorseToken>> buildWordPatterns(

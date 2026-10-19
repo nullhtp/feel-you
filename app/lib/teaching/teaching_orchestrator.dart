@@ -5,6 +5,7 @@ import 'package:feel_you/gestures/gestures.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/settings/learned_items.dart';
+import 'package:feel_you/tactile/tactile.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/foundation.dart' show immutable;
@@ -49,6 +50,11 @@ class TeachingOrchestratorState extends Equatable {
 /// a continuous learn-by-repetition loop. Subscribes to gesture events,
 /// drives the vibration engine, and manages session phase transitions.
 ///
+/// Everything it plays (the item, the letters of a spelled word and the quiz
+/// marker) is encoded with the session language's [TactileCodec], so the
+/// loop does not depend on the code. Answers are still checked against the
+/// level's Morse patterns, because the user taps dots and dashes.
+///
 /// Does not auto-start on creation — call [start] to begin the loop.
 ///
 /// Gesture events (including shakes) are only handled while the loop is
@@ -63,20 +69,34 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     this.config = const TeachingTimingConfig(),
     ShakeDetector? shakeDetector,
     LearnedItemsNotifier? learnedItems,
+    TactileCodec Function(MorseLanguage language)? codecFor,
   }) : _gestureClassifier = gestureClassifier,
        _shakeDetector = shakeDetector,
        learnedItems =
            learnedItems ?? LearnedItemsNotifier(InMemoryLearnedItemsStore()),
+       _codecFor = codecFor ?? MorseCodec.new,
        super(const TeachingOrchestratorState()) {
     _gestureSubscription = gestureClassifier.events.listen(_onGestureEvent);
     _shakeSubscription = shakeDetector?.events.listen(_onGestureEvent);
   }
+
+  /// The text that announces the quiz, encoded with the session language's
+  /// codec: Morse `?` (`··−−··`).
+  static const quizMarker = '?';
 
   final GestureClassifier _gestureClassifier;
   final ShakeDetector? _shakeDetector;
   final VibrationService vibrationService;
   final SessionNotifier sessionNotifier;
   final TeachingTimingConfig config;
+
+  /// Returns the codec of a language, looked up on every playback because
+  /// the session's language can change while the orchestrator lives.
+  /// Defaults to the [MorseCodec] of the language.
+  final TactileCodec Function(MorseLanguage language) _codecFor;
+
+  /// The codec of the session's current language.
+  TactileCodec get _codec => _codecFor(sessionNotifier.state.language);
 
   /// Where a correct answer in the lessons marks the item as learned, so the
   /// quiz can draw it. Defaults to a store that lasts for this run only.
@@ -229,25 +249,15 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
 
     var spell = spellWord && !inQuiz;
     while (_shouldRun && !_isInterrupted && gen == _loopGeneration) {
-      // Look up the current character's Morse pattern from the level.
-      final character = sessionNotifier.state.currentCharacter;
-      final level = sessionNotifier.state.currentLevel;
-      final isWordsLevel = level.kind == LevelKind.words;
+      // Encode the item being taught with the session language's codec. A
+      // word comes with character gaps between its letters.
+      final session = sessionNotifier.state;
+      final tokens = _codec.encode(session.currentCharacter);
 
-      // For word levels, use the token pattern (with CharGap pauses)
-      // from the level; for single-character levels, use signals.
-      if (isWordsLevel) {
-        final tokenPattern = level.wordPatterns?[character];
-        if (tokenPattern == null) break;
-        if (spell) {
-          await _spellWord(tokenPattern, gen);
-        } else {
-          await vibrationService.playMorseTokenPattern(tokenPattern);
-        }
+      if (spell && session.currentLevel.kind == LevelKind.words) {
+        await _spellWord(tokens, gen);
       } else {
-        final pattern = level.patterns[character];
-        if (pattern == null) break;
-        await vibrationService.playMorsePattern(pattern);
+        await vibrationService.playTokens(tokens);
       }
       spell = false;
 
@@ -262,36 +272,41 @@ class TeachingOrchestrator extends StateNotifier<TeachingOrchestratorState> {
     }
   }
 
-  /// Spells a word: plays its letters one at a time, with
-  /// [TeachingTimingConfig.spellingLetterGap] of silence between them.
+  /// Spells a word: plays the letters of its encoded [word] tokens one at a
+  /// time, with [TeachingTimingConfig.spellingLetterGap] of silence between
+  /// them.
   ///
   /// The words of a level are not in an order the user can count, so the
   /// position alone does not tell them which word is playing. Spelled
   /// slowly, the word can be read with the letters they already know.
   ///
+  /// The letters are the parts of [word] between its character gaps (see
+  /// [splitAtCharacterGaps]), so the spelling follows the codec's own
+  /// character boundaries.
+  ///
   /// Stops early, like the loop, if the loop of generation [gen] is
   /// interrupted (a tap), stopped or superseded (navigation) during a letter
   /// or a gap. Each gap is a [_pause], so [_cancelPause] ends it at once.
-  Future<void> _spellWord(List<MorseToken> wordPattern, int gen) async {
-    final letters = splitWordPattern(wordPattern);
+  Future<void> _spellWord(List<TactileToken> word, int gen) async {
+    final letters = splitAtCharacterGaps(word);
     for (var i = 0; i < letters.length; i++) {
       if (i > 0) {
         await _pause(config.spellingLetterGap);
         if (!_shouldRun || _isInterrupted || gen != _loopGeneration) return;
       }
-      await vibrationService.playMorsePattern(letters[i]);
+      await vibrationService.playTokens(letters[i]);
       if (!_shouldRun || _isInterrupted || gen != _loopGeneration) return;
     }
   }
 
-  /// Tells the user they are in the quiz: plays Morse `?`, then waits
-  /// [TeachingTimingConfig.quizMarkerGap] so the marker does not run into
-  /// the first quiz item.
+  /// Tells the user they are in the quiz: plays [quizMarker] (Morse `?`),
+  /// then waits [TeachingTimingConfig.quizMarkerGap] so the marker does not
+  /// run into the first quiz item.
   ///
   /// Interrupted like [_spellWord]: a tap during the marker or the gap ends
   /// it, and the answer is checked against the quiz item.
   Future<void> _announceQuiz(int gen) async {
-    await vibrationService.playMorsePattern(questionMarkPattern);
+    await vibrationService.playTokens(_codec.encode(quizMarker));
     if (!_shouldRun || _isInterrupted || gen != _loopGeneration) return;
     await _pause(config.quizMarkerGap);
   }

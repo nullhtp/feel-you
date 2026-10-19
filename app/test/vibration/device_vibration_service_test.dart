@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:feel_you/morse/morse.dart';
+import 'package:feel_you/tactile/tactile.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -42,7 +43,11 @@ Future<void> _playFully(WidgetTester tester, Future<void> Function() play) {
 void main() {
   group('DeviceVibrationService Morse patterns', () {
     /// R = dot dash dot.
-    const letterR = [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot];
+    const letterR = [
+      TactileToken.shortPulse,
+      TactileToken.longPulse,
+      TactileToken.shortPulse,
+    ];
 
     testWidgets('sends a letter with silent gaps between its symbols', (
       tester,
@@ -50,7 +55,7 @@ void main() {
       final calls = _mockVibrationChannel(tester);
       final service = DeviceVibrationService();
 
-      await _playFully(tester, () => service.playMorsePattern(letterR));
+      await _playFully(tester, () => service.playTokens(letterR));
 
       expect(calls, hasLength(1));
       // wait(0) dot(100) gap(100) dash(300) gap(100) dot(100)
@@ -64,14 +69,14 @@ void main() {
       final calls = _mockVibrationChannel(tester);
       final service = DeviceVibrationService();
 
-      // "IT" = dot dot CharGap dash
+      // "IT" = dot dot character gap dash
       await _playFully(
         tester,
-        () => service.playMorseTokenPattern(const [
-          Signal(MorseSignal.dot),
-          Signal(MorseSignal.dot),
-          CharGap(),
-          Signal(MorseSignal.dash),
+        () => service.playTokens(const [
+          TactileToken.shortPulse,
+          TactileToken.shortPulse,
+          TactileToken.characterGap,
+          TactileToken.longPulse,
         ]),
       );
 
@@ -93,7 +98,7 @@ void main() {
         ),
       );
 
-      await _playFully(tester, () => service.playMorsePattern(letterR));
+      await _playFully(tester, () => service.playTokens(letterR));
 
       expect(calls.single['pattern'], [0, 100, 100, 300, 100, 100]);
       expect(calls.single['intensities'], [0, 255, 0, 255, 0, 255]);
@@ -106,7 +111,7 @@ void main() {
       final service = DeviceVibrationService();
       var done = false;
 
-      unawaited(service.playMorsePattern(letterR).then((_) => done = true));
+      unawaited(service.playTokens(letterR).then((_) => done = true));
 
       // R lasts 0 + 100 + 100 + 300 + 100 + 100 = 700ms.
       await tester.pump(const Duration(milliseconds: 699));
@@ -119,10 +124,39 @@ void main() {
       final calls = _mockVibrationChannel(tester);
       final service = DeviceVibrationService();
 
-      await service.playMorsePattern(const []);
-      await service.playMorseTokenPattern(const []);
+      await service.playTokens(const []);
 
       expect(calls, isEmpty);
+    });
+
+    testWidgets('does not vibrate for tokens without a pulse', (tester) async {
+      final calls = _mockVibrationChannel(tester);
+      final service = DeviceVibrationService();
+
+      // A lone wait would be a one-segment pattern, which the iOS plugin
+      // vibrates through.
+      await service.playTokens(const [
+        TactileToken.characterGap,
+        TactileToken.emptySlot,
+      ]);
+
+      expect(calls, isEmpty);
+    });
+
+    testWidgets('sends what the Morse codec encodes, unchanged', (
+      tester,
+    ) async {
+      final calls = _mockVibrationChannel(tester);
+      final service = DeviceVibrationService();
+      final codec = MorseCodec(MorseLanguage.english);
+
+      await _playFully(tester, () => service.playTokens(codec.encode('R')));
+      await _playFully(tester, () => service.playTokens(codec.encode('IT')));
+
+      expect(calls[0]['pattern'], [0, 100, 100, 300, 100, 100]);
+      expect(calls[0]['intensities'], [0, 255, 0, 255, 0, 255]);
+      expect(calls[1]['pattern'], [0, 100, 100, 100, 300, 300]);
+      expect(calls[1]['intensities'], [0, 255, 0, 255, 0, 255]);
     });
   });
 

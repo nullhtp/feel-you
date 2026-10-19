@@ -239,50 +239,6 @@ void main() {
     });
   });
 
-  group('splitWordPattern', () {
-    test('splits a word pattern into its letters', () {
-      final pattern = composeWordPattern('THE', englishAlphabet.characters);
-      expect(splitWordPattern(pattern), [
-        [MorseSignal.dash], // T
-        [MorseSignal.dot, MorseSignal.dot, MorseSignal.dot, MorseSignal.dot],
-        [MorseSignal.dot], // E
-      ]);
-    });
-
-    test('a pattern without charGap is a single letter', () {
-      final pattern = composeWordPattern('A', englishAlphabet.characters);
-      expect(splitWordPattern(pattern), [
-        [MorseSignal.dot, MorseSignal.dash],
-      ]);
-    });
-
-    test('empty pattern yields no letters', () {
-      expect(splitWordPattern(const []), isEmpty);
-    });
-
-    test('yields one letter per character of every word, which rejoined '
-        'with charGap give the word pattern back', () {
-      for (final alphabet in [
-        englishAlphabet,
-        arabicAlphabet,
-        russianAlphabet,
-      ]) {
-        for (final word in alphabet.wordList!) {
-          final pattern = alphabet.wordPatterns![word]!;
-          final letters = splitWordPattern(pattern);
-          expect(letters, hasLength(word.length), reason: word);
-          final rejoined = <MorseToken>[
-            for (var i = 0; i < letters.length; i++) ...[
-              if (i > 0) const CharGap(),
-              for (final signal in letters[i]) Signal(signal),
-            ],
-          ];
-          expect(rejoined, pattern, reason: word);
-        }
-      }
-    });
-  });
-
   group('buildWordPatterns', () {
     test('builds patterns for a word list', () {
       final result = buildWordPatterns([

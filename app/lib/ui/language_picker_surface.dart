@@ -12,21 +12,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-/// Vibration identifier patterns for each language, looked up from the
-/// registry instead of being hardcoded.
+/// The letter that identifies each language, vibrated with the language's
+/// codec ([tactileCodecProvider]) instead of a hardcoded pattern.
 ///
-/// English: Morse "E" = [dot]
-/// Arabic: Morse "ع" (Ain) = [dot, dash, dot, dash]
-/// Russian: Morse "Р" (Er) = [dot, dash, dot]
-final Map<MorseLanguage, List<MorseSignal>> _languageIdentifiers = {
-  MorseLanguage.english:
-      encodeLetter('E', MorseLanguage.english) ?? [MorseSignal.dot],
-  MorseLanguage.arabic:
-      encodeLetter('ع', MorseLanguage.arabic) ??
-      [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot, MorseSignal.dash],
-  MorseLanguage.russian:
-      encodeLetter('Р', MorseLanguage.russian) ??
-      [MorseSignal.dot, MorseSignal.dash, MorseSignal.dot],
+/// English: Morse "E" = `·`
+/// Arabic: Morse "ع" (Ain) = `·−·−`
+/// Russian: Morse "Р" (Er) = `·−·`
+const Map<MorseLanguage, String> _languageIdentifiers = {
+  MorseLanguage.english: 'E',
+  MorseLanguage.arabic: 'ع',
+  MorseLanguage.russian: 'Р',
 };
 
 /// Display labels for each language.
@@ -134,9 +129,10 @@ class _LanguagePickerSurfaceState extends ConsumerState<LanguagePickerSurface> {
 
   /// Vibrates [language]'s identifier and completes when it has finished.
   Future<void> _vibrateIdentifier(MorseLanguage language) async {
-    final pattern = _languageIdentifiers[language];
-    if (pattern == null) return;
-    await ref.read(vibrationServiceProvider).playMorsePattern(pattern);
+    final letter = _languageIdentifiers[language];
+    if (letter == null) return;
+    final tokens = ref.read(tactileCodecProvider(language)).encode(letter);
+    await ref.read(vibrationServiceProvider).playTokens(tokens);
   }
 
   /// Highlights [language] and vibrates its identifier.

@@ -72,15 +72,21 @@ const List<String> _arabicOrder = [
   'ي',
 ];
 
-/// Extended Arabic alphabet with variant character forms.
+/// Variant letter forms that share another letter's Morse pattern.
 ///
 /// أ (hamza on alif) and ى (alif maqsura) share the same Morse pattern as
-/// ا (alif). These aliases are needed for word pattern composition but are
-/// kept separate from the main alphabet to avoid polluting reverse-lookups.
-final Map<String, List<MorseSignal>> _arabicWithAliases = {
-  ..._arabicCharacters,
+/// ا (alif). These aliases are needed for word pattern composition and
+/// encoding but are kept separate from the main alphabet to avoid polluting
+/// reverse-lookups.
+final Map<String, List<MorseSignal>> _arabicAliases = {
   'أ': _arabicCharacters['ا']!, // Hamza on Alif
   'ى': _arabicCharacters['ا']!, // Alif Maqsura
+};
+
+/// Extended Arabic alphabet: the letters plus [_arabicAliases].
+final Map<String, List<MorseSignal>> _arabicWithAliases = {
+  ..._arabicCharacters,
+  ..._arabicAliases,
 };
 
 /// All 20 Arabic words in learning order:
@@ -110,6 +116,7 @@ final MorseAlphabet arabicAlphabet = MorseAlphabet(
   characterOrder: _arabicOrder,
   wordList: _arabicWordList,
   wordPatterns: _arabicWordPatterns,
+  aliases: _arabicAliases,
   levels: [
     const Level(
       name: 'arabic-letters',

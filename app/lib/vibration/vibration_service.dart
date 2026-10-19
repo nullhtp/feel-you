@@ -1,17 +1,16 @@
-import 'package:feel_you/morse/morse.dart';
+import 'package:feel_you/tactile/tactile.dart';
 
 /// Abstract interface for triggering vibrations.
 ///
 /// Implementations can use real device haptics or be mocked for testing.
 abstract class VibrationService {
-  /// Plays a Morse code pattern as a vibration sequence.
+  /// Plays [tokens] as one vibration pattern and completes once it has
+  /// played.
   ///
-  /// Accepts [MorseSignal] list (single-character patterns) or
-  /// [MorseToken] list (word patterns with CharGap separators).
-  Future<void> playMorsePattern(List<MorseSignal> signals);
-
-  /// Plays a Morse token pattern (word-level, with CharGap) as a vibration.
-  Future<void> playMorseTokenPattern(List<MorseToken> tokens);
+  /// The tokens come from a [TactileCodec] (the Morse codec today). The
+  /// service knows only how long each token lasts, never which code
+  /// produced it.
+  Future<void> playTokens(List<TactileToken> tokens);
 
   /// Plays the success signal (five rapid taps).
   Future<void> playSuccess();

@@ -11,7 +11,7 @@ const _s = MorseSignal.dash;
 /// Standard Russian telegraphic Morse code patterns for 32 Cyrillic letters.
 ///
 /// Ё is excluded because it shares the same Morse pattern as Е (dot).
-/// It is handled as an alias in [_russianWithAliases] for word composition.
+/// It is handled as an alias in [_russianAliases].
 const Map<String, List<MorseSignal>> _russianCharacters = {
   'А': [_d, _s],
   'Б': [_s, _d, _d, _d],
@@ -83,14 +83,19 @@ const List<String> _russianOrder = [
   'Я',
 ];
 
-/// Extended Russian alphabet with variant character forms.
+/// Variant letter forms that share another letter's Morse pattern.
 ///
 /// Ё shares the same Morse pattern as Е (dot). This alias is needed for
-/// word pattern composition but is kept separate from the main alphabet
-/// to avoid polluting reverse-lookups.
+/// word pattern composition and encoding but is kept separate from the main
+/// alphabet to avoid polluting reverse-lookups.
+final Map<String, List<MorseSignal>> _russianAliases = {
+  'Ё': _russianCharacters['Е']!, // Ё → same pattern as Е
+};
+
+/// Extended Russian alphabet: the letters plus [_russianAliases].
 final Map<String, List<MorseSignal>> _russianWithAliases = {
   ..._russianCharacters,
-  'Ё': _russianCharacters['Е']!, // Ё → same pattern as Е
+  ..._russianAliases,
 };
 
 /// All 20 Russian words in learning order:
@@ -120,6 +125,7 @@ final MorseAlphabet russianAlphabet = MorseAlphabet(
   characterOrder: _russianOrder,
   wordList: _russianWordList,
   wordPatterns: _russianWordPatterns,
+  aliases: _russianAliases,
   levels: [
     const Level(
       name: 'russian-letters',

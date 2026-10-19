@@ -25,6 +25,7 @@ Notable changes to Feel You. The format follows [Keep a Changelog](https://keepa
 - iPhone only: the iOS build no longer installs on iPad, which has no vibration motor.
 - The minimum OS versions are now iOS 15 and Android 7.0 (API 24).
 - Licensed under the MIT licence.
+- Internal: text now reaches the vibration engine through a `TactileCodec`, with Morse as its first codec, so later modes (the reader, a braille codec) can play text without knowing it is Morse. Every vibration is unchanged ([#40](https://github.com/nullhtp/feel-you/issues/40)).
 
 ### Fixed
 

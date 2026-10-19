@@ -17,6 +17,7 @@ class MorseAlphabet {
     required this.levels,
     this.wordList,
     this.wordPatterns,
+    this.aliases = const {},
   });
 
   /// The language this alphabet belongs to, or `null` if universal (digits).
@@ -24,6 +25,14 @@ class MorseAlphabet {
 
   /// Maps each character to its Morse signal pattern.
   final Map<String, List<MorseSignal>> characters;
+
+  /// Letters written in words that share another letter's pattern, each
+  /// mapped to that pattern (e.g. Arabic أ to Alif's, Russian Ё to Е's).
+  ///
+  /// The Morse codec encodes them and word patterns are built with them,
+  /// but they are not in [characters], so decoding a pattern always gives
+  /// the letter itself, never an alias. Empty when the alphabet has none.
+  final Map<String, List<MorseSignal>> aliases;
 
   /// Ordered list of characters defining the learning sequence.
   final List<String> characterOrder;
