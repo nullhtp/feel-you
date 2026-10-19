@@ -5,20 +5,24 @@ import 'package:feel_you/session/session_notifier.dart';
 import 'package:feel_you/session/session_phase.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide test;
 
 import '../test_doubles/fake_gesture_classifier.dart';
 import '../test_doubles/fake_shake_detector.dart';
+import '../test_doubles/fake_time.dart';
 import '../test_doubles/fixed_levels_session.dart';
 import '../test_doubles/mock_vibration_service.dart';
+
+// The tests run in fake time: `test` is the one from fake_time.dart. The
+// loop's pauses and a test's waits then always end in the same order.
 
 // ---------------------------------------------------------------------------
 // Helper
 // ---------------------------------------------------------------------------
 
 /// Creates an orchestrator with test doubles.
-/// Uses a very short repeat pause and spelling letter gap (10ms) to keep
-/// tests fast.
+/// Uses a short repeat pause and spelling letter gap (10ms), so the loop
+/// repeats within a test's waits.
 /// Pass [session] to start from a custom session; defaults to English.
 ({
   TeachingOrchestrator orchestrator,

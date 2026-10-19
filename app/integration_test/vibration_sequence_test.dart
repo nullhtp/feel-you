@@ -5,8 +5,9 @@ import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session_providers.dart';
 import 'package:feel_you/vibration/vibration.dart';
 import 'package:flutter/foundation.dart' show listEquals;
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide test;
 
+import '../test/test_doubles/fake_time.dart';
 import 'test_helpers.dart';
 
 // The lessons must feel exactly as they did before the tactile codec was
@@ -14,6 +15,10 @@ import 'test_helpers.dart';
 // compares what the vibration service is asked to play, in milliseconds
 // with the default Morse timing, with the sequence recorded on master at
 // 94cc0b3, before the refactor.
+//
+// The flows run in fake time: `test` is the one from fake_time.dart. A step
+// then acts before the loop's next pause ends, so the step's vibrations are
+// exact.
 
 /// The app's real timing, used to turn the recorded tokens into the
 /// milliseconds the device is sent. The harness's fast timing only shortens
@@ -111,20 +116,19 @@ class _Flow {
   /// Runs [action], waits [wait] and expects the step's vibrations to be
   /// [prefix] followed only by repeats of [repeating].
   ///
-  /// How often the loop repeats depends on timing, so the pattern the loop
-  /// was repeating before the step (the last call recorded so far) may also
-  /// repeat a few more times before the step's first vibration: while a
-  /// hold is being held, or when a pause of the loop ends just before a
-  /// swipe is handled.
+  /// With [repeatsBefore], the pattern the loop was repeating before the
+  /// step (the last call recorded so far) may also repeat before the step's
+  /// first vibration, as it does while a hold is being held.
   Future<void> step(
     String name,
     Future<void> Function() action, {
     required List<String> prefix,
     required String repeating,
     Duration wait = _settle,
+    bool repeatsBefore = false,
   }) async {
     final calls = h.vibration.calls;
-    final before = calls.isEmpty ? null : _event(calls.last);
+    final before = !repeatsBefore || calls.isEmpty ? null : _event(calls.last);
     h.vibration.reset();
     await action();
     await Future<void>.delayed(wait);
@@ -179,8 +183,8 @@ class _Flow {
   Future<void> dispose() => h.dispose();
 }
 
-/// Expects [events] to be: some repeats of [before] (possibly none), then
-/// exactly [prefix], then only repeats of [repeating].
+/// Expects [events] to be: some repeats of [before] if given (possibly
+/// none), then exactly [prefix], then only repeats of [repeating].
 void _expectStep(
   String name,
   List<String> events,
@@ -259,6 +263,7 @@ void main() {
       'hold: HI again, spelled',
       flow.hold,
       wait: _Flow.spelled(1),
+      repeatsBefore: true,
       prefix: [_cancel, _letterH, _letterI, _wordHI],
       repeating: _wordHI,
     );

@@ -7,7 +7,13 @@ import 'package:feel_you/gestures/gesture_timing_config.dart';
 import 'package:feel_you/gestures/zone_layout.dart';
 import 'package:feel_you/morse/morse.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide test;
+
+import '../test_doubles/fake_time.dart';
+
+// The tests run in fake time: `test` is the one from fake_time.dart. A wait
+// for the classifier's timers then always ends after the timer and the
+// event it emits.
 
 /// Tests for the bottom input zone: a tap that starts in the lower
 /// [GestureTimingConfig.bottomZoneFraction] of the screen is a
@@ -21,7 +27,7 @@ void main() {
   const upperY = 300.0; // above the bottom zone
   const zoneY = 560.0; // in the bottom zone
 
-  // Short thresholds keep these real-timer tests fast. The swipe thresholds
+  // Shortened long-hold and silence thresholds. The swipe thresholds
   // and the zone fraction keep their defaults (50 px, 200 px/s, 15 %).
   const config = GestureTimingConfig(
     resetMinDuration: 500,
@@ -57,7 +63,7 @@ void main() {
   });
 
   // Every press starts at the same timestamp; only the classifier's timers
-  // (real time) and the release position/timestamp matter.
+  // (fake time) and the release position/timestamp matter.
   const start = Duration(milliseconds: 100);
 
   void down({double x = leftX, double y = upperY}) {

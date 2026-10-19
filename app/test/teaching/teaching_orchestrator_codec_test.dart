@@ -8,11 +8,15 @@ import 'package:feel_you/teaching/teaching_providers.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
 import 'package:feel_you/vibration/vibration_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide test;
 
 import '../test_doubles/fake_gesture_classifier.dart';
 import '../test_doubles/fake_shake_detector.dart';
+import '../test_doubles/fake_time.dart';
 import '../test_doubles/mock_vibration_service.dart';
+
+// The tests run in fake time: `test` is the one from fake_time.dart. The
+// loop's pauses and a test's waits then always end in the same order.
 
 const _config = TeachingTimingConfig(
   repeatPause: Duration(milliseconds: 10),

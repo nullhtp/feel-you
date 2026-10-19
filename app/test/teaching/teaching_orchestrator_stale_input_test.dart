@@ -7,17 +7,22 @@ import 'package:feel_you/morse/morse.dart';
 import 'package:feel_you/session/session.dart';
 import 'package:feel_you/teaching/teaching_orchestrator.dart';
 import 'package:feel_you/teaching/teaching_timing_config.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide test;
 
 import '../test_doubles/fake_gesture_classifier.dart';
 import '../test_doubles/fake_shake_detector.dart';
+import '../test_doubles/fake_time.dart';
 import '../test_doubles/mock_vibration_service.dart';
+
+// The tests run in fake time: `test` is the one from fake_time.dart. The
+// loop's pauses, the classifier's silence timer and a test's waits then
+// always end in the same order.
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/// Pause between pattern repetitions. Short to keep the tests fast.
+/// Pause between pattern repetitions, short next to a test's waits.
 const _repeatPause = Duration(milliseconds: 10);
 
 /// Pause between feedback and the loop resuming.
@@ -53,7 +58,8 @@ const _navigationEvents = <GestureEvent>[
   Home(),
 ];
 
-/// Lets stream events and short loop iterations run.
+/// Waits [duration] of fake time: the stream events and loop iterations due
+/// by then have run, and none due later.
 Future<void> settle([Duration duration = Duration.zero]) =>
     Future<void>.delayed(duration);
 

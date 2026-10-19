@@ -4,10 +4,16 @@ import 'package:feel_you/gestures/gesture_classifier.dart';
 import 'package:feel_you/gestures/gesture_event.dart';
 import 'package:feel_you/gestures/gesture_timing_config.dart';
 import 'package:feel_you/morse/morse.dart';
-import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_test/flutter_test.dart' hide test;
+
+import '../test_doubles/fake_time.dart';
+
+// The tests run in fake time: `test` is the one from fake_time.dart. A wait
+// for the classifier's timers then always ends after the timer and the
+// event it emits.
 
 void main() {
-  // Short silence timeout to keep the tests fast.
+  // A shortened silence timeout.
   const silenceTimeout = Duration(milliseconds: 50);
 
   // Well past the silence timeout.
