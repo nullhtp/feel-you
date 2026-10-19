@@ -22,7 +22,7 @@ Designed for deaf-blind individuals, Feel You turns your phone into a patient, p
 - Move at your own pace through digits, letters, and words
 
 **Features:**
-- Full Morse code curriculum: digits (0-9), plus the letters and 20 everyday words of English, Arabic, Russian, Spanish, and French
+- Full Morse code curriculum: digits (0-9), plus the letters and 20 everyday words of English, Arabic, Russian, Spanish, French, and German
 - Vibration-only feedback — works without seeing or hearing the screen
 - Intuitive gesture navigation: swipe left or right to move between characters, up or down to change level, shake to go home, double shake to change language
 - Language picker that works by touch and vibration alone, and remembers your choice
@@ -36,5 +36,6 @@ Designed for deaf-blind individuals, Feel You turns your phone into a patient, p
 - Russian (Russian Morse Code)
 - Spanish (International Morse Code with Ñ)
 - French (International Morse Code with À, Ç, É, È)
+- German (International Morse Code with Ä, Ö, Ü)
 
 Feel You is more than a learning tool — it's the first step toward independent communication for deaf-blind people through a device they already carry.

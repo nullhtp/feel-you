@@ -19,11 +19,13 @@ void main() {
       expect(russianAlphabet.characters.containsKey('Ё'), isFalse);
     });
 
-    test('the digits, English, Spanish and French alphabets have none', () {
+    test('the digits, English, Spanish, French and German alphabets have '
+        'none', () {
       expect(digitAlphabet.aliases, isEmpty);
       expect(englishAlphabet.aliases, isEmpty);
       expect(spanishAlphabet.aliases, isEmpty);
       expect(frenchAlphabet.aliases, isEmpty);
+      expect(germanAlphabet.aliases, isEmpty);
     });
 
     test('decoding gives the letter, never an alias', () {

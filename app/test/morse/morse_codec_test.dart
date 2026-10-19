@@ -239,11 +239,11 @@ void main() {
           }
         }
       }
-      // Digits (10, in each of 5 languages) and 26 + 28 + 32 + 27 + 30
+      // Digits (10, in each of 6 languages) and 26 + 28 + 32 + 27 + 30 + 29
       // letters.
-      expect(checked[LevelKind.characters], 50 + 26 + 28 + 32 + 27 + 30);
-      // 20 words in each of 5 languages.
-      expect(checked[LevelKind.words], 100);
+      expect(checked[LevelKind.characters], 60 + 26 + 28 + 32 + 27 + 30 + 29);
+      // 20 words in each of 6 languages.
+      expect(checked[LevelKind.words], 120);
     });
 
     test('characters have no character gap, words have one per letter', () {

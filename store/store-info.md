@@ -27,6 +27,7 @@ Morse alphabets the app teaches (chosen in the in-app language picker):
 - Russian (Russian Morse)
 - Spanish (International Morse with Ñ)
 - French (International Morse with À, Ç, É, È)
+- German (International Morse with Ä, Ö, Ü)
 
 The app has no UI localisation: its text for sighted helpers (overlay labels, the picker hint, the "No vibration motor" screen) is in English only, and the picker shows each language's name in its own script. Store descriptions exist in English (`description-en.md`) and Arabic (`description-ar.md`).
 

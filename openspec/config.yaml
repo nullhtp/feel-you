@@ -14,7 +14,7 @@ context: |
   No sight or hearing needed. A dim overlay and screen-reader labels exist only for sighted helpers.
 
   Phase 1: a Morse code learning tool that works through vibration alone.
-    - Three languages (English, Arabic, Russian), each with three levels in order: digits 0-9, letters, 20 words.
+    - Six languages (English, Arabic, Russian, Spanish, French, German), each with three levels in order: digits 0-9, letters, 20 words.
     - The app plays the current item, pauses 3 s and repeats it forever. Words are spelled letter by letter before they are drilled.
     - The user taps the item back; the answer is checked after 1 s without a tap, or at once with a bottom-strip tap.
     - Correct: five quick 50 ms taps. Wrong: one 500 ms buzz. Then the same item again; the app never moves on by itself.

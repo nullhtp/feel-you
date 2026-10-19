@@ -96,6 +96,7 @@ void main() {
         russianAlphabet,
         spanishAlphabet,
         frenchAlphabet,
+        germanAlphabet,
       ]);
     });
   });
@@ -121,6 +122,10 @@ void main() {
       expect(
         morseRegistry.forLanguage(MorseLanguage.french),
         same(frenchAlphabet),
+      );
+      expect(
+        morseRegistry.forLanguage(MorseLanguage.german),
+        same(germanAlphabet),
       );
     });
 

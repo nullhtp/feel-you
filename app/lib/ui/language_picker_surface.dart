@@ -20,12 +20,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// Russian: Morse "Р" (Er) = `·−·`
 /// Spanish: Morse "Ñ" (Eñe) = `−−·−−`
 /// French: Morse "É" (E acute) = `··−··`
+/// German: Morse "Ü" (U umlaut) = `··−−`
 const Map<MorseLanguage, String> _languageIdentifiers = {
   MorseLanguage.english: 'E',
   MorseLanguage.arabic: 'ع',
   MorseLanguage.russian: 'Р',
   MorseLanguage.spanish: 'Ñ',
   MorseLanguage.french: 'É',
+  MorseLanguage.german: 'Ü',
 };
 
 /// Display labels for each language.
@@ -35,6 +37,7 @@ const Map<MorseLanguage, String> _languageLabels = {
   MorseLanguage.russian: 'Русский',
   MorseLanguage.spanish: 'Español',
   MorseLanguage.french: 'Français',
+  MorseLanguage.german: 'Deutsch',
 };
 
 /// Locale of each display label, so screen readers speak it in that
@@ -45,6 +48,7 @@ const Map<MorseLanguage, Locale> _languageLocales = {
   MorseLanguage.russian: Locale('ru'),
   MorseLanguage.spanish: Locale('es'),
   MorseLanguage.french: Locale('fr'),
+  MorseLanguage.german: Locale('de'),
 };
 
 /// English name of [language] for the screen-reader hint, e.g. "Arabic".
@@ -66,7 +70,7 @@ const _helperHint = 'Tap a language, then hold anywhere for 1 second to start';
 /// in a session. One language is highlighted at a time, starting with the
 /// saved one (English when none is saved). Every touch gesture works
 /// without sight and is answered with the identifier vibration (Morse E, ع,
-/// Р, Ñ or É) of the language it leaves highlighted:
+/// Р, Ñ, É or Ü) of the language it leaves highlighted:
 ///
 /// - When the picker appears, the highlighted identifier plays once, so a
 ///   user who lands here knows where they are.

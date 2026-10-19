@@ -181,6 +181,7 @@ void main() {
       expect(find.text('Русский'), findsOneWidget);
       expect(find.text('Español'), findsOneWidget);
       expect(find.text('Français'), findsOneWidget);
+      expect(find.text('Deutsch'), findsOneWidget);
 
       await cleanUp(tester);
       classifier.dispose();

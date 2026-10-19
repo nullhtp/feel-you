@@ -46,7 +46,7 @@ The app requests no other permissions. In particular, it does not use the camera
 
 ## Data Storage
 
-Feel You stores two things on your device: the lesson language you chose (English, Arabic, Russian, Spanish or French), so that the next launch can skip the language picker, and the digits, letters and words you have answered correctly in the lessons, so that the quiz can test you on them. Both are kept in the platform's standard app preferences storage (SharedPreferences on Android, UserDefaults on iOS). Your place in the lessons is not saved: every launch starts again at digit 0.
+Feel You stores two things on your device: the lesson language you chose (English, Arabic, Russian, Spanish, French or German), so that the next launch can skip the language picker, and the digits, letters and words you have answered correctly in the lessons, so that the quiz can test you on them. Both are kept in the platform's standard app preferences storage (SharedPreferences on Android, UserDefaults on iOS). Your place in the lessons is not saved: every launch starts again at digit 0.
 
 The app never sends this data anywhere, and it is deleted when you uninstall the app. Like any app's settings, it may be included in your device's own backups (such as Android backup or iCloud backup) if you have turned them on; those backups are made by your device's operating system under your account, not by Feel You.
 

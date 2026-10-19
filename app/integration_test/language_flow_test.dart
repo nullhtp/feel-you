@@ -47,6 +47,13 @@ const _flows = <_Flow>[
     letter: 'É',
     word: 'ÇA',
   ),
+  (
+    language: MorseLanguage.german,
+    label: 'Deutsch',
+    identifier: 'Ü',
+    letter: 'Ö',
+    word: 'MÜDE',
+  ),
 ];
 
 /// A swipe right across the middle of the lesson surface.

@@ -72,6 +72,16 @@ void main() {
       expect((await _launch()).read(), MorseLanguage.french);
     });
 
+    test('stores and reads German under its name', () async {
+      SharedPreferences.setMockInitialValues({});
+
+      await (await _launch()).write(MorseLanguage.german);
+
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getString(_key), 'german');
+      expect((await _launch()).read(), MorseLanguage.german);
+    });
+
     test('every saved language keeps reading back as itself', () async {
       // Values are only ever appended to MorseLanguage, so a name saved by
       // an older version still means the same language.

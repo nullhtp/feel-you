@@ -26,7 +26,7 @@ import '../test_doubles/mock_vibration_service.dart';
 /// Long repeat pause so the teaching loop never repeats during a test.
 const _testRepeatPause = Duration(seconds: 5);
 
-/// Identifier vibrations: Morse E, ع, Р, Ñ and É.
+/// Identifier vibrations: Morse E, ع, Р, Ñ, É and Ü.
 const _english = [MorseSignal.dot];
 const _arabic = [
   MorseSignal.dot,
@@ -49,6 +49,12 @@ const _french = [
   MorseSignal.dot,
   MorseSignal.dot,
 ];
+const _german = [
+  MorseSignal.dot,
+  MorseSignal.dot,
+  MorseSignal.dash,
+  MorseSignal.dash,
+];
 
 /// Each language's column label, identifier letter and identifier
 /// vibration, in picker order.
@@ -58,6 +64,7 @@ const _options = {
   MorseLanguage.russian: (label: 'Русский', letter: 'Р', identifier: _russian),
   MorseLanguage.spanish: (label: 'Español', letter: 'Ñ', identifier: _spanish),
   MorseLanguage.french: (label: 'Français', letter: 'É', identifier: _french),
+  MorseLanguage.german: (label: 'Deutsch', letter: 'Ü', identifier: _german),
 };
 
 /// The language of the rightmost column, where a swipe left from English
@@ -392,6 +399,27 @@ void main() {
       expect(_sessionLanguage(tester), MorseLanguage.french);
       expect(t.store.read(), MorseLanguage.french);
       expect(t.identifiers.take(2), [_french, _french]);
+
+      await t.dispose(tester);
+    });
+
+    testWidgets('Deutsch plays Ü and starts German', (tester) async {
+      final t = _Harness();
+      await t.pump(tester);
+      t.vibration.reset();
+
+      final german = tester.getCenter(find.text('Deutsch'));
+      await tester.tapAt(german);
+      await tester.pump();
+      expect(t.identifiers, [_german]);
+
+      await _hold(tester, at: german);
+      await _waitForSession(tester);
+
+      expect(find.byType(TouchSurface), findsOneWidget);
+      expect(_sessionLanguage(tester), MorseLanguage.german);
+      expect(t.store.read(), MorseLanguage.german);
+      expect(t.identifiers.take(2), [_german, _german]);
 
       await t.dispose(tester);
     });

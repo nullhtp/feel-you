@@ -2,6 +2,7 @@ import 'package:feel_you/morse/arabic_alphabet.dart';
 import 'package:feel_you/morse/digit_alphabet.dart';
 import 'package:feel_you/morse/english_alphabet.dart';
 import 'package:feel_you/morse/french_alphabet.dart';
+import 'package:feel_you/morse/german_alphabet.dart';
 import 'package:feel_you/morse/russian_alphabet.dart';
 import 'package:feel_you/morse/spanish_alphabet.dart';
 import 'package:feel_you/morse/level.dart';
@@ -13,8 +14,8 @@ import 'package:feel_you/morse/morse_signal.dart';
 ///
 /// Provides lookup methods for alphabets, levels, and encode/decode
 /// operations. The global [morseRegistry] is populated at module
-/// initialization with the digit, English, Arabic, Russian, Spanish and
-/// French alphabets.
+/// initialization with the digit, English, Arabic, Russian, Spanish, French
+/// and German alphabets.
 ///
 /// Alphabet data is treated as immutable: per-language lookups (alphabets,
 /// level lists and decode maps) are built once, at construction, and reused
@@ -123,4 +124,5 @@ final MorseAlphabetRegistry morseRegistry = MorseAlphabetRegistry([
   russianAlphabet,
   spanishAlphabet,
   frenchAlphabet,
+  germanAlphabet,
 ]);

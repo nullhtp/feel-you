@@ -98,6 +98,29 @@ void main() {
       );
     });
 
+    test(
+      'saves German letters, including umlauts, under their own key',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final germanLetters = _level(MorseLanguage.german, 1);
+
+        await (await _launch()).write(MorseLanguage.german, germanLetters, [
+          'Ö',
+          'Ü',
+        ]);
+
+        final preferences = await SharedPreferences.getInstance();
+        expect(
+          preferences.getStringList('learned_items.german.german-letters'),
+          ['Ö', 'Ü'],
+        );
+        expect((await _launch()).read(MorseLanguage.german, germanLetters), [
+          'Ö',
+          'Ü',
+        ]);
+      },
+    );
+
     test('keeps each language and level apart', () async {
       SharedPreferences.setMockInitialValues({});
 
